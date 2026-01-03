@@ -116,6 +116,7 @@
         "is_active": "نشط"
     },
     "navigation": {
+        "dashboard": "لوحة التحكم",
         "master_data": "البيانات الأساسية",
         "journals": "سجلات القيود",
         "accounts": "الحسابات",
@@ -135,6 +136,73 @@
             "training": "التدريب",
             "settings": "الإعدادات"
         }
+    },
+    "tables": {
+        "actions": {
+            "create": "إنشاء",
+            "edit": "تعديل",
+            "delete": "حذف",
+            "view": "عرض",
+            "save": "حفظ",
+            "cancel": "إلغاء",
+            "submit": "إرسال",
+            "update": "تحديث",
+            "search": "بحث",
+            "filter": "تصفية",
+            "clear": "مسح",
+            "reset": "إعادة تعيين",
+            "apply": "تطبيق",
+            "export": "تصدير",
+            "import": "استيراد",
+            "bulk_delete": "حذف المحدد",
+            "select_all": "تحديد الكل",
+            "deselect_all": "إلغاء تحديد الكل"
+        },
+        "labels": {
+            "search": "بحث",
+            "no_records": "لا توجد سجلات",
+            "record": "سجل",
+            "records": "سجلات",
+            "of": "من",
+            "per_page": "لكل صفحة",
+            "columns": "الأعمدة",
+            "actions": "الإجراءات",
+            "created_at": "تاريخ الإنشاء",
+            "updated_at": "تاريخ التحديث",
+            "select": "تحديد",
+            "selected": "محدد",
+            "all": "الكل",
+            "none": "لا شيء",
+            "yes": "نعم",
+            "no": "لا"
+        },
+        "pagination": {
+            "previous": "السابق",
+            "next": "التالي",
+            "first": "الأول",
+            "last": "الأخير",
+            "showing": "عرض",
+            "to": "إلى",
+            "results": "نتائج"
+        },
+        "filters": {
+            "filter": "تصفية",
+            "active_filters": "الفلاتر النشطة",
+            "remove_filter": "إزالة التصفية",
+            "clear_all": "مسح الكل"
+        }
+    },
+    "messages": {
+        "test": "اختبار",
+        "not_found": "غير موجود"
+    },
+    "dashboard": {
+        "title": "لوحة التحكم",
+        "welcome": "مرحباً",
+        "overview": "نظرة عامة",
+        "statistics": "الإحصائيات",
+        "recent_activity": "النشاط الأخير",
+        "quick_actions": "إجراءات سريعة"
     }
 }
 

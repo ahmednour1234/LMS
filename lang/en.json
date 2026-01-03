@@ -116,6 +116,7 @@
         "is_active": "Active"
     },
     "navigation": {
+        "dashboard": "Dashboard",
         "master_data": "Master Data",
         "journals": "Journals",
         "accounts": "Accounts",
@@ -135,5 +136,72 @@
             "training": "Training",
             "settings": "Settings"
         }
+    },
+    "tables": {
+        "actions": {
+            "create": "Create",
+            "edit": "Edit",
+            "delete": "Delete",
+            "view": "View",
+            "save": "Save",
+            "cancel": "Cancel",
+            "submit": "Submit",
+            "update": "Update",
+            "search": "Search",
+            "filter": "Filter",
+            "clear": "Clear",
+            "reset": "Reset",
+            "apply": "Apply",
+            "export": "Export",
+            "import": "Import",
+            "bulk_delete": "Delete Selected",
+            "select_all": "Select All",
+            "deselect_all": "Deselect All"
+        },
+        "labels": {
+            "search": "Search",
+            "no_records": "No records found",
+            "record": "Record",
+            "records": "Records",
+            "of": "of",
+            "per_page": "Per page",
+            "columns": "Columns",
+            "actions": "Actions",
+            "created_at": "Created At",
+            "updated_at": "Updated At",
+            "select": "Select",
+            "selected": "Selected",
+            "all": "All",
+            "none": "None",
+            "yes": "Yes",
+            "no": "No"
+        },
+        "pagination": {
+            "previous": "Previous",
+            "next": "Next",
+            "first": "First",
+            "last": "Last",
+            "showing": "Showing",
+            "to": "to",
+            "results": "results"
+        },
+        "filters": {
+            "filter": "Filter",
+            "active_filters": "Active Filters",
+            "remove_filter": "Remove Filter",
+            "clear_all": "Clear All"
+        }
+    },
+    "messages": {
+        "test": "Test",
+        "not_found": "Not Found"
+    },
+    "dashboard": {
+        "title": "Dashboard",
+        "welcome": "Welcome",
+        "overview": "Overview",
+        "statistics": "Statistics",
+        "recent_activity": "Recent Activity",
+        "quick_actions": "Quick Actions"
     }
 }
