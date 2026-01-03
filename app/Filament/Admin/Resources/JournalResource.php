@@ -5,6 +5,7 @@ namespace App\Filament\Admin\Resources;
 use App\Domain\Accounting\Models\Account;
 use App\Domain\Accounting\Models\CostCenter;
 use App\Domain\Accounting\Models\Journal;
+use App\Enums\JournalStatus;
 use App\Filament\Admin\Resources\JournalResource\Pages;
 use Filament\Forms;
 use Filament\Forms\Form;
@@ -110,10 +111,14 @@ class JournalResource extends Resource
                     ->label(__('journals.description')),
                 Tables\Columns\TextColumn::make('status')
                     ->badge()
-                    ->color(fn (string $state): string => match ($state) {
-                        'draft' => 'gray',
-                        'posted' => 'success',
-                        default => 'gray',
+                    ->formatStateUsing(fn (JournalStatus $state): string => $state->value)
+                    ->color(fn (JournalStatus|string $state): string => {
+                        $value = $state instanceof JournalStatus ? $state->value : $state;
+                        return match ($value) {
+                            'draft' => 'gray',
+                            'posted' => 'success',
+                            default => 'gray',
+                        };
                     })
                     ->label(__('journals.status')),
                 Tables\Columns\TextColumn::make('branch.name')
