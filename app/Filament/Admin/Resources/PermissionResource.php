@@ -17,11 +17,23 @@ class PermissionResource extends Resource
 
     protected static ?string $navigationIcon = 'heroicon-o-key';
 
-    protected static ?string $navigationLabel = 'Permissions';
+    protected static ?string $navigationGroup = 'settings';
 
-    protected static ?string $modelLabel = 'Permission';
+    protected static ?int $navigationSort = 3;
 
-    protected static ?string $pluralModelLabel = 'Permissions';
+    protected static ?string $modelLabel = 'navigation.permissions';
+
+    protected static ?string $pluralModelLabel = 'navigation.permissions';
+
+    public static function getNavigationLabel(): string
+    {
+        return __('navigation.permissions');
+    }
+
+    public static function getNavigationGroup(): ?string
+    {
+        return __('navigation.groups.settings');
+    }
 
     public static function form(Form $form): Form
     {

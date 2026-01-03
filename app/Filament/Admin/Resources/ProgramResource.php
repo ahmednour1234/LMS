@@ -17,13 +17,23 @@ class ProgramResource extends Resource
 
     protected static ?string $navigationIcon = 'heroicon-o-academic-cap';
 
-    protected static ?string $navigationLabel = 'Programs';
+    protected static ?string $navigationGroup = 'training';
 
-    protected static ?string $modelLabel = 'Program';
+    protected static ?int $navigationSort = 1;
 
-    protected static ?string $pluralModelLabel = 'Programs';
+    protected static ?string $modelLabel = 'navigation.programs';
 
-    protected static ?string $navigationGroup = 'Training Catalog';
+    protected static ?string $pluralModelLabel = 'navigation.programs';
+
+    public static function getNavigationLabel(): string
+    {
+        return __('navigation.programs');
+    }
+
+    public static function getNavigationGroup(): ?string
+    {
+        return __('navigation.groups.training');
+    }
 
     public static function form(Form $form): Form
     {

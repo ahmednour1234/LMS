@@ -34,6 +34,12 @@
         "name": "الاسم",
         "code": "الكود",
         "type": "النوع",
+        "type_options": {
+            "cash": "نقدي",
+            "bank_transfer": "تحويل بنكي",
+            "card": "بطاقة",
+            "gateway": "بوابة دفع"
+        },
         "is_active": "نشط",
         "config": "الإعدادات"
     },
@@ -47,6 +53,51 @@
         "code": "الكود",
         "parent": "الأصل",
         "is_active": "نشط"
+    },
+    "accounts": {
+        "code": "الكود",
+        "name": "الاسم",
+        "type": "النوع",
+        "type_options": {
+            "asset": "أصل",
+            "liability": "التزام",
+            "equity": "حقوق ملكية",
+            "revenue": "إيراد",
+            "expense": "مصروف"
+        },
+        "parent": "الأصل",
+        "opening_balance": "الرصيد الافتتاحي",
+        "branch": "الفرع",
+        "is_active": "نشط"
+    },
+    "journals": {
+        "reference": "المرجع",
+        "date": "التاريخ",
+        "description": "الوصف",
+        "status": "الحالة",
+        "status_options": {
+            "draft": "مسودة",
+            "posted": "مسجل"
+        },
+        "branch": "الفرع",
+        "created_by": "تم الإنشاء بواسطة",
+        "journal_lines": "بنود القيد"
+    },
+    "journal_lines": {
+        "account": "الحساب",
+        "debit": "مدين",
+        "credit": "دائن",
+        "description": "الوصف",
+        "cost_center": "مركز التكلفة"
+    },
+    "media_files": {
+        "filename": "اسم الملف",
+        "original_filename": "اسم الملف الأصلي",
+        "mime_type": "نوع MIME",
+        "size": "الحجم",
+        "branch": "الفرع",
+        "user": "المستخدم",
+        "path": "الملف"
     },
     "programs": {
         "code": "الكود",
@@ -65,7 +116,25 @@
         "is_active": "نشط"
     },
     "navigation": {
-        "master_data": "البيانات الأساسية"
+        "master_data": "البيانات الأساسية",
+        "journals": "سجلات القيود",
+        "accounts": "الحسابات",
+        "categories": "الفئات",
+        "cost_centers": "مراكز التكلفة",
+        "payment_methods": "طرق الدفع",
+        "programs": "البرامج",
+        "courses": "الدورات",
+        "users": "المستخدمون",
+        "roles": "الأدوار",
+        "permissions": "الصلاحيات",
+        "branches": "الفروع",
+        "media_files": "الملفات",
+        "settings": "الإعدادات",
+        "groups": {
+            "accounting": "المحاسبة",
+            "training": "التدريب",
+            "settings": "الإعدادات"
+        }
     }
 }
 

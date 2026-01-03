@@ -20,11 +20,23 @@ class JournalResource extends Resource
 
     protected static ?string $navigationIcon = 'heroicon-o-document-text';
 
-    protected static ?string $navigationLabel = 'Journals';
+    protected static ?string $navigationGroup = 'accounting';
 
-    protected static ?string $modelLabel = 'Journal';
+    protected static ?int $navigationSort = 1;
 
-    protected static ?string $pluralModelLabel = 'Journals';
+    protected static ?string $modelLabel = 'navigation.journals';
+
+    protected static ?string $pluralModelLabel = 'navigation.journals';
+
+    public static function getNavigationLabel(): string
+    {
+        return __('navigation.journals');
+    }
+
+    public static function getNavigationGroup(): ?string
+    {
+        return __('navigation.groups.accounting');
+    }
 
     public static function form(Form $form): Form
     {
@@ -111,7 +123,7 @@ class JournalResource extends Resource
                     ->label(__('journals.description')),
                 Tables\Columns\TextColumn::make('status')
                     ->badge()
-                    ->formatStateUsing(fn (JournalStatus $state): string => $state->value)
+                    ->formatStateUsing(fn (JournalStatus $state): string => __('journals.status_options.' . $state->value))
                     ->color(function (JournalStatus|string $state): string {
                         $value = $state instanceof JournalStatus ? $state->value : $state;
                         return match ($value) {

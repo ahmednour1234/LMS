@@ -16,11 +16,23 @@ class PaymentMethodResource extends Resource
 
     protected static ?string $navigationIcon = 'heroicon-o-credit-card';
 
-    protected static ?string $navigationLabel = 'Payment Methods';
+    protected static ?string $navigationGroup = 'accounting';
 
-    protected static ?string $modelLabel = 'Payment Method';
+    protected static ?int $navigationSort = 5;
 
-    protected static ?string $pluralModelLabel = 'Payment Methods';
+    protected static ?string $modelLabel = 'navigation.payment_methods';
+
+    protected static ?string $pluralModelLabel = 'navigation.payment_methods';
+
+    public static function getNavigationLabel(): string
+    {
+        return __('navigation.payment_methods');
+    }
+
+    public static function getNavigationGroup(): ?string
+    {
+        return __('navigation.groups.accounting');
+    }
 
     public static function form(Form $form): Form
     {

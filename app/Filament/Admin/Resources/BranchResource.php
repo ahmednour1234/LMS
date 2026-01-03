@@ -17,11 +17,23 @@ class BranchResource extends Resource
 
     protected static ?string $navigationIcon = 'heroicon-o-building-office';
 
-    protected static ?string $navigationLabel = 'Branches';
+    protected static ?string $navigationGroup = 'settings';
 
-    protected static ?string $modelLabel = 'Branch';
+    protected static ?int $navigationSort = 4;
 
-    protected static ?string $pluralModelLabel = 'Branches';
+    protected static ?string $modelLabel = 'navigation.branches';
+
+    protected static ?string $pluralModelLabel = 'navigation.branches';
+
+    public static function getNavigationLabel(): string
+    {
+        return __('navigation.branches');
+    }
+
+    public static function getNavigationGroup(): ?string
+    {
+        return __('navigation.groups.settings');
+    }
 
     public static function form(Form $form): Form
     {

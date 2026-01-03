@@ -16,11 +16,23 @@ class CostCenterResource extends Resource
 
     protected static ?string $navigationIcon = 'heroicon-o-building-office-2';
 
-    protected static ?string $navigationLabel = 'Cost Centers';
+    protected static ?string $navigationGroup = 'accounting';
 
-    protected static ?string $modelLabel = 'Cost Center';
+    protected static ?int $navigationSort = 4;
 
-    protected static ?string $pluralModelLabel = 'Cost Centers';
+    protected static ?string $modelLabel = 'navigation.cost_centers';
+
+    protected static ?string $pluralModelLabel = 'navigation.cost_centers';
+
+    public static function getNavigationLabel(): string
+    {
+        return __('navigation.cost_centers');
+    }
+
+    public static function getNavigationGroup(): ?string
+    {
+        return __('navigation.groups.accounting');
+    }
 
     public static function form(Form $form): Form
     {

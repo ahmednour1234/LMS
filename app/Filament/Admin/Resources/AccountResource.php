@@ -18,11 +18,23 @@ class AccountResource extends Resource
 
     protected static ?string $navigationIcon = 'heroicon-o-chart-bar';
 
-    protected static ?string $navigationLabel = 'Accounts';
+    protected static ?string $navigationGroup = 'accounting';
 
-    protected static ?string $modelLabel = 'Account';
+    protected static ?int $navigationSort = 2;
 
-    protected static ?string $pluralModelLabel = 'Accounts';
+    protected static ?string $modelLabel = 'navigation.accounts';
+
+    protected static ?string $pluralModelLabel = 'navigation.accounts';
+
+    public static function getNavigationLabel(): string
+    {
+        return __('navigation.accounts');
+    }
+
+    public static function getNavigationGroup(): ?string
+    {
+        return __('navigation.groups.accounting');
+    }
 
     public static function form(Form $form): Form
     {

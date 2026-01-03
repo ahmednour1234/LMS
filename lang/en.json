@@ -116,6 +116,24 @@
         "is_active": "Active"
     },
     "navigation": {
-        "master_data": "Master Data"
+        "master_data": "Master Data",
+        "journals": "Journals",
+        "accounts": "Accounts",
+        "categories": "Categories",
+        "cost_centers": "Cost Centers",
+        "payment_methods": "Payment Methods",
+        "programs": "Programs",
+        "courses": "Courses",
+        "users": "Users",
+        "roles": "Roles",
+        "permissions": "Permissions",
+        "branches": "Branches",
+        "media_files": "Media Files",
+        "settings": "Settings",
+        "groups": {
+            "accounting": "Accounting",
+            "training": "Training",
+            "settings": "Settings"
+        }
     }
 }

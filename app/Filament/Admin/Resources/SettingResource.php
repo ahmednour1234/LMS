@@ -16,11 +16,23 @@ class SettingResource extends Resource
 
     protected static ?string $navigationIcon = 'heroicon-o-cog-6-tooth';
 
-    protected static ?string $navigationLabel = 'Settings';
+    protected static ?string $navigationGroup = 'settings';
 
-    protected static ?string $modelLabel = 'Setting';
+    protected static ?int $navigationSort = 6;
 
-    protected static ?string $pluralModelLabel = 'Settings';
+    protected static ?string $modelLabel = 'navigation.settings';
+
+    protected static ?string $pluralModelLabel = 'navigation.settings';
+
+    public static function getNavigationLabel(): string
+    {
+        return __('navigation.settings');
+    }
+
+    public static function getNavigationGroup(): ?string
+    {
+        return __('navigation.groups.settings');
+    }
 
     public static function form(Form $form): Form
     {

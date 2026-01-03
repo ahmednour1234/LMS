@@ -17,11 +17,23 @@ class RoleResource extends Resource
 
     protected static ?string $navigationIcon = 'heroicon-o-shield-check';
 
-    protected static ?string $navigationLabel = 'Roles';
+    protected static ?string $navigationGroup = 'settings';
 
-    protected static ?string $modelLabel = 'Role';
+    protected static ?int $navigationSort = 2;
 
-    protected static ?string $pluralModelLabel = 'Roles';
+    protected static ?string $modelLabel = 'navigation.roles';
+
+    protected static ?string $pluralModelLabel = 'navigation.roles';
+
+    public static function getNavigationLabel(): string
+    {
+        return __('navigation.roles');
+    }
+
+    public static function getNavigationGroup(): ?string
+    {
+        return __('navigation.groups.settings');
+    }
 
     public static function form(Form $form): Form
     {

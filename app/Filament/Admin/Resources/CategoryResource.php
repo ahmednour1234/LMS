@@ -16,11 +16,23 @@ class CategoryResource extends Resource
 
     protected static ?string $navigationIcon = 'heroicon-o-folder';
 
-    protected static ?string $navigationLabel = 'Categories';
+    protected static ?string $navigationGroup = 'accounting';
 
-    protected static ?string $modelLabel = 'Category';
+    protected static ?int $navigationSort = 3;
 
-    protected static ?string $pluralModelLabel = 'Categories';
+    protected static ?string $modelLabel = 'navigation.categories';
+
+    protected static ?string $pluralModelLabel = 'navigation.categories';
+
+    public static function getNavigationLabel(): string
+    {
+        return __('navigation.categories');
+    }
+
+    public static function getNavigationGroup(): ?string
+    {
+        return __('navigation.groups.accounting');
+    }
 
     public static function form(Form $form): Form
     {

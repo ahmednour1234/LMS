@@ -17,11 +17,23 @@ class MediaFileResource extends Resource
 
     protected static ?string $navigationIcon = 'heroicon-o-photo';
 
-    protected static ?string $navigationLabel = 'Media Files';
+    protected static ?string $navigationGroup = 'settings';
 
-    protected static ?string $modelLabel = 'Media File';
+    protected static ?int $navigationSort = 5;
 
-    protected static ?string $pluralModelLabel = 'Media Files';
+    protected static ?string $modelLabel = 'navigation.media_files';
+
+    protected static ?string $pluralModelLabel = 'navigation.media_files';
+
+    public static function getNavigationLabel(): string
+    {
+        return __('navigation.media_files');
+    }
+
+    public static function getNavigationGroup(): ?string
+    {
+        return __('navigation.groups.settings');
+    }
 
     public static function form(Form $form): Form
     {
