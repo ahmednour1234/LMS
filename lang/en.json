@@ -1,0 +1,55 @@
+{
+    "users": {
+        "name": "Name",
+        "email": "Email",
+        "password": "Password",
+        "branch": "Branch",
+        "roles": "Roles",
+        "email_verified_at": "Email Verified At"
+    },
+    "branches": {
+        "name": "Name",
+        "is_active": "Active",
+        "users_count": "Users Count"
+    },
+    "roles": {
+        "name": "Name",
+        "permissions": "Permissions",
+        "permissions_count": "Permissions Count",
+        "users_count": "Users Count"
+    },
+    "permissions": {
+        "name": "Name",
+        "roles_count": "Roles Count",
+        "users_count": "Users Count"
+    },
+    "categories": {
+        "name": "Name",
+        "slug": "Slug",
+        "parent": "Parent",
+        "is_active": "Active",
+        "sort_order": "Sort Order"
+    },
+    "payment_methods": {
+        "name": "Name",
+        "code": "Code",
+        "type": "Type",
+        "is_active": "Active",
+        "config": "Configuration"
+    },
+    "settings": {
+        "key": "Key",
+        "value": "Value",
+        "group": "Group"
+    },
+    "cost_centers": {
+        "name": "Name",
+        "code": "Code",
+        "parent": "Parent",
+        "is_active": "Active"
+    },
+    "navigation": {
+        "master_data": "Master Data"
+    }
+}
+

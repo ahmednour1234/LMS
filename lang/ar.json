@@ -1,0 +1,55 @@
+{
+    "users": {
+        "name": "الاسم",
+        "email": "البريد الإلكتروني",
+        "password": "كلمة المرور",
+        "branch": "الفرع",
+        "roles": "الأدوار",
+        "email_verified_at": "تاريخ التحقق من البريد"
+    },
+    "branches": {
+        "name": "الاسم",
+        "is_active": "نشط",
+        "users_count": "عدد المستخدمين"
+    },
+    "roles": {
+        "name": "الاسم",
+        "permissions": "الصلاحيات",
+        "permissions_count": "عدد الصلاحيات",
+        "users_count": "عدد المستخدمين"
+    },
+    "permissions": {
+        "name": "الاسم",
+        "roles_count": "عدد الأدوار",
+        "users_count": "عدد المستخدمين"
+    },
+    "categories": {
+        "name": "الاسم",
+        "slug": "الرابط",
+        "parent": "الأصل",
+        "is_active": "نشط",
+        "sort_order": "ترتيب"
+    },
+    "payment_methods": {
+        "name": "الاسم",
+        "code": "الكود",
+        "type": "النوع",
+        "is_active": "نشط",
+        "config": "الإعدادات"
+    },
+    "settings": {
+        "key": "المفتاح",
+        "value": "القيمة",
+        "group": "المجموعة"
+    },
+    "cost_centers": {
+        "name": "الاسم",
+        "code": "الكود",
+        "parent": "الأصل",
+        "is_active": "نشط"
+    },
+    "navigation": {
+        "master_data": "البيانات الأساسية"
+    }
+}
+
