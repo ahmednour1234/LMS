@@ -7,6 +7,7 @@ use App\Domain\Accounting\Models\CostCenter;
 use App\Domain\Accounting\Models\Journal;
 use App\Enums\JournalStatus;
 use App\Filament\Admin\Resources\JournalResource\Pages;
+use App\Filament\Concerns\HasTableExports;
 use Filament\Forms;
 use Filament\Forms\Form;
 use Filament\Resources\Resource;
@@ -16,6 +17,7 @@ use Illuminate\Database\Eloquent\Builder;
 
 class JournalResource extends Resource
 {
+    use HasTableExports;
     protected static ?string $model = Journal::class;
 
     protected static ?string $navigationIcon = 'heroicon-o-document-text';
@@ -160,6 +162,7 @@ class JournalResource extends Resource
             ->actions([
                 Tables\Actions\EditAction::make(),
             ])
+            ->headerActions(static::getExportActions())
             ->bulkActions([
                 Tables\Actions\BulkActionGroup::make([
                     Tables\Actions\DeleteBulkAction::make(),

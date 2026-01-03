@@ -5,6 +5,7 @@ namespace App\Filament\Admin\Resources;
 use App\Domain\Accounting\Models\Account;
 use App\Domain\Branch\Models\Branch;
 use App\Filament\Admin\Resources\AccountResource\Pages;
+use App\Filament\Concerns\HasTableExports;
 use Filament\Forms;
 use Filament\Forms\Form;
 use Filament\Resources\Resource;
@@ -14,6 +15,7 @@ use Illuminate\Database\Eloquent\Builder;
 
 class AccountResource extends Resource
 {
+    use HasTableExports;
     protected static ?string $model = Account::class;
 
     protected static ?string $navigationIcon = 'heroicon-o-chart-bar';
@@ -137,6 +139,7 @@ class AccountResource extends Resource
             ->actions([
                 Tables\Actions\EditAction::make(),
             ])
+            ->headerActions(static::getExportActions())
             ->bulkActions([
                 Tables\Actions\BulkActionGroup::make([
                     Tables\Actions\DeleteBulkAction::make(),
