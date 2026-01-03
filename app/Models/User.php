@@ -9,6 +9,7 @@ use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Spatie\Permission\Traits\HasPermissions;
 use Spatie\Permission\Traits\HasRoles;
+use Spatie\Permission\Models\Role;
 
 class User extends Authenticatable
 {
@@ -25,6 +26,7 @@ class User extends Authenticatable
         'email',
         'password',
         'branch_id',
+        'primary_role_id',
         'created_by',
         'updated_by',
     ];
@@ -55,6 +57,11 @@ class User extends Authenticatable
     public function branch(): BelongsTo
     {
         return $this->belongsTo(Branch::class);
+    }
+
+    public function primaryRole(): BelongsTo
+    {
+        return $this->belongsTo(Role::class, 'primary_role_id');
     }
 
     public function creator(): BelongsTo
