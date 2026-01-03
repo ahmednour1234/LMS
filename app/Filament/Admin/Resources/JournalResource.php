@@ -112,7 +112,7 @@ class JournalResource extends Resource
                 Tables\Columns\TextColumn::make('status')
                     ->badge()
                     ->formatStateUsing(fn (JournalStatus $state): string => $state->value)
-                    ->color(fn (JournalStatus|string $state): string => {
+                    ->color(function (JournalStatus|string $state): string {
                         $value = $state instanceof JournalStatus ? $state->value : $state;
                         return match ($value) {
                             'draft' => 'gray',
