@@ -48,6 +48,22 @@
         "parent": "الأصل",
         "is_active": "نشط"
     },
+    "programs": {
+        "code": "الكود",
+        "branch": "الفرع",
+        "is_active": "نشط",
+        "courses_count": "عدد الدورات"
+    },
+    "courses": {
+        "code": "الكود",
+        "program": "البرنامج",
+        "branch": "الفرع",
+        "price": "السعر",
+        "is_installment_enabled": "الدفع بالتقسيط",
+        "trainers": "المدربون",
+        "trainers_count": "عدد المدربين",
+        "is_active": "نشط"
+    },
     "navigation": {
         "master_data": "البيانات الأساسية"
     }

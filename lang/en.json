@@ -34,6 +34,12 @@
         "name": "Name",
         "code": "Code",
         "type": "Type",
+        "type_options": {
+            "cash": "Cash",
+            "bank_transfer": "Bank Transfer",
+            "card": "Card",
+            "gateway": "Payment Gateway"
+        },
         "is_active": "Active",
         "config": "Configuration"
     },
@@ -48,8 +54,68 @@
         "parent": "Parent",
         "is_active": "Active"
     },
+    "accounts": {
+        "code": "Code",
+        "name": "Name",
+        "type": "Type",
+        "type_options": {
+            "asset": "Asset",
+            "liability": "Liability",
+            "equity": "Equity",
+            "revenue": "Revenue",
+            "expense": "Expense"
+        },
+        "parent": "Parent",
+        "opening_balance": "Opening Balance",
+        "branch": "Branch",
+        "is_active": "Active"
+    },
+    "journals": {
+        "reference": "Reference",
+        "date": "Date",
+        "description": "Description",
+        "status": "Status",
+        "status_options": {
+            "draft": "Draft",
+            "posted": "Posted"
+        },
+        "branch": "Branch",
+        "created_by": "Created By",
+        "journal_lines": "Journal Lines"
+    },
+    "journal_lines": {
+        "account": "Account",
+        "debit": "Debit",
+        "credit": "Credit",
+        "description": "Description",
+        "cost_center": "Cost Center"
+    },
+    "media_files": {
+        "filename": "Filename",
+        "original_filename": "Original Filename",
+        "mime_type": "MIME Type",
+        "size": "Size",
+        "branch": "Branch",
+        "user": "User",
+        "path": "File"
+    },
+    "programs": {
+        "code": "Code",
+        "branch": "Branch",
+        "is_active": "Active",
+        "courses_count": "Courses Count"
+    },
+    "courses": {
+        "code": "Code",
+        "program": "Program",
+        "branch": "Branch",
+        "price": "Price",
+        "is_installment_enabled": "Installment Enabled",
+        "trainers": "Trainers",
+        "trainers_count": "Trainers Count",
+        "is_active": "Active"
+    },
     "navigation": {
         "master_data": "Master Data"
     }
 }
-

@@ -15,11 +15,29 @@ class DatabaseSeeder extends Seeder
      */
     public function run(): void
     {
-        // User::factory(10)->create();
+        // Seed roles and permissions first (required for users)
+        $this->call([
+            RolePermissionSeeder::class,
+        ]);
 
+        // Seed branches (required for users and accounts)
+        $this->call([
+            BranchSeeder::class,
+        ]);
+
+        // Seed users
         User::factory()->create([
             'name' => 'Test User',
             'email' => 'test@example.com',
+        ]);
+
+        // Seed other data
+        $this->call([
+            CategorySeeder::class,
+            PaymentMethodSeeder::class,
+            CostCenterSeeder::class,
+            SettingSeeder::class,
+            AccountingAccountSeeder::class,
         ]);
     }
 }
