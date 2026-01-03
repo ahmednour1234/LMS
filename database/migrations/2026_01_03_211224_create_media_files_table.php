@@ -13,7 +13,19 @@ return new class extends Migration
     {
         Schema::create('media_files', function (Blueprint $table) {
             $table->id();
+            $table->string('filename');
+            $table->string('original_filename');
+            $table->string('mime_type');
+            $table->unsignedBigInteger('size');
+            $table->string('disk')->default('local');
+            $table->string('path');
+            $table->foreignId('user_id')->nullable()->constrained()->nullOnDelete();
+            $table->foreignId('branch_id')->nullable()->constrained()->nullOnDelete();
             $table->timestamps();
+
+            $table->index('user_id');
+            $table->index('branch_id');
+            $table->index(['disk', 'path']);
         });
     }
 

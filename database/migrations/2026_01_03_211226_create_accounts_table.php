@@ -13,7 +13,17 @@ return new class extends Migration
     {
         Schema::create('accounts', function (Blueprint $table) {
             $table->id();
+            $table->string('code')->unique();
+            $table->string('name');
+            $table->enum('type', ['asset', 'liability', 'equity', 'revenue', 'expense']);
+            $table->foreignId('parent_id')->nullable()->constrained('accounts')->nullOnDelete();
+            $table->decimal('opening_balance', 15, 2)->default(0);
+            $table->boolean('is_active')->default(true);
+            $table->foreignId('branch_id')->nullable()->constrained()->nullOnDelete();
             $table->timestamps();
+
+            $table->index(['branch_id', 'is_active']);
+            $table->index(['type', 'is_active']);
         });
     }
 
