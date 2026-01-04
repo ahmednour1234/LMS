@@ -9,11 +9,15 @@ use Carbon\Carbon;
 use Filament\Actions\Action;
 use Filament\Forms\Components\DatePicker;
 use Filament\Forms\Components\Select;
+use Filament\Forms\Concerns\InteractsWithForms;
+use Filament\Forms\Contracts\HasForms;
+use Filament\Forms\Form;
 use Filament\Pages\Page;
 use Illuminate\Support\Facades\App;
 
-class GeneralLedgerPage extends Page
+class GeneralLedgerPage extends Page implements HasForms
 {
+    use InteractsWithForms;
     protected static ?string $navigationIcon = 'heroicon-o-book-open';
 
     protected static string $view = 'filament.admin.pages.general-ledger-page';
@@ -27,11 +31,17 @@ class GeneralLedgerPage extends Page
     public ?string $startDate = null;
     public ?string $endDate = null;
     public ?array $accountIds = null;
+    
+    public ?array $data = [];
 
     public function mount(): void
     {
         $this->startDate = now()->startOfMonth()->format('Y-m-d');
         $this->endDate = now()->format('Y-m-d');
+        $this->form->fill([
+            'startDate' => now()->startOfMonth(),
+            'endDate' => now(),
+        ]);
     }
 
     protected function getHeaderActions(): array
@@ -63,27 +73,30 @@ class GeneralLedgerPage extends Page
         ];
     }
 
-    protected function getFormSchema(): array
+    public function form(Form $form): Form
     {
-        return [
-            DatePicker::make('startDate')
-                ->label(__('filters.date_from'))
-                ->required()
-                ->default(now()->startOfMonth()),
-            DatePicker::make('endDate')
-                ->label(__('filters.date_to'))
-                ->required()
-                ->default(now()),
-            Select::make('accountIds')
-                ->label(__('accounts.account'))
-                ->multiple()
-                ->options(Account::where('is_active', true)->pluck('name', 'id'))
-                ->searchable(),
-        ];
+        return $form
+            ->schema([
+                DatePicker::make('startDate')
+                    ->label(__('filters.date_from'))
+                    ->required()
+                    ->default(now()->startOfMonth()),
+                DatePicker::make('endDate')
+                    ->label(__('filters.date_to'))
+                    ->required()
+                    ->default(now()),
+                Select::make('accountIds')
+                    ->label(__('accounts.account'))
+                    ->multiple()
+                    ->options(Account::where('is_active', true)->pluck('name', 'id'))
+                    ->searchable(),
+            ])
+            ->statePath('data');
     }
 
     public function generate(): void
     {
+        $this->form->validate();
         $data = $this->form->getState();
         $this->startDate = $data['startDate'] ?? $this->startDate;
         $this->endDate = $data['endDate'] ?? $this->endDate;

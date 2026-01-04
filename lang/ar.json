@@ -183,7 +183,8 @@
         "general_ledger": "دفتر الأستاذ العام",
         "income_statement": "قائمة الدخل",
         "account_statement": "كشف حساب",
-        "generate": "إنشاء"
+        "generate": "إنشاء",
+        "no_data_for_period": "لا توجد بيانات للفترة المحددة"
     },
     "filters": {
         "date_from": "من تاريخ",
