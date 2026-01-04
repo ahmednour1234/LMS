@@ -21,11 +21,17 @@ class BranchResource extends Resource
 
     protected static ?int $navigationSort = 4;
 
-    protected static ?string $modelLabel = 'navigation.branches';
-
-    protected static ?string $pluralModelLabel = 'navigation.branches';
-
     public static function getNavigationLabel(): string
+    {
+        return __('navigation.branches');
+    }
+
+    public static function getModelLabel(): string
+    {
+        return __('navigation.branches');
+    }
+
+    public static function getPluralModelLabel(): string
     {
         return __('navigation.branches');
     }

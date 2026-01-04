@@ -21,11 +21,17 @@ class PermissionResource extends Resource
 
     protected static ?int $navigationSort = 3;
 
-    protected static ?string $modelLabel = 'navigation.permissions';
-
-    protected static ?string $pluralModelLabel = 'navigation.permissions';
-
     public static function getNavigationLabel(): string
+    {
+        return __('navigation.permissions');
+    }
+
+    public static function getModelLabel(): string
+    {
+        return __('navigation.permissions');
+    }
+
+    public static function getPluralModelLabel(): string
     {
         return __('navigation.permissions');
     }

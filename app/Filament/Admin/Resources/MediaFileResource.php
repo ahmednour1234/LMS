@@ -21,11 +21,17 @@ class MediaFileResource extends Resource
 
     protected static ?int $navigationSort = 5;
 
-    protected static ?string $modelLabel = 'navigation.media_files';
-
-    protected static ?string $pluralModelLabel = 'navigation.media_files';
-
     public static function getNavigationLabel(): string
+    {
+        return __('navigation.media_files');
+    }
+
+    public static function getModelLabel(): string
+    {
+        return __('navigation.media_files');
+    }
+
+    public static function getPluralModelLabel(): string
     {
         return __('navigation.media_files');
     }

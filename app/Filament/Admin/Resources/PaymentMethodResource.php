@@ -20,11 +20,17 @@ class PaymentMethodResource extends Resource
 
     protected static ?int $navigationSort = 5;
 
-    protected static ?string $modelLabel = 'navigation.payment_methods';
-
-    protected static ?string $pluralModelLabel = 'navigation.payment_methods';
-
     public static function getNavigationLabel(): string
+    {
+        return __('navigation.payment_methods');
+    }
+
+    public static function getModelLabel(): string
+    {
+        return __('navigation.payment_methods');
+    }
+
+    public static function getPluralModelLabel(): string
     {
         return __('navigation.payment_methods');
     }

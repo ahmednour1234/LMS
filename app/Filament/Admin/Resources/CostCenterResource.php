@@ -20,11 +20,17 @@ class CostCenterResource extends Resource
 
     protected static ?int $navigationSort = 4;
 
-    protected static ?string $modelLabel = 'navigation.cost_centers';
-
-    protected static ?string $pluralModelLabel = 'navigation.cost_centers';
-
     public static function getNavigationLabel(): string
+    {
+        return __('navigation.cost_centers');
+    }
+
+    public static function getModelLabel(): string
+    {
+        return __('navigation.cost_centers');
+    }
+
+    public static function getPluralModelLabel(): string
     {
         return __('navigation.cost_centers');
     }

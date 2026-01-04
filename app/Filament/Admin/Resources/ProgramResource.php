@@ -21,11 +21,17 @@ class ProgramResource extends Resource
 
     protected static ?int $navigationSort = 1;
 
-    protected static ?string $modelLabel = 'navigation.programs';
-
-    protected static ?string $pluralModelLabel = 'navigation.programs';
-
     public static function getNavigationLabel(): string
+    {
+        return __('navigation.programs');
+    }
+
+    public static function getModelLabel(): string
+    {
+        return __('navigation.programs');
+    }
+
+    public static function getPluralModelLabel(): string
     {
         return __('navigation.programs');
     }

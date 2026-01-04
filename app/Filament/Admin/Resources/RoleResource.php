@@ -21,11 +21,17 @@ class RoleResource extends Resource
 
     protected static ?int $navigationSort = 2;
 
-    protected static ?string $modelLabel = 'navigation.roles';
-
-    protected static ?string $pluralModelLabel = 'navigation.roles';
-
     public static function getNavigationLabel(): string
+    {
+        return __('navigation.roles');
+    }
+
+    public static function getModelLabel(): string
+    {
+        return __('navigation.roles');
+    }
+
+    public static function getPluralModelLabel(): string
     {
         return __('navigation.roles');
     }

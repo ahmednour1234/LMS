@@ -21,11 +21,17 @@ class CourseResource extends Resource
 
     protected static ?int $navigationSort = 2;
 
-    protected static ?string $modelLabel = 'navigation.courses';
-
-    protected static ?string $pluralModelLabel = 'navigation.courses';
-
     public static function getNavigationLabel(): string
+    {
+        return __('navigation.courses');
+    }
+
+    public static function getModelLabel(): string
+    {
+        return __('navigation.courses');
+    }
+
+    public static function getPluralModelLabel(): string
     {
         return __('navigation.courses');
     }

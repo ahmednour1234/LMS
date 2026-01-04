@@ -24,11 +24,17 @@ class AccountResource extends Resource
 
     protected static ?int $navigationSort = 2;
 
-    protected static ?string $modelLabel = 'navigation.accounts';
-
-    protected static ?string $pluralModelLabel = 'navigation.accounts';
-
     public static function getNavigationLabel(): string
+    {
+        return __('navigation.accounts');
+    }
+
+    public static function getModelLabel(): string
+    {
+        return __('navigation.accounts');
+    }
+
+    public static function getPluralModelLabel(): string
     {
         return __('navigation.accounts');
     }

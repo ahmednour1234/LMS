@@ -20,11 +20,17 @@ class SettingResource extends Resource
 
     protected static ?int $navigationSort = 6;
 
-    protected static ?string $modelLabel = 'navigation.settings';
-
-    protected static ?string $pluralModelLabel = 'navigation.settings';
-
     public static function getNavigationLabel(): string
+    {
+        return __('navigation.settings');
+    }
+
+    public static function getModelLabel(): string
+    {
+        return __('navigation.settings');
+    }
+
+    public static function getPluralModelLabel(): string
     {
         return __('navigation.settings');
     }
