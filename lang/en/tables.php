@@ -38,6 +38,7 @@ return [
         'none' => 'None',
         'yes' => 'Yes',
         'no' => 'No',
+        'bulk_actions_description' => 'Select/Deselect all items for bulk actions',
     ],
     'pagination' => [
         'previous' => 'Previous',

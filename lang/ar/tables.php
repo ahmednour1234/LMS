@@ -38,6 +38,7 @@ return [
         'none' => 'لا شيء',
         'yes' => 'نعم',
         'no' => 'لا',
+        'bulk_actions_description' => 'تحديد/إلغاء تحديد كافة العناصر للإجراءات الجماعية',
     ],
     'pagination' => [
         'previous' => 'السابق',
