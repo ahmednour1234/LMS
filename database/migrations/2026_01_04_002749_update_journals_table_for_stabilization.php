@@ -7,138 +7,174 @@ use Illuminate\Support\Facades\Schema;
 
 return new class extends Migration
 {
-    /**
-     * Run the migrations.
-     */
+    // ---------- Helpers (MySQL/MariaDB safe drops) ----------
+    private function indexExists(string $table, string $indexName): bool
+    {
+        $db = DB::getDatabaseName();
+
+        $row = DB::selectOne("
+            SELECT 1
+            FROM information_schema.statistics
+            WHERE table_schema = ?
+              AND table_name   = ?
+              AND index_name   = ?
+            LIMIT 1
+        ", [$db, $table, $indexName]);
+
+        return (bool) $row;
+    }
+
+    private function dropIndexIfExists(string $table, string $indexName): void
+    {
+        if ($this->indexExists($table, $indexName)) {
+            DB::statement("ALTER TABLE `$table` DROP INDEX `$indexName`");
+        }
+    }
+
+    private function foreignKeyExists(string $table, string $fkName): bool
+    {
+        $db = DB::getDatabaseName();
+
+        $row = DB::selectOne("
+            SELECT 1
+            FROM information_schema.table_constraints
+            WHERE table_schema = ?
+              AND table_name   = ?
+              AND constraint_name = ?
+              AND constraint_type = 'FOREIGN KEY'
+            LIMIT 1
+        ", [$db, $table, $fkName]);
+
+        return (bool) $row;
+    }
+
+    private function dropForeignIfExists(string $table, string $fkName): void
+    {
+        if ($this->foreignKeyExists($table, $fkName)) {
+            DB::statement("ALTER TABLE `$table` DROP FOREIGN KEY `$fkName`");
+        }
+    }
+
+    private function mysqlEnumHasValue(string $table, string $column, string $value): bool
+    {
+        $row = DB::selectOne("SHOW COLUMNS FROM `$table` WHERE Field = ?", [$column]);
+        if (!$row || empty($row->Type)) {
+            return false;
+        }
+        return strpos($row->Type, "'" . $value . "'") !== false;
+    }
+
     public function up(): void
     {
-        // Add posted_by column if it doesn't exist
+        // 1) posted_by column + FK (explicit name)
         if (!Schema::hasColumn('journals', 'posted_by')) {
             Schema::table('journals', function (Blueprint $table) {
-                $table->foreignId('posted_by')->nullable()->after('updated_by')->constrained('users')->nullOnDelete();
+                $table->unsignedBigInteger('posted_by')->nullable()->after('updated_by');
             });
         }
 
-        // Rename date to journal_date if date column exists and journal_date doesn't
+        // drop FK if exists (in case of previous partial run), then create
+        $this->dropForeignIfExists('journals', 'journals_posted_by_foreign');
+
+        // create FK only if users table exists and column exists
+        if (Schema::hasTable('users') && Schema::hasColumn('journals', 'posted_by')) {
+            Schema::table('journals', function (Blueprint $table) {
+                $table->foreign('posted_by', 'journals_posted_by_foreign')
+                    ->references('id')
+                    ->on('users')
+                    ->nullOnDelete();
+            });
+        }
+
+        // 2) Rename date -> journal_date (only if needed)
         if (Schema::hasColumn('journals', 'date') && !Schema::hasColumn('journals', 'journal_date')) {
             Schema::table('journals', function (Blueprint $table) {
                 $table->renameColumn('date', 'journal_date');
             });
         }
 
-        // Update status enum to include 'void'
-        // Note: MySQL/MariaDB requires recreating the column
-        // Check current enum values first
+        // 3) status enum add 'void' (MySQL/MariaDB)
         $driver = DB::getDriverName();
-        if ($driver === 'mysql' || $driver === 'mariadb') {
-            $columnInfo = DB::select("SHOW COLUMNS FROM journals WHERE Field = 'status'");
-            if (!empty($columnInfo)) {
-                $type = $columnInfo[0]->Type;
-                if (strpos($type, "'void'") === false) {
-                    DB::statement("ALTER TABLE journals MODIFY COLUMN status ENUM('draft', 'posted', 'void') DEFAULT 'draft'");
-                }
+        if (($driver === 'mysql' || $driver === 'mariadb') && Schema::hasColumn('journals', 'status')) {
+            if (!$this->mysqlEnumHasValue('journals', 'status', 'void')) {
+                DB::statement("ALTER TABLE `journals` MODIFY COLUMN `status` ENUM('draft','posted','void') DEFAULT 'draft'");
             }
-        } elseif ($driver === 'sqlite') {
-            // SQLite doesn't support ENUM, so we'll just ensure the constraint is handled at application level
-            // The enum check is handled by Laravel's validation
         }
 
-        // Add unique index on (reference_type, reference_id) if columns exist and index doesn't
+        // 4) Unique index on (reference_type, reference_id)
         if (Schema::hasColumn('journals', 'reference_type') && Schema::hasColumn('journals', 'reference_id')) {
-            $driver = DB::getDriverName();
-            $indexExists = false;
+            // drop any old conflicting index names you might have
+            $this->dropIndexIfExists('journals', 'journals_reference_type_reference_id_index');
+            $this->dropIndexIfExists('journals', 'journals_reference_type_reference_id_unique');
 
-            if ($driver === 'mysql' || $driver === 'mariadb') {
-                $uniqueIndexes = DB::select("SHOW INDEXES FROM journals WHERE Key_name = 'journals_reference_unique'");
-                $indexExists = !empty($uniqueIndexes);
-
-                if (!$indexExists) {
-                    // Check for any existing index on these columns
-                    $allIndexes = DB::select("SHOW INDEXES FROM journals WHERE Column_name IN ('reference_type', 'reference_id')");
-                    $indexNames = array_unique(array_map(fn($idx) => $idx->Key_name, $allIndexes));
-
-                    // Drop existing non-unique index if it exists
-                    foreach ($indexNames as $indexName) {
-                        if ($indexName !== 'journals_reference_unique' && $indexName !== 'PRIMARY') {
-                            $indexColumns = array_filter($allIndexes, fn($idx) => $idx->Key_name === $indexName);
-                            $columnNames = array_map(fn($idx) => $idx->Column_name, $indexColumns);
-                            if (in_array('reference_type', $columnNames) && in_array('reference_id', $columnNames)) {
-                                Schema::table('journals', function (Blueprint $table) use ($indexName) {
-                                    $table->dropIndex($indexName);
-                                });
-                                break;
-                            }
-                        }
-                    }
-                }
-            } elseif ($driver === 'sqlite') {
-                // Check if index exists using SQLite pragma
-                $indexes = DB::select("SELECT name FROM sqlite_master WHERE type='index' AND name='journals_reference_unique'");
-                $indexExists = !empty($indexes);
-            }
-
-            if (!$indexExists) {
+            if (!$this->indexExists('journals', 'journals_reference_unique')) {
                 Schema::table('journals', function (Blueprint $table) {
                     $table->unique(['reference_type', 'reference_id'], 'journals_reference_unique');
                 });
             }
         }
 
-        // Update indexes for journal_date
-        if (Schema::hasColumn('journals', 'journal_date')) {
-            $driver = DB::getDriverName();
-            $oldIndexExists = false;
-            $newIndexExists = false;
+        // 5) Index on (journal_date, status) instead of (date, status)
+        // drop old one safely (names may differ)
+        $this->dropIndexIfExists('journals', 'journals_date_status_index');
+        $this->dropIndexIfExists('journals', 'journals_date_status_idx');
 
-            if ($driver === 'mysql' || $driver === 'mariadb') {
-                $oldIndexes = DB::select("SHOW INDEXES FROM journals WHERE Key_name = 'journals_date_status_index'");
-                $oldIndexExists = !empty($oldIndexes);
-
-                $newIndexes = DB::select("SHOW INDEXES FROM journals WHERE Key_name = 'journals_journal_date_status_index'");
-                $newIndexExists = !empty($newIndexes);
-            } elseif ($driver === 'sqlite') {
-                $oldIndexes = DB::select("SELECT name FROM sqlite_master WHERE type='index' AND name='journals_date_status_index'");
-                $oldIndexExists = !empty($oldIndexes);
-
-                $newIndexes = DB::select("SELECT name FROM sqlite_master WHERE type='index' AND name='journals_journal_date_status_index'");
-                $newIndexExists = !empty($newIndexes);
-            }
-
-            if ($oldIndexExists) {
-                try {
-                    Schema::table('journals', function (Blueprint $table) {
-                        $table->dropIndex(['date', 'status']);
-                    });
-                } catch (\Exception $e) {
-                    // Index might not exist or have different name, continue
-                }
-            }
-
-            if (!$newIndexExists) {
+        if (Schema::hasColumn('journals', 'journal_date') && Schema::hasColumn('journals', 'status')) {
+            if (!$this->indexExists('journals', 'journals_journal_date_status_index')) {
                 Schema::table('journals', function (Blueprint $table) {
-                    $table->index(['journal_date', 'status']);
+                    $table->index(['journal_date', 'status'], 'journals_journal_date_status_index');
                 });
             }
         }
     }
 
-    /**
-     * Reverse the migrations.
-     */
     public function down(): void
     {
-        Schema::table('journals', function (Blueprint $table) {
-            $table->dropIndex('journals_reference_unique');
-            $table->dropIndex(['journal_date', 'status']);
-            $table->index(['date', 'status']);
-        });
+        $driver = DB::getDriverName();
 
-        DB::statement("ALTER TABLE journals MODIFY COLUMN status ENUM('draft', 'posted') DEFAULT 'draft'");
+        // 1) Drop indexes safely
+        $this->dropIndexIfExists('journals', 'journals_reference_unique');
+        $this->dropIndexIfExists('journals', 'journals_journal_date_status_index');
+        $this->dropIndexIfExists('journals', 'journals_date_status_index');
 
-        Schema::table('journals', function (Blueprint $table) {
-            $table->renameColumn('journal_date', 'date');
-            $table->dropForeign(['posted_by']);
-            $table->dropColumn('posted_by');
-        });
+        // 2) Restore (date,status) index BUT only on existing column
+        // - If journal_date exists (and date doesn't), create index on journal_date temporarily before rename
+        if (Schema::hasColumn('journals', 'journal_date') && Schema::hasColumn('journals', 'status')) {
+            // create index on journal_date if you want (optional) — لكن مش لازم
+        }
+
+        // 3) Revert enum (remove void) MySQL/MariaDB
+        if (($driver === 'mysql' || $driver === 'mariadb') && Schema::hasColumn('journals', 'status')) {
+            // لو فيه قيم void في الداتا، تغيير الـ enum هيكسر!
+            // حل سريع: حوّل void -> draft قبل تعديل enum
+            DB::statement("UPDATE `journals` SET `status` = 'draft' WHERE `status` = 'void'");
+
+            DB::statement("ALTER TABLE `journals` MODIFY COLUMN `status` ENUM('draft','posted') DEFAULT 'draft'");
+        }
+
+        // 4) Rename journal_date -> date (only if needed)
+        if (Schema::hasColumn('journals', 'journal_date') && !Schema::hasColumn('journals', 'date')) {
+            Schema::table('journals', function (Blueprint $table) {
+                $table->renameColumn('journal_date', 'date');
+            });
+        }
+
+        // 5) Now create index on (date,status) ONLY if date exists
+        if (Schema::hasColumn('journals', 'date') && Schema::hasColumn('journals', 'status')) {
+            if (!$this->indexExists('journals', 'journals_date_status_index')) {
+                Schema::table('journals', function (Blueprint $table) {
+                    $table->index(['date', 'status'], 'journals_date_status_index');
+                });
+            }
+        }
+
+        // 6) Drop posted_by FK + column safely
+        $this->dropForeignIfExists('journals', 'journals_posted_by_foreign');
+
+        if (Schema::hasColumn('journals', 'posted_by')) {
+            Schema::table('journals', function (Blueprint $table) {
+                $table->dropColumn('posted_by');
+            });
+        }
     }
 };

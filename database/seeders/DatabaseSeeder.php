@@ -3,35 +3,38 @@
 namespace Database\Seeders;
 
 use App\Models\User;
-use Illuminate\Database\Console\Seeds\WithoutModelEvents;
 use Illuminate\Database\Seeder;
+use Illuminate\Database\Console\Seeds\WithoutModelEvents;
+use Illuminate\Support\Facades\Hash;
 
 class DatabaseSeeder extends Seeder
 {
     use WithoutModelEvents;
 
-    /**
-     * Seed the application's database.
-     */
     public function run(): void
     {
-        // Seed roles and permissions first (required for users)
+        // 1) Roles & Permissions
         $this->call([
             RolePermissionSeeder::class,
         ]);
 
-        // Seed branches (required for users and accounts)
+        // 2) Branches
         $this->call([
             BranchSeeder::class,
         ]);
 
-        // Seed users
-        User::factory()->create([
-            'name' => 'Test User',
-            'email' => 'test@example.com',
-        ]);
+        // 3) Create/Update test user (no duplicates)
+        User::updateOrCreate(
+            ['email' => 'test@example.com'],
+            [
+                'name' => 'Test User',
+                // لو مش عايز تغير باسورد كل مرة، سيبه ثابت
+                'password' => Hash::make('password'),
+                'email_verified_at' => now(),
+            ]
+        );
 
-        // Seed other data
+        // 4) Other seeders
         $this->call([
             CategorySeeder::class,
             PaymentMethodSeeder::class,
