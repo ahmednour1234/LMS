@@ -11,6 +11,30 @@ use Illuminate\Support\Str;
 trait HasTableExports
 {
     /**
+     * Eager load relationships for records based on column names
+     */
+    protected static function eagerLoadRelationships($records, $columns): void
+    {
+        if ($records->isEmpty()) {
+            return;
+        }
+
+        // Get all relationship columns (e.g., 'branch.name', 'creator.name')
+        $relationships = $columns->map(function ($column) {
+            $name = is_callable([$column, 'getName']) ? $column->getName() : ($column->getName ?? '');
+            if (str_contains($name, '.')) {
+                return explode('.', $name)[0];
+            }
+            return null;
+        })->filter()->unique()->values()->toArray();
+
+        // Eager load relationships
+        if (!empty($relationships)) {
+            $records->loadMissing($relationships);
+        }
+    }
+
+    /**
      * Get export actions (Excel, PDF, Print) for table header
      * Use this in your Resource's table() method:
      * ->headerActions(array_merge([...existing actions...], static::getExportActions()))
@@ -36,6 +60,9 @@ trait HasTableExports
                     
                     // Get records and store in cache (limit to prevent memory issues)
                     $records = $query->limit(10000)->get();
+                    
+                    // Eager load relationships for export
+                    static::eagerLoadRelationships($records, $columns);
                     
                     // Extract serializable column metadata
                     $columnData = $columns->map(function ($column) {
@@ -70,6 +97,9 @@ trait HasTableExports
                     // Get records and store in cache (limit to prevent memory issues)
                     $records = $query->limit(10000)->get();
                     
+                    // Eager load relationships for export
+                    static::eagerLoadRelationships($records, $columns);
+                    
                     // Extract serializable column metadata
                     $columnData = $columns->map(function ($column) {
                         return [
@@ -102,6 +132,9 @@ trait HasTableExports
                     
                     // Get records and store in cache (limit to prevent memory issues)
                     $records = $query->limit(10000)->get();
+                    
+                    // Eager load relationships for export
+                    static::eagerLoadRelationships($records, $columns);
                     
                     // Extract serializable column metadata
                     $columnData = $columns->map(function ($column) {

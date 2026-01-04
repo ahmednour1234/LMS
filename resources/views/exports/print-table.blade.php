@@ -117,7 +117,10 @@
             <thead>
                 <tr>
                     @foreach($columns as $column)
-                        <th>{{ is_callable([$column, 'getLabel']) ? $column->getLabel() : ($column->getLabel ?? (is_callable([$column, 'getName']) ? $column->getName() : ($column->getName ?? ''))) }}</th>
+                        @php
+                            $label = property_exists($column, 'label') ? $column->label : (is_callable([$column, 'getLabel']) ? $column->getLabel() : ($column->label ?? (property_exists($column, 'name') ? $column->name : ($column->name ?? ''))));
+                        @endphp
+                        <th>{{ $label }}</th>
                     @endforeach
                 </tr>
             </thead>
@@ -127,27 +130,33 @@
                         @foreach($columns as $column)
                             <td>
                                 @php
-                                    $name = is_callable([$column, 'getName']) ? $column->getName() : ($column->getName ?? '');
+                                    // Handle both object properties and method calls
+                                    $name = property_exists($column, 'name') ? $column->name : (is_callable([$column, 'getName']) ? $column->getName() : ($column->name ?? ''));
                                     $value = null;
                                     
-                                    // Handle relationship columns
-                                    if (str_contains($name, '.')) {
-                                        $parts = explode('.', $name);
-                                        $value = $record;
-                                        foreach ($parts as $part) {
-                                            $value = $value?->getAttribute($part);
-                                        }
-                                    } else {
-                                        $value = $record->getAttribute($name);
-                                    }
-                                    
-                                    // Format value
-                                    if ($value instanceof \DateTimeInterface) {
-                                        $value = $value->format('Y-m-d H:i:s');
-                                    } elseif (is_bool($value)) {
-                                        $value = $value ? __('Yes') : __('No');
-                                    } elseif ($value === null) {
+                                    if (empty($name)) {
                                         $value = '-';
+                                    } else {
+                                        // Handle relationship columns
+                                        if (str_contains($name, '.')) {
+                                            $parts = explode('.', $name);
+                                            $value = $record;
+                                            foreach ($parts as $part) {
+                                                if ($value === null) break;
+                                                $value = is_object($value) ? $value->getAttribute($part) : ($value[$part] ?? null);
+                                            }
+                                        } else {
+                                            $value = $record->getAttribute($name) ?? $record->{$name} ?? null;
+                                        }
+                                        
+                                        // Format value
+                                        if ($value instanceof \DateTimeInterface) {
+                                            $value = $value->format('Y-m-d H:i:s');
+                                        } elseif (is_bool($value)) {
+                                            $value = $value ? __('Yes') : __('No');
+                                        } elseif ($value === null) {
+                                            $value = '-';
+                                        }
                                     }
                                 @endphp
                                 {{ $value }}
