@@ -133,8 +133,62 @@ return new class extends Migration
      */
     public function down(): void
     {
-        // This is a complex migration, rolling back may require manual intervention
-        // For safety, we'll leave the table as course_teacher
-        // If you need to revert, you may need to manually restore course_trainer structure
+        // Only rollback if course_teacher table exists
+        if (Schema::hasTable('course_teacher')) {
+            // Drop foreign keys and constraints before renaming
+            Schema::table('course_teacher', function (Blueprint $table) {
+                // Drop foreign keys
+                try {
+                    $table->dropForeign(['teacher_id']);
+                } catch (\Exception $e) {
+                    // Ignore if doesn't exist
+                }
+                try {
+                    $table->dropForeign(['course_id']);
+                } catch (\Exception $e) {
+                    // Ignore if doesn't exist
+                }
+                
+                // Drop primary key
+                try {
+                    $driver = \DB::getDriverName();
+                    if ($driver === 'mysql') {
+                        \DB::statement('ALTER TABLE `course_teacher` DROP PRIMARY KEY');
+                    } else {
+                        $table->dropPrimary();
+                    }
+                } catch (\Exception $e) {
+                    // Ignore if doesn't exist
+                }
+                
+                // Drop teacher_id column
+                if (Schema::hasColumn('course_teacher', 'teacher_id')) {
+                    $table->dropColumn('teacher_id');
+                }
+            });
+            
+            // Rename table back to course_trainer
+            Schema::rename('course_teacher', 'course_trainer');
+            
+            // Restore original structure (user_id with foreign keys)
+            Schema::table('course_trainer', function (Blueprint $table) {
+                // Add user_id if it doesn't exist
+                if (!Schema::hasColumn('course_trainer', 'user_id')) {
+                    $table->foreignId('user_id')->after('course_id')->constrained()->cascadeOnDelete();
+                }
+                
+                // Ensure course_id foreign key exists
+                if (!$this->hasForeignKey('course_trainer', 'course_id')) {
+                    $table->foreign('course_id')->references('id')->on('courses')->cascadeOnDelete();
+                }
+                
+                // Recreate primary key
+                try {
+                    $table->primary(['course_id', 'user_id']);
+                } catch (\Exception $e) {
+                    // Ignore if primary key already exists
+                }
+            });
+        }
     }
 };
