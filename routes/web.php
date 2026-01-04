@@ -8,17 +8,31 @@ Route::get('/', function () {
 });
 
 Route::post('/admin/locale/toggle', function () {
-    $currentLocale = app()->getLocale();
+    $currentLocale = session('locale', app()->getLocale());
     $newLocale = $currentLocale === 'ar' ? 'en' : 'ar';
-    
+
+    // Ensure locale is valid
+    if (!in_array($newLocale, ['en', 'ar'])) {
+        $newLocale = 'en';
+    }
+
+    // Save to session
     Session::put('locale', $newLocale);
+
+    // Set application locale
     app()->setLocale($newLocale);
-    
+
+    // Set Carbon locale for date formatting
+    if (class_exists(\Carbon\Carbon::class)) {
+        \Carbon\Carbon::setLocale($newLocale);
+    }
+
     $redirect = request()->input('redirect', url()->previous());
     if (empty($redirect) || !str_starts_with($redirect, url('/'))) {
-        $redirect = route('filament.admin.pages.dashboard');
+        // Use the Filament admin panel URL directly
+        $redirect = url('/admin');
     }
-    
+
     return redirect()->to($redirect);
 })->name('filament.admin.locale.toggle')->middleware(['web', 'auth']);
 

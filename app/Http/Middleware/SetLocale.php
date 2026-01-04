@@ -18,8 +18,19 @@ class SetLocale
         // Get locale from session or default to config
         $locale = session('locale', config('app.locale', 'en'));
         
+        // Ensure locale is valid (fallback to 'en' if invalid)
+        if (!in_array($locale, ['en', 'ar'])) {
+            $locale = config('app.locale', 'en');
+            session(['locale' => $locale]);
+        }
+        
         // Set the application locale
         app()->setLocale($locale);
+        
+        // Set locale for Carbon (date formatting)
+        if (class_exists(\Carbon\Carbon::class)) {
+            \Carbon\Carbon::setLocale($locale);
+        }
         
         return $next($request);
     }
