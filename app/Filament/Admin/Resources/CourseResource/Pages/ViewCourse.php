@@ -2,6 +2,7 @@
 
 namespace App\Filament\Admin\Resources\CourseResource\Pages;
 
+use App\Domain\Training\Enums\DeliveryType;
 use App\Filament\Admin\Resources\CourseResource;
 use Filament\Actions;
 use Filament\Infolists;
@@ -33,7 +34,7 @@ class ViewCourse extends ViewRecord
                         Infolists\Components\TextEntry::make('program.code')
                             ->label(__('courses.program')),
                         Infolists\Components\TextEntry::make('delivery_type')
-                            ->formatStateUsing(fn ($state) => __('courses.delivery_type_options.' . $state))
+                            ->formatStateUsing(fn ($state) => __('courses.delivery_type_options.' . ($state instanceof DeliveryType ? $state->value : $state)))
                             ->badge()
                             ->label(__('courses.delivery_type')),
                         Infolists\Components\TextEntry::make('duration_hours')
