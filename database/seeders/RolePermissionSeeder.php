@@ -108,6 +108,20 @@ class RolePermissionSeeder extends Seeder
             'settings.create',
             'settings.update',
             'settings.delete',
+
+            // Students
+            'students.view',
+            'students.view.global',
+            'students.view.branch',
+            'students.view.personal',
+            'students.create',
+            'students.update',
+            'students.update.global',
+            'students.update.branch',
+            'students.update.personal',
+            'students.delete',
+            'students.delete.branch',
+            'students.delete.personal',
         ];
 
         foreach ($permissions as $permission) {
