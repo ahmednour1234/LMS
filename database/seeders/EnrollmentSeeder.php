@@ -9,6 +9,7 @@ use App\Domain\Training\Models\Course;
 use App\Enums\EnrollmentStatus;
 use App\Models\User;
 use Illuminate\Database\Seeder;
+use Illuminate\Support\Facades\Schema;
 
 class EnrollmentSeeder extends Seeder
 {
@@ -60,21 +61,27 @@ class EnrollmentSeeder extends Seeder
             foreach ($coursesToEnroll as $course) {
                 $enrollmentDate = now()->subDays(rand(1, 90));
                 
+                $enrollmentData = [
+                    'reference' => 'ENR-' . str_pad($enrollmentCount + 1, 6, '0', STR_PAD_LEFT),
+                    'status' => $statuses[array_rand($statuses)],
+                    'enrolled_at' => $enrollmentDate,
+                    'branch_id' => $student->branch_id,
+                    'created_by' => $users->random()->id,
+                    'updated_by' => $users->random()->id,
+                    'notes' => rand(0, 1) ? 'Enrolled via seeder' : null,
+                ];
+
+                // Only include registered_at if the column exists
+                if (Schema::hasColumn('enrollments', 'registered_at')) {
+                    $enrollmentData['registered_at'] = $enrollmentDate->copy()->addHours(rand(1, 24));
+                }
+                
                 $enrollment = Enrollment::firstOrCreate(
                     [
                         'student_id' => $student->id,
                         'course_id' => $course->id,
                     ],
-                    [
-                        'reference' => 'ENR-' . str_pad($enrollmentCount + 1, 6, '0', STR_PAD_LEFT),
-                        'status' => $statuses[array_rand($statuses)],
-                        'enrolled_at' => $enrollmentDate,
-                        'registered_at' => $enrollmentDate->copy()->addHours(rand(1, 24)),
-                        'branch_id' => $student->branch_id,
-                        'created_by' => $users->random()->id,
-                        'updated_by' => $users->random()->id,
-                        'notes' => rand(0, 1) ? 'Enrolled via seeder' : null,
-                    ]
+                    $enrollmentData
                 );
 
                 $enrollmentCount++;
