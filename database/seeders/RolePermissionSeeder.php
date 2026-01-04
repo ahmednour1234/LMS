@@ -73,6 +73,10 @@ class RolePermissionSeeder extends Seeder
             'journals.post.global',
             'journals.post.branch',
             'journals.post.personal',
+            'journals.void',
+            'journals.void.global',
+            'journals.void.branch',
+            'journals.void.personal',
 
             // Categories
             'categories.viewAny',
