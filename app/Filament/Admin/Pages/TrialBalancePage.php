@@ -12,6 +12,7 @@ use Filament\Forms\Contracts\HasForms;
 use Filament\Forms\Form;
 use Filament\Pages\Page;
 use Illuminate\Support\Facades\App;
+use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class TrialBalancePage extends Page implements HasForms
 {
@@ -44,7 +45,7 @@ class TrialBalancePage extends Page implements HasForms
             Action::make('print')
                 ->label(__('pdf.print'))
                 ->icon('heroicon-o-printer')
-                ->action(function () {
+                ->action(function (): StreamedResponse {
                     $reportService = App::make(ReportService::class);
                     $pdfService = App::make(PdfService::class);
                     
@@ -53,12 +54,18 @@ class TrialBalancePage extends Page implements HasForms
                         auth()->user()
                     );
                     
-                    $response = $pdfService->report('trial-balance', [
+                    $pdfResponse = $pdfService->report('trial-balance', [
                         'data' => $data,
                         'reportDate' => Carbon::parse($this->reportDate),
                     ]);
                     
-                    return $response;
+                    $pdfContent = $pdfResponse->getContent();
+                    
+                    return response()->streamDownload(function () use ($pdfContent) {
+                        echo $pdfContent;
+                    }, 'trial-balance-' . now()->format('YmdHis') . '.pdf', [
+                        'Content-Type' => 'application/pdf',
+                    ]);
                 })
                 ->requiresConfirmation(false),
         ];

@@ -14,6 +14,7 @@ use Filament\Forms\Contracts\HasForms;
 use Filament\Forms\Form;
 use Filament\Pages\Page;
 use Illuminate\Support\Facades\App;
+use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class AccountStatementPage extends Page implements HasForms
 {
@@ -50,9 +51,9 @@ class AccountStatementPage extends Page implements HasForms
             Action::make('print')
                 ->label(__('pdf.print'))
                 ->icon('heroicon-o-printer')
-                ->action(function () {
+                ->action(function (): StreamedResponse {
                     if (!$this->accountId) {
-                        return;
+                        throw new \Exception('Account is required');
                     }
                     
                     $reportService = App::make(ReportService::class);
@@ -65,7 +66,7 @@ class AccountStatementPage extends Page implements HasForms
                         auth()->user()
                     );
                     
-                    $response = $pdfService->report('account-statement', [
+                    $pdfResponse = $pdfService->report('account-statement', [
                         'account' => $result['account'],
                         'openingBalance' => $result['openingBalance'],
                         'data' => $result['data'],
@@ -73,7 +74,13 @@ class AccountStatementPage extends Page implements HasForms
                         'endDate' => Carbon::parse($this->endDate),
                     ]);
                     
-                    return $response;
+                    $pdfContent = $pdfResponse->getContent();
+                    
+                    return response()->streamDownload(function () use ($pdfContent) {
+                        echo $pdfContent;
+                    }, 'account-statement-' . now()->format('YmdHis') . '.pdf', [
+                        'Content-Type' => 'application/pdf',
+                    ]);
                 })
                 ->disabled(fn () => !$this->accountId)
                 ->requiresConfirmation(false),

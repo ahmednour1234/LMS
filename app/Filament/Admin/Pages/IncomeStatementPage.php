@@ -14,6 +14,7 @@ use Filament\Forms\Contracts\HasForms;
 use Filament\Forms\Form;
 use Filament\Pages\Page;
 use Illuminate\Support\Facades\App;
+use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class IncomeStatementPage extends Page implements HasForms
 {
@@ -50,7 +51,7 @@ class IncomeStatementPage extends Page implements HasForms
             Action::make('print')
                 ->label(__('pdf.print'))
                 ->icon('heroicon-o-printer')
-                ->action(function () {
+                ->action(function (): StreamedResponse {
                     $reportService = App::make(ReportService::class);
                     $pdfService = App::make(PdfService::class);
                     
@@ -61,14 +62,20 @@ class IncomeStatementPage extends Page implements HasForms
                         auth()->user()
                     );
                     
-                    $response = $pdfService->report('income-statement', [
+                    $pdfResponse = $pdfService->report('income-statement', [
                         'revenues' => $result['revenues'],
                         'expenses' => $result['expenses'],
                         'startDate' => Carbon::parse($this->startDate),
                         'endDate' => Carbon::parse($this->endDate),
                     ]);
                     
-                    return $response;
+                    $pdfContent = $pdfResponse->getContent();
+                    
+                    return response()->streamDownload(function () use ($pdfContent) {
+                        echo $pdfContent;
+                    }, 'income-statement-' . now()->format('YmdHis') . '.pdf', [
+                        'Content-Type' => 'application/pdf',
+                    ]);
                 })
                 ->requiresConfirmation(false),
         ];
