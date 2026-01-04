@@ -19,12 +19,35 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
-        // Set locale early if session is available
+        // Set locale early - check session, cookie, or use default
+        $locale = null;
+        
+        // Try to get locale from session if available
         if (request()->hasSession()) {
-            $locale = session('locale', config('app.locale', 'en'));
-            if (in_array($locale, ['en', 'ar'])) {
-                app()->setLocale($locale);
-            }
+            $locale = session('locale');
+        }
+        
+        // Try to get locale from cookie as fallback
+        if (!$locale && request()->hasCookie('locale')) {
+            $locale = request()->cookie('locale');
+        }
+        
+        // Use default locale if none found
+        if (!$locale) {
+            $locale = config('app.locale', 'en');
+        }
+        
+        // Ensure locale is valid
+        if (!in_array($locale, ['en', 'ar'])) {
+            $locale = config('app.locale', 'en');
+        }
+        
+        // Set the application locale
+        app()->setLocale($locale);
+        
+        // Set Carbon locale for date formatting
+        if (class_exists(\Carbon\Carbon::class)) {
+            \Carbon\Carbon::setLocale($locale);
         }
         
         // Helper function to sanitize UTF-8 strings

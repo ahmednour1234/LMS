@@ -1,0 +1,36 @@
+<?php
+
+return [
+    'dashboard' => 'لوحة التحكم',
+    'master_data' => 'البيانات الأساسية',
+    'journals' => 'سجلات القيود',
+    'accounts' => 'الحسابات',
+    'categories' => 'الفئات',
+    'cost_centers' => 'مراكز التكلفة',
+    'payment_methods' => 'طرق الدفع',
+    'programs' => 'البرامج',
+    'courses' => 'الدورات',
+    'course_prices' => 'أسعار الدورات',
+    'course_sections' => 'أقسام الدورات',
+    'lessons' => 'الدروس',
+    'lesson_items' => 'عناصر الدرس',
+    'exams' => 'الامتحانات',
+    'exam_questions' => 'أسئلة الامتحان',
+    'tasks' => 'المهام',
+    'task_submissions' => 'تقديمات المهام',
+    'users' => 'المستخدمون',
+    'roles' => 'الأدوار',
+    'permissions' => 'الصلاحيات',
+    'branches' => 'الفروع',
+    'media_files' => 'الملفات',
+    'settings' => 'الإعدادات',
+    'groups' => [
+        'accounting' => 'المحاسبة',
+        'training' => 'التدريب',
+        'settings' => 'الإعدادات',
+        'enrollment' => 'التسجيل',
+    ],
+    'student' => 'طالب',
+    'students' => 'الطلاب',
+];
+

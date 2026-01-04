@@ -1,0 +1,36 @@
+<?php
+
+return [
+    'dashboard' => 'Dashboard',
+    'master_data' => 'Master Data',
+    'journals' => 'Journals',
+    'accounts' => 'Accounts',
+    'categories' => 'Categories',
+    'cost_centers' => 'Cost Centers',
+    'payment_methods' => 'Payment Methods',
+    'programs' => 'Programs',
+    'courses' => 'Courses',
+    'course_prices' => 'Course Prices',
+    'course_sections' => 'Course Sections',
+    'lessons' => 'Lessons',
+    'lesson_items' => 'Lesson Items',
+    'exams' => 'Exams',
+    'exam_questions' => 'Exam Questions',
+    'tasks' => 'Tasks',
+    'task_submissions' => 'Task Submissions',
+    'users' => 'Users',
+    'roles' => 'Roles',
+    'permissions' => 'Permissions',
+    'branches' => 'Branches',
+    'media_files' => 'Media Files',
+    'settings' => 'Settings',
+    'groups' => [
+        'accounting' => 'Accounting',
+        'training' => 'Training',
+        'settings' => 'Settings',
+        'enrollment' => 'Enrollment',
+    ],
+    'student' => 'Student',
+    'students' => 'Students',
+];
+
