@@ -29,38 +29,55 @@ return new class extends Migration
         // Update status enum to include 'void'
         // Note: MySQL/MariaDB requires recreating the column
         // Check current enum values first
-        $columnInfo = DB::select("SHOW COLUMNS FROM journals WHERE Field = 'status'");
-        if (!empty($columnInfo)) {
-            $type = $columnInfo[0]->Type;
-            if (strpos($type, "'void'") === false) {
-                DB::statement("ALTER TABLE journals MODIFY COLUMN status ENUM('draft', 'posted', 'void') DEFAULT 'draft'");
+        $driver = DB::getDriverName();
+        if ($driver === 'mysql' || $driver === 'mariadb') {
+            $columnInfo = DB::select("SHOW COLUMNS FROM journals WHERE Field = 'status'");
+            if (!empty($columnInfo)) {
+                $type = $columnInfo[0]->Type;
+                if (strpos($type, "'void'") === false) {
+                    DB::statement("ALTER TABLE journals MODIFY COLUMN status ENUM('draft', 'posted', 'void') DEFAULT 'draft'");
+                }
             }
+        } elseif ($driver === 'sqlite') {
+            // SQLite doesn't support ENUM, so we'll just ensure the constraint is handled at application level
+            // The enum check is handled by Laravel's validation
         }
 
         // Add unique index on (reference_type, reference_id) if columns exist and index doesn't
         if (Schema::hasColumn('journals', 'reference_type') && Schema::hasColumn('journals', 'reference_id')) {
-            $uniqueIndexes = DB::select("SHOW INDEXES FROM journals WHERE Key_name = 'journals_reference_unique'");
-            if (empty($uniqueIndexes)) {
-                // Check for any existing index on these columns
-                $allIndexes = DB::select("SHOW INDEXES FROM journals WHERE Column_name IN ('reference_type', 'reference_id')");
-                $indexNames = array_unique(array_map(fn($idx) => $idx->Key_name, $allIndexes));
+            $driver = DB::getDriverName();
+            $indexExists = false;
 
-                // Drop existing non-unique index if it exists (Laravel auto-generates index names)
-                foreach ($indexNames as $indexName) {
-                    if ($indexName !== 'journals_reference_unique' && $indexName !== 'PRIMARY') {
-                        // Check if this index covers both columns
-                        $indexColumns = array_filter($allIndexes, fn($idx) => $idx->Key_name === $indexName);
-                        $columnNames = array_map(fn($idx) => $idx->Column_name, $indexColumns);
-                        if (in_array('reference_type', $columnNames) && in_array('reference_id', $columnNames)) {
-                            Schema::table('journals', function (Blueprint $table) use ($indexName) {
-                                $table->dropIndex($indexName);
-                            });
-                            break;
+            if ($driver === 'mysql' || $driver === 'mariadb') {
+                $uniqueIndexes = DB::select("SHOW INDEXES FROM journals WHERE Key_name = 'journals_reference_unique'");
+                $indexExists = !empty($uniqueIndexes);
+
+                if (!$indexExists) {
+                    // Check for any existing index on these columns
+                    $allIndexes = DB::select("SHOW INDEXES FROM journals WHERE Column_name IN ('reference_type', 'reference_id')");
+                    $indexNames = array_unique(array_map(fn($idx) => $idx->Key_name, $allIndexes));
+
+                    // Drop existing non-unique index if it exists
+                    foreach ($indexNames as $indexName) {
+                        if ($indexName !== 'journals_reference_unique' && $indexName !== 'PRIMARY') {
+                            $indexColumns = array_filter($allIndexes, fn($idx) => $idx->Key_name === $indexName);
+                            $columnNames = array_map(fn($idx) => $idx->Column_name, $indexColumns);
+                            if (in_array('reference_type', $columnNames) && in_array('reference_id', $columnNames)) {
+                                Schema::table('journals', function (Blueprint $table) use ($indexName) {
+                                    $table->dropIndex($indexName);
+                                });
+                                break;
+                            }
                         }
                     }
                 }
+            } elseif ($driver === 'sqlite') {
+                // Check if index exists using SQLite pragma
+                $indexes = DB::select("SELECT name FROM sqlite_master WHERE type='index' AND name='journals_reference_unique'");
+                $indexExists = !empty($indexes);
+            }
 
-                // Create unique index
+            if (!$indexExists) {
                 Schema::table('journals', function (Blueprint $table) {
                     $table->unique(['reference_type', 'reference_id'], 'journals_reference_unique');
                 });
@@ -69,17 +86,35 @@ return new class extends Migration
 
         // Update indexes for journal_date
         if (Schema::hasColumn('journals', 'journal_date')) {
-            // Check if old index exists before dropping
-            $oldIndexes = DB::select("SHOW INDEXES FROM journals WHERE Key_name = 'journals_date_status_index'");
-            if (!empty($oldIndexes)) {
-                Schema::table('journals', function (Blueprint $table) {
-                    $table->dropIndex(['date', 'status']);
-                });
+            $driver = DB::getDriverName();
+            $oldIndexExists = false;
+            $newIndexExists = false;
+
+            if ($driver === 'mysql' || $driver === 'mariadb') {
+                $oldIndexes = DB::select("SHOW INDEXES FROM journals WHERE Key_name = 'journals_date_status_index'");
+                $oldIndexExists = !empty($oldIndexes);
+
+                $newIndexes = DB::select("SHOW INDEXES FROM journals WHERE Key_name = 'journals_journal_date_status_index'");
+                $newIndexExists = !empty($newIndexes);
+            } elseif ($driver === 'sqlite') {
+                $oldIndexes = DB::select("SELECT name FROM sqlite_master WHERE type='index' AND name='journals_date_status_index'");
+                $oldIndexExists = !empty($oldIndexes);
+
+                $newIndexes = DB::select("SELECT name FROM sqlite_master WHERE type='index' AND name='journals_journal_date_status_index'");
+                $newIndexExists = !empty($newIndexes);
             }
 
-            // Check if new index exists before adding
-            $newIndexes = DB::select("SHOW INDEXES FROM journals WHERE Key_name = 'journals_journal_date_status_index'");
-            if (empty($newIndexes)) {
+            if ($oldIndexExists) {
+                try {
+                    Schema::table('journals', function (Blueprint $table) {
+                        $table->dropIndex(['date', 'status']);
+                    });
+                } catch (\Exception $e) {
+                    // Index might not exist or have different name, continue
+                }
+            }
+
+            if (!$newIndexExists) {
                 Schema::table('journals', function (Blueprint $table) {
                     $table->index(['journal_date', 'status']);
                 });

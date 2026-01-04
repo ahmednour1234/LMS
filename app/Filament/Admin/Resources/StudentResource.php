@@ -77,6 +77,18 @@ class StudentResource extends Resource
                     ->tel()
                     ->maxLength(255)
                     ->label(__('students.phone')),
+                Forms\Components\TextInput::make('email')
+                    ->email()
+                    ->maxLength(255)
+                    ->label(__('students.email')),
+                Forms\Components\TextInput::make('password')
+                    ->password()
+                    ->maxLength(255)
+                    ->dehydrated(fn ($state) => filled($state))
+                    ->dehydrateStateUsing(fn ($state) => filled($state) ? \Hash::make($state) : null)
+                    ->label(__('students.password'))
+                    ->requiredOn('create')
+                    ->helperText(fn ($livewire) => $livewire instanceof \App\Filament\Admin\Resources\StudentResource\Pages\EditStudent ? __('students.password_helper') : null),
                 Forms\Components\Select::make('status')
                     ->options([
                         'active' => __('students.status_options.active'),
@@ -123,6 +135,10 @@ class StudentResource extends Resource
                 Tables\Columns\TextColumn::make('phone')
                     ->searchable()
                     ->label(__('students.phone'))
+                    ->toggleable(),
+                Tables\Columns\TextColumn::make('email')
+                    ->searchable()
+                    ->label(__('students.email'))
                     ->toggleable(),
                 Tables\Columns\TextColumn::make('created_at')
                     ->dateTime()

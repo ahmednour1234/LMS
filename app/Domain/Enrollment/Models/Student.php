@@ -19,7 +19,13 @@ class Student extends Model
         'student_code',
         'national_id',
         'phone',
+        'email',
+        'password',
         'status',
+    ];
+
+    protected $hidden = [
+        'password',
     ];
 
     protected function casts(): array
