@@ -55,15 +55,17 @@ class ExamResource extends Resource
                     ->label(__('exams.course'))
                     ->reactive(),
                 Forms\Components\Select::make('lesson_id')
-                    ->relationship('lesson', 'title', function (Builder $query, $get) {
+                    ->relationship('lesson', null, function (Builder $query, $get) {
                         $courseId = $get('course_id');
                         if ($courseId) {
                             $query->whereHas('section', fn ($q) => $q->where('course_id', $courseId));
                         }
                         return $query;
                     })
+                    ->getOptionLabelUsing(fn ($record): ?string => is_object($record) ? ($record->title[app()->getLocale()] ?? $record->title['en'] ?? null) : (\App\Domain\Training\Models\Lesson::find($record)?->title[app()->getLocale()] ?? \App\Domain\Training\Models\Lesson::find($record)?->title['en'] ?? null))
                     ->searchable()
                     ->preload()
+                    ->required()
                     ->label(__('exams.lesson'))
                     ->visible(fn ($get) => $get('course_id')),
                 Forms\Components\TextInput::make('title.ar')
