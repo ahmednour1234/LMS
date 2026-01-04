@@ -34,7 +34,16 @@ class DatabaseSeeder extends Seeder
             ]
         );
 
-        // 4) Other seeders
+        // 4) Training & Enrollment seeders (order matters due to dependencies)
+        $this->call([
+            TeacherSeeder::class,
+            ProgramSeeder::class,
+            CourseSeeder::class,
+            StudentSeeder::class,
+            EnrollmentSeeder::class,
+        ]);
+
+        // 5) Other seeders
         $this->call([
             CategorySeeder::class,
             PaymentMethodSeeder::class,
