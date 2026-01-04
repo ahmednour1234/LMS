@@ -19,6 +19,14 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
+        // Set locale early if session is available
+        if (request()->hasSession()) {
+            $locale = session('locale', config('app.locale', 'en'));
+            if (in_array($locale, ['en', 'ar'])) {
+                app()->setLocale($locale);
+            }
+        }
+        
         // Helper function to sanitize UTF-8 strings
         if (!function_exists('sanitize_utf8')) {
             function sanitize_utf8($value) {
