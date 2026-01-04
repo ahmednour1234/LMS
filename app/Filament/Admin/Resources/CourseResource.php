@@ -140,7 +140,10 @@ class CourseResource extends Resource
                     ->sortable()
                     ->label(__('courses.program')),
                 Tables\Columns\TextColumn::make('delivery_type')
-                    ->formatStateUsing(fn ($state) => __('courses.delivery_type_options.' . ($state instanceof DeliveryType ? $state->value : $state)))
+                    ->formatStateUsing(function ($state) {
+                        $value = $state instanceof DeliveryType ? $state->value : (string) $state;
+                        return __('courses.delivery_type_options.' . $value);
+                    })
                     ->badge()
                     ->label(__('courses.delivery_type')),
                 Tables\Columns\TextColumn::make('duration_hours')

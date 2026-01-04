@@ -34,7 +34,10 @@ class ViewCourse extends ViewRecord
                         Infolists\Components\TextEntry::make('program.code')
                             ->label(__('courses.program')),
                         Infolists\Components\TextEntry::make('delivery_type')
-                            ->formatStateUsing(fn ($state) => __('courses.delivery_type_options.' . ($state instanceof DeliveryType ? $state->value : $state)))
+                            ->formatStateUsing(function ($state) {
+                                $value = $state instanceof DeliveryType ? $state->value : (string) $state;
+                                return __('courses.delivery_type_options.' . $value);
+                            })
                             ->badge()
                             ->label(__('courses.delivery_type')),
                         Infolists\Components\TextEntry::make('duration_hours')
