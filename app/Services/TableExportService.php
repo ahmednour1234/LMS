@@ -26,25 +26,9 @@ class TableExportService
      */
     public function buildQueryFromTableState(HasTable $livewireComponent): Builder
     {
-        // Get the table instance
-        $table = $livewireComponent->getTable();
-
-        // getFilteredTableQuery() already includes filters and search
-        // We just need to get it and ensure it's a Builder instance
-        $query = $table->getFilteredTableQuery();
-
-        // Ensure we have a Builder instance
-        if (! ($query instanceof Builder)) {
-            // Fallback: get the base query from the resource model
-            if (method_exists($livewireComponent, 'getResource')) {
-                $resource = $livewireComponent->getResource();
-                if ($resource && method_exists($resource, 'getModel')) {
-                    $query = $resource->getModel()::query();
-                }
-            }
-        }
-
-        return $query;
+        // In Filament v3, getFilteredTableQuery() is available on the HasTable contract
+        // which ListRecords implements. This method already includes filters, search, and sort.
+        return $livewireComponent->getFilteredTableQuery();
     }
 
     /**
