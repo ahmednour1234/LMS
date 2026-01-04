@@ -45,11 +45,34 @@ class ProgramResource extends Resource
     {
         return $form
             ->schema([
+                Forms\Components\Select::make('parent_id')
+                    ->relationship('parent', 'code', fn (Builder $query) => $query->where('id', '!=', $form->getRecord()?->id))
+                    ->searchable()
+                    ->preload()
+                    ->label(__('programs.parent'))
+                    ->helperText(__('programs.parent_helper')),
                 Forms\Components\TextInput::make('code')
                     ->required()
                     ->maxLength(255)
-                    ->unique(ignoreRecord: true)
+                    ->unique(ignoreRecord: true, modifyRuleUsing: function ($rule, $get) {
+                        $branchId = auth()->user()->isSuperAdmin() ? $get('branch_id') : auth()->user()->branch_id;
+                        return $rule->where('branch_id', $branchId);
+                    })
                     ->label(__('programs.code')),
+                Forms\Components\TextInput::make('name.ar')
+                    ->label(__('programs.name_ar'))
+                    ->required()
+                    ->maxLength(255),
+                Forms\Components\TextInput::make('name.en')
+                    ->label(__('programs.name_en'))
+                    ->required()
+                    ->maxLength(255),
+                Forms\Components\Textarea::make('description.ar')
+                    ->label(__('programs.description_ar'))
+                    ->rows(3),
+                Forms\Components\Textarea::make('description.en')
+                    ->label(__('programs.description_en'))
+                    ->rows(3),
                 Forms\Components\Select::make('branch_id')
                     ->relationship('branch', 'name')
                     ->searchable()
@@ -77,6 +100,15 @@ class ProgramResource extends Resource
                     ->searchable()
                     ->sortable()
                     ->label(__('programs.code')),
+                Tables\Columns\TextColumn::make('name')
+                    ->formatStateUsing(fn ($state) => $state[app()->getLocale()] ?? $state['ar'] ?? '')
+                    ->searchable()
+                    ->sortable()
+                    ->label(__('programs.name')),
+                Tables\Columns\TextColumn::make('parent.code')
+                    ->sortable()
+                    ->label(__('programs.parent'))
+                    ->placeholder('-'),
                 Tables\Columns\TextColumn::make('branch.name')
                     ->sortable()
                     ->label(__('programs.branch'))
@@ -97,6 +129,9 @@ class ProgramResource extends Resource
                     ->toggleable(isToggledHiddenByDefault: true),
             ])
             ->filters([
+                Tables\Filters\SelectFilter::make('parent_id')
+                    ->relationship('parent', 'code')
+                    ->label(__('programs.parent')),
                 Tables\Filters\SelectFilter::make('branch_id')
                     ->relationship('branch', 'name')
                     ->label(__('programs.branch'))

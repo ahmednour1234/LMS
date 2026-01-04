@@ -2,6 +2,7 @@
 
 namespace App\Filament\Admin\Resources;
 
+use App\Domain\Training\Enums\DeliveryType;
 use App\Domain\Training\Models\Course;
 use App\Filament\Admin\Resources\CourseResource\Pages;
 use Filament\Forms;
@@ -46,7 +47,7 @@ class CourseResource extends Resource
         return $form
             ->schema([
                 Forms\Components\Select::make('program_id')
-                    ->relationship('program', 'code')
+                    ->relationship('program', 'code', fn (Builder $query) => $query->where('branch_id', auth()->user()->branch_id ?? null))
                     ->searchable()
                     ->preload()
                     ->required()
@@ -54,8 +55,36 @@ class CourseResource extends Resource
                 Forms\Components\TextInput::make('code')
                     ->required()
                     ->maxLength(255)
-                    ->unique(ignoreRecord: true)
+                    ->unique(ignoreRecord: true, modifyRuleUsing: function ($rule, $get) {
+                        $branchId = auth()->user()->isSuperAdmin() ? $get('branch_id') : auth()->user()->branch_id;
+                        return $rule->where('branch_id', $branchId);
+                    })
                     ->label(__('courses.code')),
+                Forms\Components\TextInput::make('name.ar')
+                    ->label(__('courses.name_ar'))
+                    ->required()
+                    ->maxLength(255),
+                Forms\Components\TextInput::make('name.en')
+                    ->label(__('courses.name_en'))
+                    ->required()
+                    ->maxLength(255),
+                Forms\Components\Textarea::make('description.ar')
+                    ->label(__('courses.description_ar'))
+                    ->rows(3),
+                Forms\Components\Textarea::make('description.en')
+                    ->label(__('courses.description_en'))
+                    ->rows(3),
+                Forms\Components\Select::make('delivery_type')
+                    ->options([
+                        DeliveryType::Onsite->value => __('courses.delivery_type_options.onsite'),
+                        DeliveryType::Online->value => __('courses.delivery_type_options.online'),
+                        DeliveryType::Virtual->value => __('courses.delivery_type_options.virtual'),
+                    ])
+                    ->required()
+                    ->label(__('courses.delivery_type')),
+                Forms\Components\TextInput::make('duration_hours')
+                    ->numeric()
+                    ->label(__('courses.duration_hours')),
                 Forms\Components\Select::make('branch_id')
                     ->relationship('branch', 'name')
                     ->searchable()
@@ -63,21 +92,12 @@ class CourseResource extends Resource
                     ->required()
                     ->label(__('courses.branch'))
                     ->visible(fn () => auth()->user()->isSuperAdmin()),
-                Forms\Components\TextInput::make('price')
-                    ->numeric()
-                    ->required()
-                    ->prefix('$')
-                    ->label(__('courses.price')),
-                Forms\Components\Toggle::make('is_installment_enabled')
-                    ->label(__('courses.is_installment_enabled'))
-                    ->default(false),
                 Forms\Components\Select::make('trainers')
-                    ->relationship('trainers', 'name')
+                    ->relationship('trainers', 'name', fn (Builder $query) => $query->whereHas('roles', fn ($q) => $q->where('name', 'trainer')))
                     ->multiple()
                     ->searchable()
                     ->preload()
-                    ->label(__('courses.trainers'))
-                    ->getOptionLabelFromRecordUsing(fn ($record) => $record->name),
+                    ->label(__('courses.trainers')),
                 Forms\Components\Toggle::make('is_active')
                     ->label(__('courses.is_active'))
                     ->default(true),
@@ -98,20 +118,25 @@ class CourseResource extends Resource
                     ->searchable()
                     ->sortable()
                     ->label(__('courses.code')),
+                Tables\Columns\TextColumn::make('name')
+                    ->formatStateUsing(fn ($state) => $state[app()->getLocale()] ?? $state['ar'] ?? '')
+                    ->searchable()
+                    ->sortable()
+                    ->label(__('courses.name')),
                 Tables\Columns\TextColumn::make('program.code')
                     ->sortable()
                     ->label(__('courses.program')),
+                Tables\Columns\TextColumn::make('delivery_type')
+                    ->formatStateUsing(fn ($state) => __('courses.delivery_type_options.' . $state))
+                    ->badge()
+                    ->label(__('courses.delivery_type')),
+                Tables\Columns\TextColumn::make('duration_hours')
+                    ->label(__('courses.duration_hours'))
+                    ->suffix(' ' . __('courses.hours')),
                 Tables\Columns\TextColumn::make('branch.name')
                     ->sortable()
                     ->label(__('courses.branch'))
                     ->visible(fn () => auth()->user()->isSuperAdmin()),
-                Tables\Columns\TextColumn::make('price')
-                    ->money()
-                    ->sortable()
-                    ->label(__('courses.price')),
-                Tables\Columns\IconColumn::make('is_installment_enabled')
-                    ->boolean()
-                    ->label(__('courses.is_installment_enabled')),
                 Tables\Columns\TextColumn::make('trainers_count')
                     ->counts('trainers')
                     ->label(__('courses.trainers_count')),
@@ -131,12 +156,17 @@ class CourseResource extends Resource
                 Tables\Filters\SelectFilter::make('program_id')
                     ->relationship('program', 'code')
                     ->label(__('courses.program')),
+                Tables\Filters\SelectFilter::make('delivery_type')
+                    ->options([
+                        DeliveryType::Onsite->value => __('courses.delivery_type_options.onsite'),
+                        DeliveryType::Online->value => __('courses.delivery_type_options.online'),
+                        DeliveryType::Virtual->value => __('courses.delivery_type_options.virtual'),
+                    ])
+                    ->label(__('courses.delivery_type')),
                 Tables\Filters\SelectFilter::make('branch_id')
                     ->relationship('branch', 'name')
                     ->label(__('courses.branch'))
                     ->visible(fn () => auth()->user()->isSuperAdmin()),
-                Tables\Filters\TernaryFilter::make('is_installment_enabled')
-                    ->label(__('courses.is_installment_enabled')),
                 Tables\Filters\TernaryFilter::make('is_active')
                     ->label(__('courses.is_active')),
             ])

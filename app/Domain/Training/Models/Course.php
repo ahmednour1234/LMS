@@ -3,6 +3,7 @@
 namespace App\Domain\Training\Models;
 
 use App\Domain\Branch\Models\Branch;
+use App\Domain\Training\Enums\DeliveryType;
 use App\Models\User;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
@@ -18,16 +19,19 @@ class Course extends Model
         'program_id',
         'branch_id',
         'code',
-        'price',
-        'is_installment_enabled',
+        'name',
+        'description',
+        'delivery_type',
+        'duration_hours',
         'is_active',
     ];
 
     protected function casts(): array
     {
         return [
-            'price' => 'decimal:2',
-            'is_installment_enabled' => 'boolean',
+            'name' => 'array',
+            'description' => 'array',
+            'delivery_type' => DeliveryType::class,
             'is_active' => 'boolean',
         ];
     }
@@ -44,12 +48,11 @@ class Course extends Model
 
     public function trainers(): BelongsToMany
     {
-        return $this->belongsToMany(User::class, 'course_trainer');
+        return $this->belongsToMany(User::class, 'course_trainer', 'course_id', 'trainer_id');
     }
 
-    public function branchPrices(): HasMany
+    public function prices(): HasMany
     {
-        return $this->hasMany(CourseBranchPrice::class);
+        return $this->hasMany(CoursePrice::class);
     }
 }
-

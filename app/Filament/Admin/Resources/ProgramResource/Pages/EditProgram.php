@@ -16,4 +16,19 @@ class EditProgram extends EditRecord
             Actions\DeleteAction::make(),
         ];
     }
+
+    protected function mutateFormDataBeforeSave(array $data): array
+    {
+        $data['name'] = [
+            'ar' => $data['name']['ar'] ?? '',
+            'en' => $data['name']['en'] ?? '',
+        ];
+
+        $data['description'] = [
+            'ar' => $data['description']['ar'] ?? null,
+            'en' => $data['description']['en'] ?? null,
+        ];
+
+        return $data;
+    }
 }

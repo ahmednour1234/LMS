@@ -13,16 +13,31 @@ class Program extends Model
     use HasFactory;
 
     protected $fillable = [
+        'parent_id',
         'branch_id',
         'code',
+        'name',
+        'description',
         'is_active',
     ];
 
     protected function casts(): array
     {
         return [
+            'name' => 'array',
+            'description' => 'array',
             'is_active' => 'boolean',
         ];
+    }
+
+    public function parent(): BelongsTo
+    {
+        return $this->belongsTo(Program::class, 'parent_id');
+    }
+
+    public function children(): HasMany
+    {
+        return $this->hasMany(Program::class, 'parent_id');
     }
 
     public function branch(): BelongsTo
@@ -35,4 +50,3 @@ class Program extends Model
         return $this->hasMany(Course::class);
     }
 }
-

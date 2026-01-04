@@ -16,6 +16,16 @@ class CreateProgram extends CreateRecord
             $data['branch_id'] = $user->branch_id;
         }
 
+        $data['name'] = [
+            'ar' => $data['name']['ar'] ?? '',
+            'en' => $data['name']['en'] ?? '',
+        ];
+
+        $data['description'] = [
+            'ar' => $data['description']['ar'] ?? null,
+            'en' => $data['description']['en'] ?? null,
+        ];
+
         return $data;
     }
 }
