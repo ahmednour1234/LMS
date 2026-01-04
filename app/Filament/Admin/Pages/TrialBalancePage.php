@@ -23,9 +23,17 @@ class TrialBalancePage extends Page implements HasForms
 
     protected static ?string $navigationGroup = 'accounting';
 
-    protected static ?string $navigationLabel = 'reports.trial_balance';
-
     protected static ?int $navigationSort = 10;
+
+    public static function getNavigationLabel(): string
+    {
+        return __('reports.trial_balance');
+    }
+
+    public static function getNavigationGroup(): ?string
+    {
+        return __('navigation.groups.accounting');
+    }
 
     public ?string $reportDate = null;
     

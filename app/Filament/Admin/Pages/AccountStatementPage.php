@@ -25,9 +25,17 @@ class AccountStatementPage extends Page implements HasForms
 
     protected static ?string $navigationGroup = 'accounting';
 
-    protected static ?string $navigationLabel = 'reports.account_statement';
-
     protected static ?int $navigationSort = 13;
+
+    public static function getNavigationLabel(): string
+    {
+        return __('reports.account_statement');
+    }
+
+    public static function getNavigationGroup(): ?string
+    {
+        return __('navigation.groups.accounting');
+    }
 
     public ?int $accountId = null;
     public ?string $startDate = null;

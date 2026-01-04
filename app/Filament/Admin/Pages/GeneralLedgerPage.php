@@ -25,9 +25,17 @@ class GeneralLedgerPage extends Page implements HasForms
 
     protected static ?string $navigationGroup = 'accounting';
 
-    protected static ?string $navigationLabel = 'reports.general_ledger';
-
     protected static ?int $navigationSort = 11;
+
+    public static function getNavigationLabel(): string
+    {
+        return __('reports.general_ledger');
+    }
+
+    public static function getNavigationGroup(): ?string
+    {
+        return __('navigation.groups.accounting');
+    }
 
     public ?string $startDate = null;
     public ?string $endDate = null;

@@ -25,9 +25,17 @@ class IncomeStatementPage extends Page implements HasForms
 
     protected static ?string $navigationGroup = 'accounting';
 
-    protected static ?string $navigationLabel = 'reports.income_statement';
-
     protected static ?int $navigationSort = 12;
+
+    public static function getNavigationLabel(): string
+    {
+        return __('reports.income_statement');
+    }
+
+    public static function getNavigationGroup(): ?string
+    {
+        return __('navigation.groups.accounting');
+    }
 
     public ?string $startDate = null;
     public ?string $endDate = null;
