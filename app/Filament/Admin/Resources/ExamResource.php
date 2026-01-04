@@ -55,12 +55,13 @@ class ExamResource extends Resource
                     ->label(__('exams.course'))
                     ->reactive(),
                 Forms\Components\Select::make('lesson_id')
-                    ->relationship('lesson', 'title', fn (Builder $query, $get) => $query->where('section_id', function ($q) use ($get) {
+                    ->relationship('lesson', 'title', fn (Builder $query, $get) => {
                         $courseId = $get('course_id');
                         if ($courseId) {
-                            $q->whereHas('section', fn ($sq) => $sq->where('course_id', $courseId));
+                            $query->whereHas('section', fn ($q) => $q->where('course_id', $courseId));
                         }
-                    }))
+                        return $query;
+                    })
                     ->searchable()
                     ->preload()
                     ->label(__('exams.lesson'))
