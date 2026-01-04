@@ -6,6 +6,7 @@ use App\Services\TableExportService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Str;
+use Illuminate\Support\Collection;
 
 class ExportController extends Controller
 {
@@ -34,8 +35,13 @@ class ExportController extends Controller
         Cache::forget("export_excel_{$token}");
 
         $records = $data['records'];
-        $columns = $data['columns'];
+        $columnData = $data['columns'];
         $filename = $data['filename'];
+
+        // Convert column data array back to simple column objects for the service
+        $columns = collect($columnData)->map(function ($col) {
+            return (object) $col;
+        });
 
         return $this->exportService->exportXlsx($records, $columns, $filename);
     }
@@ -58,9 +64,14 @@ class ExportController extends Controller
         Cache::forget("export_pdf_{$token}");
 
         $records = $data['records'];
-        $columns = $data['columns'];
+        $columnData = $data['columns'];
         $filename = $data['filename'];
         $title = $data['title'] ?? null;
+
+        // Convert column data array back to simple column objects for the service
+        $columns = collect($columnData)->map(function ($col) {
+            return (object) $col;
+        });
 
         return $this->exportService->exportPdf($records, $columns, $filename, $title);
     }
@@ -83,8 +94,13 @@ class ExportController extends Controller
         Cache::forget("export_print_{$token}");
 
         $records = $data['records'];
-        $columns = $data['columns'];
+        $columnData = $data['columns'];
         $title = $data['title'] ?? null;
+
+        // Convert column data array back to simple column objects for the service
+        $columns = collect($columnData)->map(function ($col) {
+            return (object) $col;
+        });
 
         $view = $this->exportService->renderPrint($records, $columns, $title);
         $html = $view->render();

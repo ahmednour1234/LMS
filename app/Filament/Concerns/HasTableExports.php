@@ -37,11 +37,19 @@ trait HasTableExports
                     // Get records and store in cache (limit to prevent memory issues)
                     $records = $query->limit(10000)->get();
                     
+                    // Extract serializable column metadata
+                    $columnData = $columns->map(function ($column) {
+                        return [
+                            'name' => is_callable([$column, 'getName']) ? $column->getName() : ($column->getName ?? ''),
+                            'label' => is_callable([$column, 'getLabel']) ? $column->getLabel() : ($column->getLabel ?? ''),
+                        ];
+                    })->toArray();
+                    
                     // Store export data in cache with token
                     $token = Str::random(32);
                     Cache::put("export_excel_{$token}", [
                         'records' => $records,
-                        'columns' => $columns,
+                        'columns' => $columnData,
                         'filename' => $filename,
                     ], now()->addMinutes(5));
                     
@@ -62,11 +70,19 @@ trait HasTableExports
                     // Get records and store in cache (limit to prevent memory issues)
                     $records = $query->limit(10000)->get();
                     
+                    // Extract serializable column metadata
+                    $columnData = $columns->map(function ($column) {
+                        return [
+                            'name' => is_callable([$column, 'getName']) ? $column->getName() : ($column->getName ?? ''),
+                            'label' => is_callable([$column, 'getLabel']) ? $column->getLabel() : ($column->getLabel ?? ''),
+                        ];
+                    })->toArray();
+                    
                     // Store export data in cache with token
                     $token = Str::random(32);
                     Cache::put("export_pdf_{$token}", [
                         'records' => $records,
-                        'columns' => $columns,
+                        'columns' => $columnData,
                         'filename' => $filename,
                         'title' => $title,
                     ], now()->addMinutes(5));
@@ -87,11 +103,19 @@ trait HasTableExports
                     // Get records and store in cache (limit to prevent memory issues)
                     $records = $query->limit(10000)->get();
                     
+                    // Extract serializable column metadata
+                    $columnData = $columns->map(function ($column) {
+                        return [
+                            'name' => is_callable([$column, 'getName']) ? $column->getName() : ($column->getName ?? ''),
+                            'label' => is_callable([$column, 'getLabel']) ? $column->getLabel() : ($column->getLabel ?? ''),
+                        ];
+                    })->toArray();
+                    
                     // Store export data in cache with token
                     $token = Str::random(32);
                     Cache::put("export_print_{$token}", [
                         'records' => $records,
-                        'columns' => $columns,
+                        'columns' => $columnData,
                         'title' => $title,
                     ], now()->addMinutes(5));
                     
