@@ -404,7 +404,10 @@ class ReportService
 
         $results = $query->get();
 
-        $data = $results->map(function ($row) {
+        $runningBalance = $openingBalance;
+        $data = $results->map(function ($row) use (&$runningBalance) {
+            $runningBalance += (float) $row->debit - (float) $row->credit;
+            
             return new AccountStatementReportData(
                 journalId: $row->journal_id,
                 journalReference: $row->journal_reference,
@@ -413,7 +416,8 @@ class ReportService
                 journalLineId: $row->journal_line_id,
                 debit: (float) $row->debit,
                 credit: (float) $row->credit,
-                lineDescription: $row->line_description
+                lineDescription: $row->line_description,
+                runningBalance: $runningBalance
             );
         });
 

@@ -14,7 +14,8 @@ readonly class AccountStatementReportData
         public int $journalLineId,
         public float $debit,
         public float $credit,
-        public ?string $lineDescription
+        public ?string $lineDescription,
+        public float $runningBalance
     ) {
     }
 }
