@@ -116,14 +116,14 @@ class TableExportService
     /**
      * Export query results to Excel (XLSX)
      *
-     * @param Builder $query
+     * @param Builder|Collection $query
      * @param Collection $columns
      * @param string $filename
      * @return BinaryFileResponse
      */
-    public function exportXlsx(Builder $query, Collection $columns, string $filename): BinaryFileResponse
+    public function exportXlsx(Builder|Collection $query, Collection $columns, string $filename): BinaryFileResponse
     {
-        $records = $query->get();
+        $records = $query instanceof Collection ? $query : $query->get();
         $locale = app()->getLocale();
 
         // Prepare data for export
@@ -139,6 +139,12 @@ class TableExportService
 
                 // Format the value
                 $value = $this->formatColumnValue($value, $column);
+
+                // Ensure UTF-8 encoding and clean invalid characters
+                if (is_string($value)) {
+                    $value = mb_convert_encoding($value, 'UTF-8', 'UTF-8');
+                    $value = mb_convert_encoding($value, 'UTF-8', 'auto');
+                }
 
                 // Use translated label as key
                 $row[$label] = $value ?? '';
@@ -162,15 +168,15 @@ class TableExportService
     /**
      * Export query results to PDF
      *
-     * @param Builder $query
+     * @param Builder|Collection $query
      * @param Collection $columns
      * @param string $filename
      * @param string|null $title
      * @return Response
      */
-    public function exportPdf(Builder $query, Collection $columns, string $filename, ?string $title = null): Response
+    public function exportPdf(Builder|Collection $query, Collection $columns, string $filename, ?string $title = null): Response
     {
-        $records = $query->get();
+        $records = $query instanceof Collection ? $query : $query->get();
         $locale = app()->getLocale();
         $isRtl = $locale === 'ar';
 
@@ -198,14 +204,14 @@ class TableExportService
     /**
      * Render print view
      *
-     * @param Builder $query
+     * @param Builder|Collection $query
      * @param Collection $columns
      * @param string|null $title
      * @return \Illuminate\Contracts\View\View
      */
-    public function renderPrint(Builder $query, Collection $columns, ?string $title = null)
+    public function renderPrint(Builder|Collection $query, Collection $columns, ?string $title = null)
     {
-        $records = $query->get();
+        $records = $query instanceof Collection ? $query : $query->get();
         $locale = app()->getLocale();
         $isRtl = $locale === 'ar';
 

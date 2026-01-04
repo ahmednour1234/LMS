@@ -21,3 +21,12 @@ Route::post('/admin/locale/toggle', function () {
     
     return redirect()->to($redirect);
 })->name('filament.admin.locale.toggle')->middleware(['web', 'auth']);
+
+Route::middleware(['web', 'auth'])->group(function () {
+    Route::get('/admin/exports/excel', [App\Http\Controllers\ExportController::class, 'excel'])
+        ->name('filament.admin.exports.excel');
+    Route::get('/admin/exports/pdf', [App\Http\Controllers\ExportController::class, 'pdf'])
+        ->name('filament.admin.exports.pdf');
+    Route::get('/admin/exports/print', [App\Http\Controllers\ExportController::class, 'print'])
+        ->name('filament.admin.exports.print');
+});

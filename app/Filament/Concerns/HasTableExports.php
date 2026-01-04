@@ -5,6 +5,8 @@ namespace App\Filament\Concerns;
 use App\Services\TableExportService;
 use Filament\Tables\Actions\Action;
 use Filament\Tables\Contracts\HasTable;
+use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Str;
 
 trait HasTableExports
 {
@@ -31,7 +33,20 @@ trait HasTableExports
                     $query = $tableExportService->buildQueryFromTableState($livewire);
                     $columns = collect($livewire->getTable()->getColumns())->filter(fn ($col) => ! $col->isHidden());
                     $filename = $resourceName . '_' . now()->format('Y-m-d_His');
-                    return $tableExportService->exportXlsx($query, $columns, $filename);
+                    
+                    // Get records and store in cache (limit to prevent memory issues)
+                    $records = $query->limit(10000)->get();
+                    
+                    // Store export data in cache with token
+                    $token = Str::random(32);
+                    Cache::put("export_excel_{$token}", [
+                        'records' => $records,
+                        'columns' => $columns,
+                        'filename' => $filename,
+                    ], now()->addMinutes(5));
+                    
+                    // Redirect to download route
+                    return redirect()->route('filament.admin.exports.excel', ['token' => $token]);
                 }),
 
             Action::make('exportPdf')
@@ -43,7 +58,21 @@ trait HasTableExports
                     $query = $tableExportService->buildQueryFromTableState($livewire);
                     $columns = collect($livewire->getTable()->getColumns())->filter(fn ($col) => ! $col->isHidden());
                     $filename = $resourceName . '_' . now()->format('Y-m-d_His');
-                    return $tableExportService->exportPdf($query, $columns, $filename, $title);
+                    
+                    // Get records and store in cache (limit to prevent memory issues)
+                    $records = $query->limit(10000)->get();
+                    
+                    // Store export data in cache with token
+                    $token = Str::random(32);
+                    Cache::put("export_pdf_{$token}", [
+                        'records' => $records,
+                        'columns' => $columns,
+                        'filename' => $filename,
+                        'title' => $title,
+                    ], now()->addMinutes(5));
+                    
+                    // Redirect to download route
+                    return redirect()->route('filament.admin.exports.pdf', ['token' => $token]);
                 }),
 
             Action::make('print')
@@ -55,12 +84,19 @@ trait HasTableExports
                     $query = $tableExportService->buildQueryFromTableState($livewire);
                     $columns = collect($livewire->getTable()->getColumns())->filter(fn ($col) => ! $col->isHidden());
                     
-                    // Render print view and return with JavaScript to print
-                    $html = $tableExportService->renderPrint($query, $columns, $title)->render();
+                    // Get records and store in cache (limit to prevent memory issues)
+                    $records = $query->limit(10000)->get();
                     
-                    // Return HTML with auto-print script
-                    return response($html . '<script>window.onload = function() { window.print(); }</script>')
-                        ->header('Content-Type', 'text/html');
+                    // Store export data in cache with token
+                    $token = Str::random(32);
+                    Cache::put("export_print_{$token}", [
+                        'records' => $records,
+                        'columns' => $columns,
+                        'title' => $title,
+                    ], now()->addMinutes(5));
+                    
+                    // Redirect to print route
+                    return redirect()->route('filament.admin.exports.print', ['token' => $token]);
                 })
                 ->openUrlInNewTab(),
         ];
