@@ -48,7 +48,7 @@ class TaskSubmissionResource extends Resource
         return $form
             ->schema([
                 Forms\Components\Select::make('task_id')
-                    ->relationship('task', null, fn (Builder $query) => $query->whereHas('course', fn ($q) => $q->where('branch_id', auth()->user()->branch_id ?? null))->orderBy('id'))
+                    ->relationship('task', 'id', fn (Builder $query) => $query->whereHas('course', fn ($q) => $q->where('branch_id', auth()->user()->branch_id ?? null))->orderBy('id'))
                     ->getOptionLabelUsing(fn ($record): ?string => is_object($record) ? ($record->title[app()->getLocale()] ?? $record->title['en'] ?? null) : (\App\Domain\Training\Models\Task::find($record)?->title[app()->getLocale()] ?? \App\Domain\Training\Models\Task::find($record)?->title['en'] ?? null))
                     ->searchable()
                     ->preload()

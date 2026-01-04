@@ -47,7 +47,7 @@ class LessonResource extends Resource
         return $form
             ->schema([
                 Forms\Components\Select::make('section_id')
-                    ->relationship('section', null, fn (Builder $query) => $query->whereHas('course', fn ($q) => $q->where('branch_id', auth()->user()->branch_id ?? null))->orderBy('id'))
+                    ->relationship('section', 'id', fn (Builder $query) => $query->whereHas('course', fn ($q) => $q->where('branch_id', auth()->user()->branch_id ?? null))->orderBy('id'))
                     ->getOptionLabelUsing(fn ($record): ?string => is_object($record) ? ($record->title[app()->getLocale()] ?? $record->title['en'] ?? null) : (\App\Domain\Training\Models\CourseSection::find($record)?->title[app()->getLocale()] ?? \App\Domain\Training\Models\CourseSection::find($record)?->title['en'] ?? null))
                     ->searchable()
                     ->preload()
