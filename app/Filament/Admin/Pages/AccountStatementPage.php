@@ -55,15 +55,18 @@ class AccountStatementPage extends Page
                         auth()->user()
                     );
                     
-                    return $pdfService->report('account-statement', [
+                    $response = $pdfService->report('account-statement', [
                         'account' => $result['account'],
                         'openingBalance' => $result['openingBalance'],
                         'data' => $result['data'],
                         'startDate' => Carbon::parse($this->startDate),
                         'endDate' => Carbon::parse($this->endDate),
                     ]);
+                    
+                    return $response;
                 })
-                ->disabled(fn () => !$this->accountId),
+                ->disabled(fn () => !$this->accountId)
+                ->requiresConfirmation(false),
         ];
     }
 

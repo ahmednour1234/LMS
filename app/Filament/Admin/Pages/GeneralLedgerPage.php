@@ -51,12 +51,15 @@ class GeneralLedgerPage extends Page
                         auth()->user()
                     );
                     
-                    return $pdfService->report('general-ledger', [
+                    $response = $pdfService->report('general-ledger', [
                         'data' => $data,
                         'startDate' => Carbon::parse($this->startDate),
                         'endDate' => Carbon::parse($this->endDate),
                     ]);
-                }),
+                    
+                    return $response;
+                })
+                ->requiresConfirmation(false),
         ];
     }
 

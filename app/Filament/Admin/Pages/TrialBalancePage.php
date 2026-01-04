@@ -44,11 +44,14 @@ class TrialBalancePage extends Page
                         auth()->user()
                     );
                     
-                    return $pdfService->report('trial-balance', [
+                    $response = $pdfService->report('trial-balance', [
                         'data' => $data,
                         'reportDate' => Carbon::parse($this->reportDate),
                     ]);
-                }),
+                    
+                    return $response;
+                })
+                ->requiresConfirmation(false),
         ];
     }
 

@@ -14,5 +14,19 @@ return Application::configure(basePath: dirname(__DIR__))
         //
     })
     ->withExceptions(function (Exceptions $exceptions): void {
-        //
+        // Handle UTF-8 encoding errors in JSON responses
+        $exceptions->render(function (\InvalidArgumentException $e, $request) {
+            if (str_contains($e->getMessage(), 'Malformed UTF-8')) {
+                if ($request->expectsJson() || $request->is('livewire/*')) {
+                    \Log::warning('UTF-8 encoding error', [
+                        'message' => $e->getMessage(),
+                        'url' => $request->fullUrl(),
+                    ]);
+                    
+                    return response()->json([
+                        'message' => 'An error occurred while processing your request. Please check your data for invalid characters.',
+                    ], 500);
+                }
+            }
+        });
     })->create();

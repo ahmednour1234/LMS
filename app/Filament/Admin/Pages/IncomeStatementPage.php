@@ -51,13 +51,16 @@ class IncomeStatementPage extends Page
                         auth()->user()
                     );
                     
-                    return $pdfService->report('income-statement', [
+                    $response = $pdfService->report('income-statement', [
                         'revenues' => $result['revenues'],
                         'expenses' => $result['expenses'],
                         'startDate' => Carbon::parse($this->startDate),
                         'endDate' => Carbon::parse($this->endDate),
                     ]);
-                }),
+                    
+                    return $response;
+                })
+                ->requiresConfirmation(false),
         ];
     }
 
