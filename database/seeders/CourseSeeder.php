@@ -3,7 +3,6 @@
 namespace Database\Seeders;
 
 use App\Domain\Branch\Models\Branch;
-use App\Domain\Training\Enums\DeliveryType;
 use App\Domain\Training\Models\Course;
 use App\Domain\Training\Models\Program;
 use App\Domain\Training\Models\Teacher;
@@ -46,7 +45,7 @@ class CourseSeeder extends Seeder
                     'ar' => 'دورة شاملة لتعلم أساسيات البرمجة',
                     'en' => 'Comprehensive course for learning programming fundamentals',
                 ],
-                'delivery_type' => DeliveryType::Online->value,
+                'delivery_type' => 'online',
                 'duration_hours' => 40,
             ],
             [
@@ -59,7 +58,7 @@ class CourseSeeder extends Seeder
                     'ar' => 'تعلم مهارات إدارة المشاريع بكفاءة',
                     'en' => 'Learn efficient project management skills',
                 ],
-                'delivery_type' => DeliveryType::Onsite->value,
+                'delivery_type' => 'onsite',
                 'duration_hours' => 30,
             ],
             [
@@ -72,7 +71,7 @@ class CourseSeeder extends Seeder
                     'ar' => 'استراتيجيات التسويق الرقمي الحديثة',
                     'en' => 'Modern digital marketing strategies',
                 ],
-                'delivery_type' => DeliveryType::Virtual->value,
+                'delivery_type' => 'virtual',
                 'duration_hours' => 35,
             ],
             [
@@ -85,7 +84,7 @@ class CourseSeeder extends Seeder
                     'ar' => 'تطوير مهارات القيادة والإدارة',
                     'en' => 'Developing leadership and management skills',
                 ],
-                'delivery_type' => DeliveryType::Onsite->value,
+                'delivery_type' => 'onsite',
                 'duration_hours' => 25,
             ],
             [
@@ -98,7 +97,7 @@ class CourseSeeder extends Seeder
                     'ar' => 'تعلم تحليل البيانات والبيانات الضخمة',
                     'en' => 'Learn data analysis and big data',
                 ],
-                'delivery_type' => DeliveryType::Online->value,
+                'delivery_type' => 'online',
                 'duration_hours' => 45,
             ],
         ];
