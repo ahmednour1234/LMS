@@ -126,6 +126,55 @@ class RolePermissionSeeder extends Seeder
             'students.delete',
             'students.delete.branch',
             'students.delete.personal',
+
+            // Course Sections
+            'course_sections.viewAny',
+            'course_sections.view',
+            'course_sections.create',
+            'course_sections.update',
+            'course_sections.delete',
+
+            // Lessons
+            'lessons.viewAny',
+            'lessons.view',
+            'lessons.create',
+            'lessons.update',
+            'lessons.delete',
+
+            // Lesson Items
+            'lesson_items.viewAny',
+            'lesson_items.view',
+            'lesson_items.create',
+            'lesson_items.update',
+            'lesson_items.delete',
+
+            // Exams
+            'exams.viewAny',
+            'exams.view',
+            'exams.create',
+            'exams.update',
+            'exams.delete',
+
+            // Exam Questions
+            'exam_questions.viewAny',
+            'exam_questions.view',
+            'exam_questions.create',
+            'exam_questions.update',
+            'exam_questions.delete',
+
+            // Tasks
+            'tasks.viewAny',
+            'tasks.view',
+            'tasks.create',
+            'tasks.update',
+            'tasks.delete',
+
+            // Task Submissions
+            'task_submissions.viewAny',
+            'task_submissions.view',
+            'task_submissions.create',
+            'task_submissions.update',
+            'task_submissions.delete',
         ];
 
         foreach ($permissions as $permission) {

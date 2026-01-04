@@ -194,6 +194,113 @@
         "max_installments": "الحد الأقصى للأقساط",
         "is_active": "نشط"
     },
+    "course_sections": {
+        "course": "الدورة",
+        "title": "العنوان",
+        "title_ar": "العنوان (عربي)",
+        "title_en": "العنوان (إنجليزي)",
+        "description": "الوصف",
+        "description_ar": "الوصف (عربي)",
+        "description_en": "الوصف (إنجليزي)",
+        "order": "الترتيب",
+        "is_active": "نشط"
+    },
+    "lessons": {
+        "section": "القسم",
+        "title": "العنوان",
+        "title_ar": "العنوان (عربي)",
+        "title_en": "العنوان (إنجليزي)",
+        "description": "الوصف",
+        "description_ar": "الوصف (عربي)",
+        "description_en": "الوصف (إنجليزي)",
+        "order": "الترتيب",
+        "is_active": "نشط"
+    },
+    "lesson_items": {
+        "lesson": "الدرس",
+        "type": "النوع",
+        "type_options": {
+            "video": "فيديو",
+            "pdf": "PDF",
+            "file": "ملف",
+            "link": "رابط"
+        },
+        "title": "العنوان",
+        "title_ar": "العنوان (عربي)",
+        "title_en": "العنوان (إنجليزي)",
+        "media_file": "الملف",
+        "external_url": "رابط خارجي",
+        "order": "الترتيب",
+        "is_active": "نشط"
+    },
+    "exams": {
+        "course": "الدورة",
+        "lesson": "الدرس",
+        "title": "العنوان",
+        "title_ar": "العنوان (عربي)",
+        "title_en": "العنوان (إنجليزي)",
+        "description": "الوصف",
+        "description_ar": "الوصف (عربي)",
+        "description_en": "الوصف (إنجليزي)",
+        "type": "النوع",
+        "type_options": {
+            "mcq": "اختيار من متعدد",
+            "essay": "مقال",
+            "mixed": "مختلط"
+        },
+        "total_score": "الدرجة الكلية",
+        "duration_minutes": "المدة (بالدقائق)",
+        "is_active": "نشط"
+    },
+    "exam_questions": {
+        "exam": "الامتحان",
+        "type": "النوع",
+        "type_options": {
+            "mcq": "اختيار من متعدد",
+            "essay": "مقال"
+        },
+        "question": "السؤال",
+        "question_ar": "السؤال (عربي)",
+        "question_en": "السؤال (إنجليزي)",
+        "options": "الخيارات",
+        "correct_answer": "الإجابة الصحيحة",
+        "points": "النقاط",
+        "order": "الترتيب"
+    },
+    "tasks": {
+        "course": "الدورة",
+        "lesson": "الدرس",
+        "title": "العنوان",
+        "title_ar": "العنوان (عربي)",
+        "title_en": "العنوان (إنجليزي)",
+        "description": "الوصف",
+        "description_ar": "الوصف (عربي)",
+        "description_en": "الوصف (إنجليزي)",
+        "submission_type": "نوع التقديم",
+        "submission_type_options": {
+            "file": "ملف",
+            "text": "نص"
+        },
+        "max_score": "الدرجة القصوى",
+        "due_date": "تاريخ الاستحقاق",
+        "is_active": "نشط"
+    },
+    "task_submissions": {
+        "task": "المهمة",
+        "student": "الطالب",
+        "submission_text": "نص التقديم",
+        "media_file": "الملف",
+        "score": "الدرجة",
+        "feedback": "التعليقات",
+        "feedback_ar": "التعليقات (عربي)",
+        "feedback_en": "التعليقات (إنجليزي)",
+        "reviewed_at": "تاريخ المراجعة",
+        "status": "الحالة",
+        "status_options": {
+            "pending": "قيد الانتظار",
+            "reviewed": "تمت المراجعة"
+        }
+    },
     "navigation": {
         "dashboard": "لوحة التحكم",
         "master_data": "البيانات الأساسية",
@@ -205,6 +312,13 @@
         "programs": "البرامج",
         "courses": "الدورات",
         "course_prices": "أسعار الدورات",
+        "course_sections": "أقسام الدورات",
+        "lessons": "الدروس",
+        "lesson_items": "عناصر الدرس",
+        "exams": "الامتحانات",
+        "exam_questions": "أسئلة الامتحان",
+        "tasks": "المهام",
+        "task_submissions": "تقديمات المهام",
         "users": "المستخدمون",
         "roles": "الأدوار",
         "permissions": "الصلاحيات",

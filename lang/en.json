@@ -194,6 +194,113 @@
         "max_installments": "Max Installments",
         "is_active": "Active"
     },
+    "course_sections": {
+        "course": "Course",
+        "title": "Title",
+        "title_ar": "Title (Arabic)",
+        "title_en": "Title (English)",
+        "description": "Description",
+        "description_ar": "Description (Arabic)",
+        "description_en": "Description (English)",
+        "order": "Order",
+        "is_active": "Active"
+    },
+    "lessons": {
+        "section": "Section",
+        "title": "Title",
+        "title_ar": "Title (Arabic)",
+        "title_en": "Title (English)",
+        "description": "Description",
+        "description_ar": "Description (Arabic)",
+        "description_en": "Description (English)",
+        "order": "Order",
+        "is_active": "Active"
+    },
+    "lesson_items": {
+        "lesson": "Lesson",
+        "type": "Type",
+        "type_options": {
+            "video": "Video",
+            "pdf": "PDF",
+            "file": "File",
+            "link": "Link"
+        },
+        "title": "Title",
+        "title_ar": "Title (Arabic)",
+        "title_en": "Title (English)",
+        "media_file": "Media File",
+        "external_url": "External URL",
+        "order": "Order",
+        "is_active": "Active"
+    },
+    "exams": {
+        "course": "Course",
+        "lesson": "Lesson",
+        "title": "Title",
+        "title_ar": "Title (Arabic)",
+        "title_en": "Title (English)",
+        "description": "Description",
+        "description_ar": "Description (Arabic)",
+        "description_en": "Description (English)",
+        "type": "Type",
+        "type_options": {
+            "mcq": "MCQ",
+            "essay": "Essay",
+            "mixed": "Mixed"
+        },
+        "total_score": "Total Score",
+        "duration_minutes": "Duration (Minutes)",
+        "is_active": "Active"
+    },
+    "exam_questions": {
+        "exam": "Exam",
+        "type": "Type",
+        "type_options": {
+            "mcq": "MCQ",
+            "essay": "Essay"
+        },
+        "question": "Question",
+        "question_ar": "Question (Arabic)",
+        "question_en": "Question (English)",
+        "options": "Options",
+        "correct_answer": "Correct Answer",
+        "points": "Points",
+        "order": "Order"
+    },
+    "tasks": {
+        "course": "Course",
+        "lesson": "Lesson",
+        "title": "Title",
+        "title_ar": "Title (Arabic)",
+        "title_en": "Title (English)",
+        "description": "Description",
+        "description_ar": "Description (Arabic)",
+        "description_en": "Description (English)",
+        "submission_type": "Submission Type",
+        "submission_type_options": {
+            "file": "File",
+            "text": "Text"
+        },
+        "max_score": "Max Score",
+        "due_date": "Due Date",
+        "is_active": "Active"
+    },
+    "task_submissions": {
+        "task": "Task",
+        "student": "Student",
+        "submission_text": "Submission Text",
+        "media_file": "Media File",
+        "score": "Score",
+        "feedback": "Feedback",
+        "feedback_ar": "Feedback (Arabic)",
+        "feedback_en": "Feedback (English)",
+        "reviewed_at": "Reviewed At",
+        "status": "Status",
+        "status_options": {
+            "pending": "Pending",
+            "reviewed": "Reviewed"
+        }
+    },
     "navigation": {
         "dashboard": "Dashboard",
         "master_data": "Master Data",
@@ -205,6 +312,13 @@
         "programs": "Programs",
         "courses": "Courses",
         "course_prices": "Course Prices",
+        "course_sections": "Course Sections",
+        "lessons": "Lessons",
+        "lesson_items": "Lesson Items",
+        "exams": "Exams",
+        "exam_questions": "Exam Questions",
+        "tasks": "Tasks",
+        "task_submissions": "Task Submissions",
         "users": "Users",
         "roles": "Roles",
         "permissions": "Permissions",
