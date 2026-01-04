@@ -8,6 +8,7 @@ use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\Response;
 use Illuminate\Support\Collection;
 use Rap2hpoutre\FastExcel\FastExcel;
+use Symfony\Component\HttpFoundation\BinaryFileResponse;
 
 class TableExportService
 {
@@ -118,9 +119,9 @@ class TableExportService
      * @param Builder $query
      * @param Collection $columns
      * @param string $filename
-     * @return Response
+     * @return BinaryFileResponse
      */
-    public function exportXlsx(Builder $query, Collection $columns, string $filename): Response
+    public function exportXlsx(Builder $query, Collection $columns, string $filename): BinaryFileResponse
     {
         $records = $query->get();
         $locale = app()->getLocale();
