@@ -5,8 +5,10 @@ namespace App\Domain\Accounting\Services;
 use App\Domain\Accounting\Models\Account;
 use App\Domain\Accounting\Models\Journal;
 use App\Domain\Accounting\Models\JournalLine;
+use App\Domain\Accounting\Services\Data\AccountStatementReportData;
 use App\Domain\Accounting\Services\Data\DeferredRevenueReportData;
 use App\Domain\Accounting\Services\Data\GeneralLedgerReportData;
+use App\Domain\Accounting\Services\Data\IncomeStatementReportData;
 use App\Domain\Accounting\Services\Data\TrialBalanceReportData;
 use App\Enums\JournalStatus;
 use App\Models\User;
@@ -24,7 +26,7 @@ class ReportService
             ->join('journal_lines', 'journals.id', '=', 'journal_lines.journal_id')
             ->join('accounts', 'journal_lines.account_id', '=', 'accounts.id')
             ->where('journals.status', JournalStatus::POSTED)
-            ->where('journals.date', '<=', $reportDate)
+            ->where('journals.journal_date', '<=', $reportDate)
             ->where('accounts.is_active', true)
             ->select([
                 'accounts.id as account_id',
@@ -70,12 +72,12 @@ class ReportService
             ->join('journals', 'journal_lines.journal_id', '=', 'journals.id')
             ->join('accounts', 'journal_lines.account_id', '=', 'accounts.id')
             ->where('journals.status', JournalStatus::POSTED)
-            ->whereBetween('journals.date', [$startDate, $endDate])
+            ->whereBetween('journals.journal_date', [$startDate, $endDate])
             ->where('accounts.is_active', true)
             ->select([
                 'journals.id as journal_id',
                 'journals.reference',
-                'journals.date',
+                'journals.journal_date as date',
                 'journals.description as journal_description',
                 'journal_lines.id as journal_line_id',
                 'journal_lines.account_id',
@@ -83,10 +85,10 @@ class ReportService
                 'accounts.name as account_name',
                 'journal_lines.debit',
                 'journal_lines.credit',
-                'journal_lines.description as line_description',
+                'journal_lines.memo as line_description',
                 'journal_lines.cost_center_id',
             ])
-            ->orderBy('journals.date')
+            ->orderBy('journals.journal_date')
             ->orderBy('journals.id')
             ->orderBy('journal_lines.id');
 
@@ -118,7 +120,7 @@ class ReportService
                     ->join('journals', 'journal_lines.journal_id', '=', 'journals.id')
                     ->where('journal_lines.account_id', $accountId)
                     ->where('journals.status', JournalStatus::POSTED)
-                    ->where('journals.date', '<', $startDate)
+                    ->where('journals.journal_date', '<', $startDate)
                     ->whereIn('journals.id', $visibleJournalIds)
                     ->select(
                         DB::raw('COALESCE(SUM(journal_lines.debit), 0) - COALESCE(SUM(journal_lines.credit), 0) as balance')
@@ -140,7 +142,7 @@ class ReportService
             return new GeneralLedgerReportData(
                 journalId: $row->journal_id,
                 journalReference: $row->reference,
-                journalDate: $row->date,
+                journalDate: Carbon::parse($row->date),
                 journalDescription: $row->journal_description,
                 journalLineId: $row->journal_line_id,
                 accountId: $row->account_id,
@@ -198,16 +200,16 @@ class ReportService
             ->select([
                 'journals.id',
                 'journals.reference',
-                'journals.date',
+                'journals.journal_date as date',
                 'journals.description',
                 'journals.branch_id',
                 'journals.reference_type',
                 'journals.reference_id',
                 'journal_lines.debit',
                 'journal_lines.credit',
-                'journal_lines.description as line_description',
+                'journal_lines.memo as line_description',
             ])
-            ->orderBy('journals.date')
+            ->orderBy('journals.journal_date')
             ->orderBy('journals.id');
 
         if ($branchId !== null) {
@@ -257,6 +259,169 @@ class ReportService
         );
 
         return collect([$summary])->merge($transactions);
+    }
+
+    public function getIncomeStatement(
+        Carbon $startDate,
+        Carbon $endDate,
+        ?int $branchId = null,
+        User $user
+    ): array {
+        $journalQuery = Journal::query()->visibleTo($user, 'journals.view');
+        $visibleJournalIds = $journalQuery->pluck('id')->toArray();
+
+        if (empty($visibleJournalIds)) {
+            return [
+                'revenues' => collect(),
+                'expenses' => collect(),
+            ];
+        }
+
+        // Get revenue accounts (type = 'revenue')
+        $revenueQuery = JournalLine::query()
+            ->join('journals', 'journal_lines.journal_id', '=', 'journals.id')
+            ->join('accounts', 'journal_lines.account_id', '=', 'accounts.id')
+            ->where('journals.status', JournalStatus::POSTED)
+            ->whereBetween('journals.journal_date', [$startDate, $endDate])
+            ->where('accounts.type', 'revenue')
+            ->where('accounts.is_active', true)
+            ->whereIn('journals.id', $visibleJournalIds)
+            ->select([
+                'accounts.id as account_id',
+                'accounts.code as account_code',
+                'accounts.name as account_name',
+                DB::raw('SUM(journal_lines.credit - journal_lines.debit) as amount'),
+            ])
+            ->groupBy('accounts.id', 'accounts.code', 'accounts.name');
+
+        // Get expense accounts (type = 'expense')
+        $expenseQuery = JournalLine::query()
+            ->join('journals', 'journal_lines.journal_id', '=', 'journals.id')
+            ->join('accounts', 'journal_lines.account_id', '=', 'accounts.id')
+            ->where('journals.status', JournalStatus::POSTED)
+            ->whereBetween('journals.journal_date', [$startDate, $endDate])
+            ->where('accounts.type', 'expense')
+            ->where('accounts.is_active', true)
+            ->whereIn('journals.id', $visibleJournalIds)
+            ->select([
+                'accounts.id as account_id',
+                'accounts.code as account_code',
+                'accounts.name as account_name',
+                DB::raw('SUM(journal_lines.debit - journal_lines.credit) as amount'),
+            ])
+            ->groupBy('accounts.id', 'accounts.code', 'accounts.name');
+
+        if ($branchId !== null) {
+            $revenueQuery->where('journals.branch_id', $branchId);
+            $expenseQuery->where('journals.branch_id', $branchId);
+        }
+
+        $revenues = $revenueQuery->get()->map(function ($row) {
+            return new IncomeStatementReportData(
+                accountId: $row->account_id,
+                accountCode: $row->account_code,
+                accountName: $row->account_name,
+                amount: (float) $row->amount
+            );
+        })->filter(fn ($item) => $item->amount > 0.01)->sortBy('accountCode');
+
+        $expenses = $expenseQuery->get()->map(function ($row) {
+            return new IncomeStatementReportData(
+                accountId: $row->account_id,
+                accountCode: $row->account_code,
+                accountName: $row->account_name,
+                amount: (float) $row->amount
+            );
+        })->filter(fn ($item) => $item->amount > 0.01)->sortBy('accountCode');
+
+        return [
+            'revenues' => $revenues,
+            'expenses' => $expenses,
+        ];
+    }
+
+    public function getAccountStatement(
+        int $accountId,
+        Carbon $startDate,
+        Carbon $endDate,
+        User $user
+    ): array {
+        $account = Account::find($accountId);
+
+        if (!$account) {
+            return [
+                'account' => null,
+                'openingBalance' => 0,
+                'data' => collect(),
+            ];
+        }
+
+        $journalQuery = Journal::query()->visibleTo($user, 'journals.view');
+        $visibleJournalIds = $journalQuery->pluck('id')->toArray();
+
+        if (empty($visibleJournalIds)) {
+            return [
+                'account' => $account,
+                'openingBalance' => 0,
+                'data' => collect(),
+            ];
+        }
+
+        // Calculate opening balance
+        $openingQuery = JournalLine::query()
+            ->join('journals', 'journal_lines.journal_id', '=', 'journals.id')
+            ->where('journal_lines.account_id', $accountId)
+            ->where('journals.status', JournalStatus::POSTED)
+            ->where('journals.journal_date', '<', $startDate)
+            ->whereIn('journals.id', $visibleJournalIds)
+            ->select(
+                DB::raw('COALESCE(SUM(journal_lines.debit), 0) - COALESCE(SUM(journal_lines.credit), 0) as balance')
+            );
+
+        $openingBalance = (float) ($account->opening_balance ?? 0);
+        $openingBalance += (float) ($openingQuery->value('balance') ?? 0);
+
+        // Get period transactions
+        $query = JournalLine::query()
+            ->join('journals', 'journal_lines.journal_id', '=', 'journals.id')
+            ->where('journal_lines.account_id', $accountId)
+            ->where('journals.status', JournalStatus::POSTED)
+            ->whereBetween('journals.journal_date', [$startDate, $endDate])
+            ->whereIn('journals.id', $visibleJournalIds)
+            ->select([
+                'journals.id as journal_id',
+                'journals.reference as journal_reference',
+                'journals.journal_date as date',
+                'journals.description as journal_description',
+                'journal_lines.id as journal_line_id',
+                'journal_lines.debit',
+                'journal_lines.credit',
+                'journal_lines.memo as line_description',
+            ])
+            ->orderBy('journals.journal_date')
+            ->orderBy('journals.id')
+            ->orderBy('journal_lines.id');
+
+        $results = $query->get();
+
+        $data = $results->map(function ($row) {
+            return new AccountStatementReportData(
+                journalId: $row->journal_id,
+                journalReference: $row->journal_reference,
+                journalDate: \Carbon\Carbon::parse($row->date),
+                journalDescription: $row->journal_description,
+                journalLineId: $row->journal_line_id,
+                debit: (float) $row->debit,
+                credit: (float) $row->credit,
+                lineDescription: $row->line_description
+            );
+        });
+
+        return [
+            'account' => $account,
+            'openingBalance' => $openingBalance,
+            'data' => $data,
+        ];
     }
 }
 

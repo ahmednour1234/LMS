@@ -77,7 +77,28 @@
         "status": "الحالة",
         "status_options": {
             "draft": "مسودة",
-            "posted": "مسجل"
+            "posted": "مسجل",
+            "void": "ملغاة"
+        },
+        "posted_by": "تم النشر بواسطة",
+        "posted_at": "تاريخ النشر",
+        "reference_type": "نوع المرجع",
+        "actions": {
+            "post": "نشر",
+            "void": "إلغاء",
+            "print": "طباعة",
+            "post_confirm": "نشر السجل",
+            "post_confirm_button": "نشر",
+            "void_confirm": "إلغاء السجل",
+            "void_confirm_button": "إلغاء",
+            "posted_success": "تم نشر السجل بنجاح",
+            "voided_success": "تم إلغاء السجل بنجاح"
+        },
+        "errors": {
+            "imbalanced": "السجل غير متوازن",
+            "debit_credit_mismatch": "إجمالي المدين ({debit}) لا يساوي إجمالي الدائن ({credit})",
+            "already_posted": "تم النشر بالفعل",
+            "duplicate_reference": "يوجد سجل بهذا النوع والمعرف تم نشره بالفعل"
         },
         "branch": "الفرع",
         "created_by": "تم الإنشاء بواسطة",
@@ -88,7 +109,21 @@
         "debit": "مدين",
         "credit": "دائن",
         "description": "الوصف",
+        "memo": "ملاحظة",
         "cost_center": "مركز التكلفة"
+    },
+    "students": {
+        "user": "المستخدم",
+        "branch": "الفرع",
+        "student_code": "رقم الطالب",
+        "national_id": "رقم الهوية",
+        "phone": "الهاتف",
+        "status": "الحالة",
+        "status_options": {
+            "active": "نشط",
+            "inactive": "غير نشط",
+            "suspended": "معلق"
+        }
     },
     "media_files": {
         "filename": "اسم الملف",
@@ -134,8 +169,49 @@
         "groups": {
             "accounting": "المحاسبة",
             "training": "التدريب",
-            "settings": "الإعدادات"
-        }
+            "settings": "الإعدادات",
+            "enrollment": "التسجيل"
+        },
+        "student": "طالب",
+        "students": "الطلاب"
+    },
+    "reports": {
+        "trial_balance": "ميزان المراجعة",
+        "general_ledger": "دفتر الأستاذ العام",
+        "income_statement": "قائمة الدخل",
+        "account_statement": "كشف حساب",
+        "generate": "إنشاء"
+    },
+    "filters": {
+        "date_from": "من تاريخ",
+        "date_to": "إلى تاريخ"
+    },
+    "pdf": {
+        "journal_voucher": "سند القيد",
+        "invoice": "فاتورة",
+        "trial_balance": "ميزان المراجعة",
+        "general_ledger": "دفتر الأستاذ العام",
+        "income_statement": "قائمة الدخل",
+        "account_statement": "كشف حساب",
+        "print": "طباعة",
+        "total": "المجموع",
+        "generated_at": "تم الإنشاء في",
+        "opening_balance": "الرصيد الافتتاحي",
+        "closing_balance": "الرصيد الختامي",
+        "debit": "مدين",
+        "credit": "دائن",
+        "balance": "الرصيد",
+        "date": "التاريخ",
+        "description": "الوصف",
+        "report_date": "تاريخ التقرير",
+        "period": "الفترة",
+        "revenue": "الإيرادات",
+        "expenses": "المصروفات",
+        "net_income": "صافي الدخل",
+        "total_revenue": "إجمالي الإيرادات",
+        "total_expenses": "إجمالي المصروفات",
+        "amount": "المبلغ",
+        "total_amount": "إجمالي المبلغ"
     },
     "tables": {
         "actions": {

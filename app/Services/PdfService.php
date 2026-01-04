@@ -203,5 +203,33 @@ class PdfService
             'Content-Type' => 'application/pdf',
         ]);
     }
+
+    /**
+     * Generate journal voucher PDF
+     */
+    public function journalVoucher(\App\Domain\Accounting\Models\Journal $journal): Response
+    {
+        return $this->render('pdf.journal-voucher', [
+            'journal' => $journal->load(['journalLines.account', 'branch', 'poster']),
+        ]);
+    }
+
+    /**
+     * Generate invoice PDF
+     */
+    public function invoice(\App\Domain\Accounting\Models\Payment $payment): Response
+    {
+        return $this->render('pdf.invoice', [
+            'payment' => $payment->load(['paymentMethod', 'branch']),
+        ]);
+    }
+
+    /**
+     * Generate report PDF
+     */
+    public function report(string $template, array $data): Response
+    {
+        return $this->render("pdf.{$template}", $data);
+    }
 }
 

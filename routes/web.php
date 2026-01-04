@@ -29,4 +29,6 @@ Route::middleware(['web', 'auth'])->group(function () {
         ->name('filament.admin.exports.pdf');
     Route::get('/admin/exports/print', [App\Http\Controllers\ExportController::class, 'print'])
         ->name('filament.admin.exports.print');
+    Route::get('/admin/journals/{journal}/print', [App\Http\Controllers\JournalController::class, 'print'])
+        ->name('journals.print');
 });

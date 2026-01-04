@@ -19,11 +19,12 @@ class Journal extends Model
         'reference',
         'reference_type',
         'reference_id',
-        'date',
+        'journal_date',
         'description',
         'status',
         'branch_id',
         'posted_at',
+        'posted_by',
         'created_by',
         'updated_by',
     ];
@@ -31,7 +32,7 @@ class Journal extends Model
     protected function casts(): array
     {
         return [
-            'date' => 'date',
+            'journal_date' => 'date',
             'status' => JournalStatus::class,
             'posted_at' => 'datetime',
         ];
@@ -52,10 +53,34 @@ class Journal extends Model
         return $this->belongsTo(User::class, 'updated_by');
     }
 
+    public function poster(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'posted_by');
+    }
+
     public function journalLines(): HasMany
     {
         return $this->hasMany(JournalLine::class);
     }
 
+    public function isDraft(): bool
+    {
+        return $this->status === JournalStatus::DRAFT;
+    }
+
+    public function isPosted(): bool
+    {
+        return $this->status === JournalStatus::POSTED;
+    }
+
+    public function isVoid(): bool
+    {
+        return $this->status === JournalStatus::VOID;
+    }
+
+    public function canBeEdited(): bool
+    {
+        return $this->isDraft();
+    }
 }
 

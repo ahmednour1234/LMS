@@ -6,5 +6,6 @@ enum JournalStatus: string
 {
     case DRAFT = 'draft';
     case POSTED = 'posted';
+    case VOID = 'void';
 }
 

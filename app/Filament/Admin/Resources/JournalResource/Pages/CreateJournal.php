@@ -18,6 +18,16 @@ class CreateJournal extends CreateRecord
         $data['created_by'] = $user->id;
         $data['updated_by'] = $user->id;
 
+        // Validate balance
+        if (isset($data['journalLines'])) {
+            $debitSum = collect($data['journalLines'])->sum('debit');
+            $creditSum = collect($data['journalLines'])->sum('credit');
+
+            if (abs($debitSum - $creditSum) > 0.01) {
+                throw new \Filament\Support\Exceptions\Halt();
+            }
+        }
+
         return $data;
     }
 }

@@ -1,0 +1,83 @@
+<?php
+
+namespace App\Filament\Admin\Pages;
+
+use App\Domain\Accounting\Services\PdfService;
+use App\Domain\Accounting\Services\ReportService;
+use App\Domain\Branch\Models\Branch;
+use Carbon\Carbon;
+use Filament\Actions\Action;
+use Filament\Forms\Components\DatePicker;
+use Filament\Forms\Components\Select;
+use Filament\Pages\Page;
+use Illuminate\Support\Facades\App;
+
+class IncomeStatementPage extends Page
+{
+    protected static ?string $navigationIcon = 'heroicon-o-chart-bar';
+
+    protected static string $view = 'filament.admin.pages.income-statement-page';
+
+    protected static ?string $navigationGroup = 'accounting';
+
+    protected static ?string $navigationLabel = 'reports.income_statement';
+
+    protected static ?int $navigationSort = 12;
+
+    public ?string $startDate = null;
+    public ?string $endDate = null;
+    public ?int $branchId = null;
+
+    public function mount(): void
+    {
+        $this->startDate = now()->startOfMonth()->format('Y-m-d');
+        $this->endDate = now()->format('Y-m-d');
+    }
+
+    protected function getHeaderActions(): array
+    {
+        return [
+            Action::make('print')
+                ->label(__('pdf.print'))
+                ->icon('heroicon-o-printer')
+                ->action(function () {
+                    $reportService = App::make(ReportService::class);
+                    $pdfService = App::make(PdfService::class);
+                    
+                    $result = $reportService->getIncomeStatement(
+                        Carbon::parse($this->startDate),
+                        Carbon::parse($this->endDate),
+                        $this->branchId,
+                        auth()->user()
+                    );
+                    
+                    return $pdfService->report('income-statement', [
+                        'revenues' => $result['revenues'],
+                        'expenses' => $result['expenses'],
+                        'startDate' => Carbon::parse($this->startDate),
+                        'endDate' => Carbon::parse($this->endDate),
+                    ]);
+                }),
+        ];
+    }
+
+    protected function getFormSchema(): array
+    {
+        return [
+            DatePicker::make('startDate')
+                ->label(__('filters.date_from'))
+                ->required()
+                ->default(now()->startOfMonth()),
+            DatePicker::make('endDate')
+                ->label(__('filters.date_to'))
+                ->required()
+                ->default(now()),
+            Select::make('branchId')
+                ->label(__('journals.branch'))
+                ->options(Branch::pluck('name', 'id'))
+                ->searchable()
+                ->visible(fn () => auth()->user()->isSuperAdmin()),
+        ];
+    }
+}
+

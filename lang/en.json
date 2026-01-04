@@ -77,7 +77,28 @@
         "status": "Status",
         "status_options": {
             "draft": "Draft",
-            "posted": "Posted"
+            "posted": "Posted",
+            "void": "Void"
+        },
+        "posted_by": "Posted By",
+        "posted_at": "Posted At",
+        "reference_type": "Reference Type",
+        "actions": {
+            "post": "Post",
+            "void": "Void",
+            "print": "Print",
+            "post_confirm": "Post Journal",
+            "post_confirm_button": "Post",
+            "void_confirm": "Void Journal",
+            "void_confirm_button": "Void",
+            "posted_success": "Journal posted successfully",
+            "voided_success": "Journal voided successfully"
+        },
+        "errors": {
+            "imbalanced": "Journal is not balanced",
+            "debit_credit_mismatch": "Debit total ({debit}) does not equal Credit total ({credit})",
+            "already_posted": "Already Posted",
+            "duplicate_reference": "A journal with this reference type and ID is already posted"
         },
         "branch": "Branch",
         "created_by": "Created By",
@@ -88,7 +109,21 @@
         "debit": "Debit",
         "credit": "Credit",
         "description": "Description",
+        "memo": "Memo",
         "cost_center": "Cost Center"
+    },
+    "students": {
+        "user": "User",
+        "branch": "Branch",
+        "student_code": "Student Code",
+        "national_id": "National ID",
+        "phone": "Phone",
+        "status": "Status",
+        "status_options": {
+            "active": "Active",
+            "inactive": "Inactive",
+            "suspended": "Suspended"
+        }
     },
     "media_files": {
         "filename": "Filename",
@@ -134,8 +169,49 @@
         "groups": {
             "accounting": "Accounting",
             "training": "Training",
-            "settings": "Settings"
-        }
+            "settings": "Settings",
+            "enrollment": "Enrollment"
+        },
+        "student": "Student",
+        "students": "Students"
+    },
+    "reports": {
+        "trial_balance": "Trial Balance",
+        "general_ledger": "General Ledger",
+        "income_statement": "Income Statement",
+        "account_statement": "Account Statement",
+        "generate": "Generate"
+    },
+    "filters": {
+        "date_from": "Date From",
+        "date_to": "Date To"
+    },
+    "pdf": {
+        "journal_voucher": "Journal Voucher",
+        "invoice": "Invoice",
+        "trial_balance": "Trial Balance",
+        "general_ledger": "General Ledger",
+        "income_statement": "Income Statement",
+        "account_statement": "Account Statement",
+        "print": "Print",
+        "total": "Total",
+        "generated_at": "Generated At",
+        "opening_balance": "Opening Balance",
+        "closing_balance": "Closing Balance",
+        "debit": "Debit",
+        "credit": "Credit",
+        "balance": "Balance",
+        "date": "Date",
+        "description": "Description",
+        "report_date": "Report Date",
+        "period": "Period",
+        "revenue": "Revenue",
+        "expenses": "Expenses",
+        "net_income": "Net Income",
+        "total_revenue": "Total Revenue",
+        "total_expenses": "Total Expenses",
+        "amount": "Amount",
+        "total_amount": "Total Amount"
     },
     "tables": {
         "actions": {

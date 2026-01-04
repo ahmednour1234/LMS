@@ -48,7 +48,7 @@ class JournalPolicy
             return false;
         }
 
-        if ($journal->status->value === 'posted') {
+        if ($journal->status->value === 'posted' || $journal->status->value === 'void') {
             return false;
         }
 
@@ -77,7 +77,7 @@ class JournalPolicy
             return false;
         }
 
-        if ($journal->status->value === 'posted') {
+        if ($journal->status->value === 'posted' || $journal->status->value === 'void') {
             return false;
         }
 
@@ -102,7 +102,7 @@ class JournalPolicy
             return false;
         }
 
-        if ($journal->status->value === 'posted') {
+        if ($journal->status->value !== 'draft') {
             return false;
         }
 
@@ -119,6 +119,35 @@ class JournalPolicy
         }
 
         if ($user->hasPermissionTo('journals.post.personal')) {
+            return $journal->created_by === $user->id;
+        }
+
+        return false;
+    }
+
+    public function void(User $user, Journal $journal): bool
+    {
+        if (!$user->hasPermissionTo('journals.void')) {
+            return false;
+        }
+
+        if ($journal->status->value !== 'posted') {
+            return false;
+        }
+
+        if ($user->isSuperAdmin()) {
+            return true;
+        }
+
+        if ($user->hasPermissionTo('journals.void.global')) {
+            return true;
+        }
+
+        if ($user->hasPermissionTo('journals.void.branch')) {
+            return $user->branch_id === $journal->branch_id;
+        }
+
+        if ($user->hasPermissionTo('journals.void.personal')) {
             return $journal->created_by === $user->id;
         }
 

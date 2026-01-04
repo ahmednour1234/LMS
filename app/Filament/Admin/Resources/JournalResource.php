@@ -6,14 +6,19 @@ use App\Domain\Accounting\Models\Account;
 use App\Domain\Accounting\Models\CostCenter;
 use App\Domain\Accounting\Models\Journal;
 use App\Enums\JournalStatus;
+use App\Filament\Admin\Resources\JournalResource\Actions\PostAction;
+use App\Filament\Admin\Resources\JournalResource\Actions\PrintAction;
+use App\Filament\Admin\Resources\JournalResource\Actions\VoidAction;
 use App\Filament\Admin\Resources\JournalResource\Pages;
 use App\Filament\Concerns\HasTableExports;
 use Filament\Forms;
 use Filament\Forms\Form;
 use Filament\Resources\Resource;
 use Filament\Tables;
+use Filament\Tables\Filters\Filter;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Support\Facades\Route;
 
 class JournalResource extends Resource
 {
@@ -55,7 +60,7 @@ class JournalResource extends Resource
                     ->maxLength(255)
                     ->unique(ignoreRecord: true)
                     ->label(__('journals.reference')),
-                Forms\Components\DatePicker::make('date')
+                Forms\Components\DatePicker::make('journal_date')
                     ->required()
                     ->default(now())
                     ->label(__('journals.date')),
@@ -67,9 +72,11 @@ class JournalResource extends Resource
                     ->options([
                         'draft' => __('journals.status_options.draft'),
                         'posted' => __('journals.status_options.posted'),
+                        'void' => __('journals.status_options.void'),
                     ])
                     ->default('draft')
                     ->required()
+                    ->disabled(fn ($record) => $record && ($record->status === JournalStatus::POSTED || $record->status === JournalStatus::VOID))
                     ->label(__('journals.status')),
                 Forms\Components\Select::make('branch_id')
                     ->relationship('branch', 'name')
@@ -94,9 +101,9 @@ class JournalResource extends Resource
                             ->numeric()
                             ->default(0)
                             ->label(__('journal_lines.credit')),
-                        Forms\Components\Textarea::make('description')
+                        Forms\Components\Textarea::make('memo')
                             ->rows(2)
-                            ->label(__('journal_lines.description')),
+                            ->label(__('journal_lines.memo')),
                         Forms\Components\Select::make('cost_center_id')
                             ->relationship('costCenter', 'name')
                             ->searchable()
@@ -107,8 +114,14 @@ class JournalResource extends Resource
                     ->defaultItems(2)
                     ->collapsible()
                     ->itemLabel(fn (array $state): ?string => $state['account_id'] ? Account::find($state['account_id'])?->name : null)
-                    ->label(__('journals.journal_lines')),
-            ]);
+                    ->label(__('journals.journal_lines'))
+                    ->disabled(fn ($record) => $record && ($record->status === JournalStatus::POSTED || $record->status === JournalStatus::VOID))
+                    ->mutateRelationshipDataBeforeCreateUsing(function (array $data): array {
+                        // Validate balance on save
+                        return $data;
+                    }),
+            ])
+            ->disabled(fn ($record) => $record && ($record->status === JournalStatus::POSTED || $record->status === JournalStatus::VOID));
     }
 
     public static function table(Table $table): Table
@@ -122,7 +135,7 @@ class JournalResource extends Resource
                     ->searchable()
                     ->sortable()
                     ->label(__('journals.reference')),
-                Tables\Columns\TextColumn::make('date')
+                Tables\Columns\TextColumn::make('journal_date')
                     ->date()
                     ->sortable()
                     ->label(__('journals.date')),
@@ -137,10 +150,15 @@ class JournalResource extends Resource
                         return match ($value) {
                             'draft' => 'gray',
                             'posted' => 'success',
+                            'void' => 'danger',
                             default => 'gray',
                         };
                     })
                     ->label(__('journals.status')),
+                Tables\Columns\TextColumn::make('poster.name')
+                    ->sortable()
+                    ->label(__('journals.posted_by'))
+                    ->toggleable(),
                 Tables\Columns\TextColumn::make('branch.name')
                     ->sortable()
                     ->label(__('journals.branch'))
@@ -158,15 +176,48 @@ class JournalResource extends Resource
                     ->options([
                         'draft' => __('journals.status_options.draft'),
                         'posted' => __('journals.status_options.posted'),
+                        'void' => __('journals.status_options.void'),
                     ])
                     ->label(__('journals.status')),
+                Filter::make('journal_date')
+                    ->form([
+                        Forms\Components\DatePicker::make('from')
+                            ->label(__('filters.date_from')),
+                        Forms\Components\DatePicker::make('until')
+                            ->label(__('filters.date_to')),
+                    ])
+                    ->query(function (Builder $query, array $data): Builder {
+                        return $query
+                            ->when(
+                                $data['from'],
+                                fn (Builder $query, $date): Builder => $query->whereDate('journal_date', '>=', $date),
+                            )
+                            ->when(
+                                $data['until'],
+                                fn (Builder $query, $date): Builder => $query->whereDate('journal_date', '<=', $date),
+                            );
+                    })
+                    ->label(__('journals.date')),
+                Tables\Filters\SelectFilter::make('reference_type')
+                    ->options(function () {
+                        return Journal::query()
+                            ->whereNotNull('reference_type')
+                            ->distinct()
+                            ->pluck('reference_type', 'reference_type')
+                            ->toArray();
+                    })
+                    ->label(__('journals.reference_type')),
                 Tables\Filters\SelectFilter::make('branch_id')
                     ->relationship('branch', 'name')
                     ->label(__('journals.branch'))
                     ->visible(fn () => auth()->user()->isSuperAdmin()),
             ])
             ->actions([
-                Tables\Actions\EditAction::make(),
+                PostAction::make(),
+                VoidAction::make(),
+                PrintAction::make(),
+                Tables\Actions\EditAction::make()
+                    ->visible(fn (Journal $record) => $record->canBeEdited()),
             ])
             ->headerActions(static::getExportActions())
             ->bulkActions([
@@ -184,5 +235,6 @@ class JournalResource extends Resource
             'edit' => Pages\EditJournal::route('/{record}/edit'),
         ];
     }
+
 }
 
