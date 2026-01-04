@@ -8,15 +8,22 @@ return new class extends Migration
 {
     public function up(): void
     {
+        // Drop foreign key first
         Schema::table('course_trainer', function (Blueprint $table) {
-            $table->dropPrimary(['course_id', 'user_id']);
             $table->dropForeign(['user_id']);
         });
 
+        // Then drop primary key
+        Schema::table('course_trainer', function (Blueprint $table) {
+            $table->dropPrimary(['course_id', 'user_id']);
+        });
+
+        // Drop the old column
         Schema::table('course_trainer', function (Blueprint $table) {
             $table->dropColumn('user_id');
         });
 
+        // Add new column and constraints
         Schema::table('course_trainer', function (Blueprint $table) {
             $table->foreignId('trainer_id')->after('course_id')->constrained('users')->cascadeOnDelete();
             $table->unique(['course_id', 'trainer_id']);
