@@ -87,8 +87,8 @@ class StudentResource extends Resource
                     ->dehydrated(fn ($state) => filled($state))
                     ->dehydrateStateUsing(fn ($state) => filled($state) ? \Hash::make($state) : null)
                     ->label(__('students.password'))
-                    ->requiredOn('create')
-                    ->helperText(fn ($livewire) => $livewire instanceof \App\Filament\Admin\Resources\StudentResource\Pages\EditStudent ? __('students.password_helper') : null),
+                    ->required(fn ($livewire) => $livewire instanceof Pages\CreateStudent)
+                    ->helperText(fn ($livewire) => $livewire instanceof Pages\EditStudent ? __('students.password_helper') : null),
                 Forms\Components\Select::make('status')
                     ->options([
                         'active' => __('students.status_options.active'),
