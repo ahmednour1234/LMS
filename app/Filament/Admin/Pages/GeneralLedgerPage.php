@@ -78,5 +78,13 @@ class GeneralLedgerPage extends Page
                 ->searchable(),
         ];
     }
+
+    public function generate(): void
+    {
+        $data = $this->form->getState();
+        $this->startDate = $data['startDate'] ?? $this->startDate;
+        $this->endDate = $data['endDate'] ?? $this->endDate;
+        $this->accountIds = $data['accountIds'] ?? $this->accountIds;
+    }
 }
 

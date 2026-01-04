@@ -79,5 +79,13 @@ class IncomeStatementPage extends Page
                 ->visible(fn () => auth()->user()->isSuperAdmin()),
         ];
     }
+
+    public function generate(): void
+    {
+        $data = $this->form->getState();
+        $this->startDate = $data['startDate'] ?? $this->startDate;
+        $this->endDate = $data['endDate'] ?? $this->endDate;
+        $this->branchId = $data['branchId'] ?? $this->branchId;
+    }
 }
 

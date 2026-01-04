@@ -61,5 +61,11 @@ class TrialBalancePage extends Page
                 ->default(now()),
         ];
     }
+
+    public function generate(): void
+    {
+        $data = $this->form->getState();
+        $this->reportDate = $data['reportDate'] ?? $this->reportDate;
+    }
 }
 

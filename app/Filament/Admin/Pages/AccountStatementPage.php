@@ -85,5 +85,13 @@ class AccountStatementPage extends Page
                 ->default(now()),
         ];
     }
+
+    public function generate(): void
+    {
+        $data = $this->form->getState();
+        $this->accountId = $data['accountId'] ?? $this->accountId;
+        $this->startDate = $data['startDate'] ?? $this->startDate;
+        $this->endDate = $data['endDate'] ?? $this->endDate;
+    }
 }
 
