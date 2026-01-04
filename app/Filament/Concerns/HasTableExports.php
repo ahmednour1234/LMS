@@ -29,7 +29,7 @@ trait HasTableExports
                 ->action(function (HasTable $livewire) use ($resourceName, $title) {
                     $tableExportService = app(TableExportService::class);
                     $query = $tableExportService->buildQueryFromTableState($livewire);
-                    $columns = $livewire->getTable()->getColumns()->filter(fn ($col) => ! $col->isHidden());
+                    $columns = collect($livewire->getTable()->getColumns())->filter(fn ($col) => ! $col->isHidden());
                     $filename = $resourceName . '_' . now()->format('Y-m-d_His');
                     return $tableExportService->exportXlsx($query, $columns, $filename);
                 }),
@@ -41,7 +41,7 @@ trait HasTableExports
                 ->action(function (HasTable $livewire) use ($resourceName, $title) {
                     $tableExportService = app(TableExportService::class);
                     $query = $tableExportService->buildQueryFromTableState($livewire);
-                    $columns = $livewire->getTable()->getColumns()->filter(fn ($col) => ! $col->isHidden());
+                    $columns = collect($livewire->getTable()->getColumns())->filter(fn ($col) => ! $col->isHidden());
                     $filename = $resourceName . '_' . now()->format('Y-m-d_His');
                     return $tableExportService->exportPdf($query, $columns, $filename, $title);
                 }),
@@ -53,7 +53,7 @@ trait HasTableExports
                 ->action(function (HasTable $livewire) use ($title) {
                     $tableExportService = app(TableExportService::class);
                     $query = $tableExportService->buildQueryFromTableState($livewire);
-                    $columns = $livewire->getTable()->getColumns()->filter(fn ($col) => ! $col->isHidden());
+                    $columns = collect($livewire->getTable()->getColumns())->filter(fn ($col) => ! $col->isHidden());
                     
                     // Render print view and return with JavaScript to print
                     $html = $tableExportService->renderPrint($query, $columns, $title)->render();
