@@ -14,7 +14,7 @@ return new class extends Migration
             return;
         }
 
-        // ✅ أضف العمود لو مش موجود
+        // ✅ أضف العمود لو مش موجود (في حالة لو الجدول اتعمل قبل الميجريشن ده)
         if (!Schema::hasColumn('enrollments', 'registered_at')) {
             Schema::table('enrollments', function (Blueprint $table) {
                 // لو enrolled_at موجود نستخدم after(enrolled_at)، وإلا نخليه في الآخر
@@ -27,6 +27,7 @@ return new class extends Migration
         }
 
         // ✅ انسخ الداتا (بعد إضافة العمود) لو enrolled_at موجود
+        // This migration is now idempotent - it will only copy data if needed
         if (Schema::hasColumn('enrollments', 'enrolled_at') && Schema::hasColumn('enrollments', 'registered_at')) {
             DB::statement("
                 UPDATE `enrollments`

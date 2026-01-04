@@ -18,6 +18,7 @@ return new class extends Migration
             $table->foreignId('course_id')->constrained('courses')->cascadeOnDelete();
             $table->enum('status', ['pending', 'active', 'completed', 'cancelled'])->default('pending');
             $table->timestamp('enrolled_at')->nullable();
+            $table->timestamp('registered_at')->nullable();
             $table->text('notes')->nullable();
             $table->foreignId('branch_id')->nullable()->constrained('branches')->nullOnDelete();
             $table->foreignId('created_by')->nullable()->constrained('users')->nullOnDelete();
