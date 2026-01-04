@@ -105,6 +105,7 @@ class AccountResource extends Resource
                     ->label(__('accounts.name')),
                 Tables\Columns\TextColumn::make('type')
                     ->badge()
+                    ->formatStateUsing(fn (string $state): string => __('accounts.type_options.' . $state))
                     ->label(__('accounts.type')),
                 Tables\Columns\TextColumn::make('parent.name')
                     ->sortable()

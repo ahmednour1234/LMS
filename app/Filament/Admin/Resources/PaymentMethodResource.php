@@ -84,6 +84,7 @@ class PaymentMethodResource extends Resource
                     ->label(__('payment_methods.code')),
                 Tables\Columns\TextColumn::make('type')
                     ->badge()
+                    ->formatStateUsing(fn (string $state): string => __('payment_methods.type_options.' . $state))
                     ->label(__('payment_methods.type')),
                 Tables\Columns\IconColumn::make('is_active')
                     ->boolean()
