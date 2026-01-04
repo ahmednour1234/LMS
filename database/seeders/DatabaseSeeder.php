@@ -39,17 +39,36 @@ class DatabaseSeeder extends Seeder
             TeacherSeeder::class,
             ProgramSeeder::class,
             CourseSeeder::class,
+            CoursePriceSeeder::class,
+            CourseSectionSeeder::class,
+            LessonSeeder::class,
             StudentSeeder::class,
             EnrollmentSeeder::class,
         ]);
 
-        // 5) Other seeders
+        // 5) Accounting seeders (needs Accounts and CostCenters first)
         $this->call([
             CategorySeeder::class,
             PaymentMethodSeeder::class,
             CostCenterSeeder::class,
             SettingSeeder::class,
             AccountingAccountSeeder::class,
+            JournalSeeder::class,
+            JournalLineSeeder::class,
+        ]);
+
+        // 6) Media files (needed for lesson items and task submissions)
+        $this->call([
+            MediaFileSeeder::class,
+        ]);
+
+        // 7) Training content seeders (depends on courses, lessons, students)
+        $this->call([
+            LessonItemSeeder::class,
+            ExamSeeder::class,
+            ExamQuestionSeeder::class,
+            TaskSeeder::class,
+            TaskSubmissionSeeder::class,
         ]);
     }
 }
