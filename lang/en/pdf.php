@@ -1,0 +1,30 @@
+<?php
+
+return [
+    'print' => 'Print',
+    'trial_balance' => 'Trial Balance',
+    'general_ledger' => 'General Ledger',
+    'income_statement' => 'Income Statement',
+    'account_statement' => 'Account Statement',
+    'journal_voucher' => 'Journal Voucher',
+    'invoice' => 'Invoice',
+    'report_date' => 'Report Date',
+    'opening_balance' => 'Opening Balance',
+    'closing_balance' => 'Closing Balance',
+    'debit' => 'Debit',
+    'credit' => 'Credit',
+    'balance' => 'Balance',
+    'date' => 'Date',
+    'description' => 'Description',
+    'total' => 'Total',
+    'period' => 'Period',
+    'revenue' => 'Revenue',
+    'expenses' => 'Expenses',
+    'net_income' => 'Net Income',
+    'total_revenue' => 'Total Revenue',
+    'total_expenses' => 'Total Expenses',
+    'amount' => 'Amount',
+    'total_amount' => 'Total Amount',
+    'generated_at' => 'Generated At',
+];
+

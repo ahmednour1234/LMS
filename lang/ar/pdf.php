@@ -1,0 +1,30 @@
+<?php
+
+return [
+    'print' => 'طباعة',
+    'trial_balance' => 'ميزان المراجعة',
+    'general_ledger' => 'دفتر الأستاذ العام',
+    'income_statement' => 'قائمة الدخل',
+    'account_statement' => 'كشف حساب',
+    'journal_voucher' => 'سند القيد',
+    'invoice' => 'فاتورة',
+    'report_date' => 'تاريخ التقرير',
+    'opening_balance' => 'الرصيد الافتتاحي',
+    'closing_balance' => 'الرصيد الختامي',
+    'debit' => 'مدين',
+    'credit' => 'دائن',
+    'balance' => 'الرصيد',
+    'date' => 'التاريخ',
+    'description' => 'الوصف',
+    'total' => 'المجموع',
+    'period' => 'الفترة',
+    'revenue' => 'الإيرادات',
+    'expenses' => 'المصروفات',
+    'net_income' => 'صافي الدخل',
+    'total_revenue' => 'إجمالي الإيرادات',
+    'total_expenses' => 'إجمالي المصروفات',
+    'amount' => 'المبلغ',
+    'total_amount' => 'إجمالي المبلغ',
+    'generated_at' => 'تم الإنشاء في',
+];
+
