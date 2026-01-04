@@ -60,7 +60,7 @@ class TaskResource extends Resource
                         if ($courseId) {
                             $query->whereHas('section', fn ($q) => $q->where('course_id', $courseId));
                         }
-                        return $query;
+                        return $query->orderBy('id');
                     })
                     ->getOptionLabelUsing(fn ($record): ?string => is_object($record) ? ($record->title[app()->getLocale()] ?? $record->title['en'] ?? null) : (\App\Domain\Training\Models\Lesson::find($record)?->title[app()->getLocale()] ?? \App\Domain\Training\Models\Lesson::find($record)?->title['en'] ?? null))
                     ->searchable()
