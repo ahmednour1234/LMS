@@ -20,6 +20,8 @@ class StudentResource extends Resource
 
     protected static ?string $model = Student::class;
 
+    protected static ?string $slug = 'students';
+
     protected static ?string $navigationIcon = 'heroicon-o-academic-cap';
 
     protected static ?string $navigationGroup = 'enrollment';
