@@ -3,6 +3,7 @@
 namespace App\Domain\Enrollment\Models;
 
 use App\Domain\Branch\Models\Branch;
+use App\Domain\Training\Models\Course;
 use App\Enums\EnrollmentStatus;
 use App\Models\User;
 use App\Support\Traits\HasVisibilityScope;
@@ -20,6 +21,7 @@ class Enrollment extends Model
         'course_id',
         'status',
         'enrolled_at',
+        'registered_at',
         'notes',
         'branch_id',
         'created_by',
@@ -31,7 +33,18 @@ class Enrollment extends Model
         return [
             'status' => EnrollmentStatus::class,
             'enrolled_at' => 'datetime',
+            'registered_at' => 'datetime',
         ];
+    }
+
+    public function student(): BelongsTo
+    {
+        return $this->belongsTo(Student::class);
+    }
+
+    public function course(): BelongsTo
+    {
+        return $this->belongsTo(Course::class);
     }
 
     public function branch(): BelongsTo

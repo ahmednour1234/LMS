@@ -4,6 +4,7 @@ namespace App\Filament\Admin\Resources;
 
 use App\Domain\Training\Enums\DeliveryType;
 use App\Domain\Training\Models\Course;
+use App\Domain\Training\Models\Teacher;
 use App\Filament\Admin\Resources\CourseResource\Pages;
 use Filament\Forms;
 use Filament\Forms\Form;
@@ -92,6 +93,18 @@ class CourseResource extends Resource
                     ->required()
                     ->label(__('courses.branch'))
                     ->visible(fn () => auth()->user()->isSuperAdmin()),
+                Forms\Components\Select::make('owner_teacher_id')
+                    ->relationship('ownerTeacher', 'name')
+                    ->searchable()
+                    ->preload()
+                    ->required()
+                    ->label(__('Owner Teacher')),
+                Forms\Components\Select::make('teachers')
+                    ->relationship('teachers', 'name')
+                    ->multiple()
+                    ->searchable()
+                    ->preload()
+                    ->label(__('Additional Teachers')),
                 Forms\Components\Select::make('trainers')
                     ->relationship('trainers', 'name', fn (Builder $query) => $query->whereHas('roles', fn ($q) => $q->where('name', 'trainer')))
                     ->multiple()
@@ -137,9 +150,17 @@ class CourseResource extends Resource
                     ->sortable()
                     ->label(__('courses.branch'))
                     ->visible(fn () => auth()->user()->isSuperAdmin()),
+                Tables\Columns\TextColumn::make('ownerTeacher.name')
+                    ->sortable()
+                    ->label(__('Owner Teacher')),
+                Tables\Columns\TextColumn::make('teachers_count')
+                    ->counts('teachers')
+                    ->label(__('Additional Teachers'))
+                    ->toggleable(),
                 Tables\Columns\TextColumn::make('trainers_count')
                     ->counts('trainers')
-                    ->label(__('courses.trainers_count')),
+                    ->label(__('courses.trainers_count'))
+                    ->toggleable(),
                 Tables\Columns\IconColumn::make('is_active')
                     ->boolean()
                     ->label(__('courses.is_active')),
@@ -185,6 +206,7 @@ class CourseResource extends Resource
         return [
             'index' => Pages\ListCourses::route('/'),
             'create' => Pages\CreateCourse::route('/create'),
+            'view' => Pages\ViewCourse::route('/{record}'),
             'edit' => Pages\EditCourse::route('/{record}/edit'),
         ];
     }

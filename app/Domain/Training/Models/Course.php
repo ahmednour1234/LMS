@@ -18,6 +18,7 @@ class Course extends Model
     protected $fillable = [
         'program_id',
         'branch_id',
+        'owner_teacher_id',
         'code',
         'name',
         'description',
@@ -44,6 +45,16 @@ class Course extends Model
     public function branch(): BelongsTo
     {
         return $this->belongsTo(Branch::class);
+    }
+
+    public function ownerTeacher(): BelongsTo
+    {
+        return $this->belongsTo(Teacher::class, 'owner_teacher_id');
+    }
+
+    public function teachers(): BelongsToMany
+    {
+        return $this->belongsToMany(Teacher::class, 'course_teacher', 'course_id', 'teacher_id');
     }
 
     public function trainers(): BelongsToMany
