@@ -97,7 +97,22 @@ class LessonItemResource extends Resource
                         return $query->orderBy('id');
                     }
                 )
-                ->getOptionLabelFromRecordUsing(fn ($record) => static::transValue($record?->title, 'Untitled')),
+                ->getOptionLabelFromRecordUsing(function ($record) {
+                    // Handle both object and ID cases
+                    if (is_object($record) && isset($record->title)) {
+                        return static::transValue($record->title, 'Untitled');
+                    }
+
+                    // If it's an ID, load the lesson
+                    if (is_numeric($record)) {
+                        $lesson = Lesson::find($record);
+                        if ($lesson && isset($lesson->title)) {
+                            return static::transValue($lesson->title, 'Untitled');
+                        }
+                    }
+
+                    return 'Untitled';
+                }),
 
             Forms\Components\Select::make('type')
                 ->label(__('lesson_items.type'))
