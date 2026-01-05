@@ -1,6 +1,7 @@
 <?php
 
 return [
+    'reference' => 'Reference',
     'student' => 'Student',
     'user' => 'User',
     'course' => 'Course',

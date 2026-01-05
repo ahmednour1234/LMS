@@ -48,6 +48,11 @@ class EnrollmentResource extends Resource
     {
         return $form
             ->schema([
+                Forms\Components\TextInput::make('reference')
+                    ->disabled()
+                    ->dehydrated()
+                    ->label(__('enrollments.reference'))
+                    ->visible(fn ($record) => $record !== null),
                 Forms\Components\Select::make('student_id')
                     ->relationship('student', 'name')
                     ->searchable()
@@ -135,6 +140,10 @@ class EnrollmentResource extends Resource
                 }
             })
             ->columns([
+                Tables\Columns\TextColumn::make('reference')
+                    ->searchable()
+                    ->sortable()
+                    ->label(__('enrollments.reference')),
                 Tables\Columns\TextColumn::make('student.name')
                     ->searchable()
                     ->sortable()

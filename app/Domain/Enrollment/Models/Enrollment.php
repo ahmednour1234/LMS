@@ -17,6 +17,33 @@ class Enrollment extends Model
 {
     use HasFactory, HasVisibilityScope;
 
+    protected static function boot()
+    {
+        parent::boot();
+
+        static::creating(function ($enrollment) {
+            if (empty($enrollment->reference)) {
+                $enrollment->reference = static::generateReference();
+            }
+        });
+    }
+
+    protected static function generateReference(): string
+    {
+        $year = now()->year;
+        $lastEnrollment = static::where('reference', 'like', "ENR-{$year}-%")
+            ->orderBy('reference', 'desc')
+            ->first();
+
+        if ($lastEnrollment && preg_match('/ENR-' . $year . '-(\d+)/', $lastEnrollment->reference, $matches)) {
+            $nextNumber = (int) $matches[1] + 1;
+        } else {
+            $nextNumber = 1;
+        }
+
+        return sprintf('ENR-%s-%06d', $year, $nextNumber);
+    }
+
     protected $fillable = [
         'reference',
         'student_id',

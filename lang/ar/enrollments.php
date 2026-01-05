@@ -1,6 +1,7 @@
 <?php
 
 return [
+    'reference' => 'رقم المرجع',
     'student' => 'الطالب',
     'user' => 'المستخدم',
     'course' => 'الدورة',
