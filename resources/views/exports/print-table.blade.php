@@ -154,12 +154,19 @@
                                             $value = $value->format('Y-m-d H:i:s');
                                         } elseif (is_bool($value)) {
                                             $value = $value ? __('Yes') : __('No');
+                                        } elseif (is_array($value)) {
+                                            // Handle multilingual arrays (e.g., course names)
+                                            $locale = app()->getLocale();
+                                            $value = $value[$locale] ?? $value['ar'] ?? $value['en'] ?? json_encode($value);
                                         } elseif ($value === null) {
                                             $value = '-';
+                                        } elseif (is_object($value) && !($value instanceof \DateTimeInterface)) {
+                                            // Handle objects (convert to string representation)
+                                            $value = method_exists($value, '__toString') ? $value->__toString() : json_encode($value);
                                         }
                                     }
                                 @endphp
-                                {{ $value }}
+                                {{ is_string($value) || is_numeric($value) ? $value : json_encode($value) }}
                             </td>
                         @endforeach
                     </tr>

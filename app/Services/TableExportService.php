@@ -87,6 +87,12 @@ class TableExportService
             return '';
         }
 
+        // Handle arrays (e.g., multilingual course names)
+        if (is_array($value)) {
+            $locale = app()->getLocale();
+            return $value[$locale] ?? $value['ar'] ?? $value['en'] ?? json_encode($value);
+        }
+
         // Handle date columns
         if (method_exists($column, 'getFormat') && $column->getFormat()) {
             $format = $column->getFormat();
@@ -108,6 +114,11 @@ class TableExportService
         // Handle boolean columns
         if (is_bool($value)) {
             return $value ? __('Yes') : __('No');
+        }
+
+        // Handle objects (convert to string representation)
+        if (is_object($value) && !($value instanceof \DateTimeInterface)) {
+            return method_exists($value, '__toString') ? $value->__toString() : json_encode($value);
         }
 
         return $value;

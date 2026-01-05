@@ -240,7 +240,7 @@ class EnrollmentResource extends Resource
                         $qrCodeService = app(\App\Services\QrCodeService::class);
                         $qrCodeSvg = $qrCodeService->generateSvg($publicUrl);
                         
-                        return \Illuminate\Support\HtmlString::make('
+                        return new \Illuminate\Support\HtmlString('
                             <div class="p-4">
                                 <div class="flex flex-col items-center space-y-4">
                                     <div class="bg-white p-4 rounded-lg border">
@@ -250,11 +250,11 @@ class EnrollmentResource extends Resource
                                         <p class="text-sm font-medium mb-2">' . __('enrollments.public_link') . '</p>
                                         <div class="flex items-center space-x-2">
                                             <input type="text" 
-                                                   value="' . $publicUrl . '" 
+                                                   value="' . htmlspecialchars($publicUrl) . '" 
                                                    readonly 
                                                    class="flex-1 px-3 py-2 border rounded-md text-sm"
                                                    id="public-url-' . $record->reference . '">
-                                            <button onclick="navigator.clipboard.writeText(\'' . $publicUrl . '\').then(() => alert(\'' . __('enrollments.copied') . '\'))" 
+                                            <button onclick="navigator.clipboard.writeText(\'' . htmlspecialchars($publicUrl, ENT_QUOTES) . '\').then(() => alert(\'' . htmlspecialchars(__('enrollments.copied'), ENT_QUOTES) . '\'))" 
                                                     class="px-4 py-2 bg-primary-600 text-white rounded-md hover:bg-primary-700 text-sm">
                                                 ' . __('enrollments.copy') . '
                                             </button>
