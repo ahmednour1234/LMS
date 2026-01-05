@@ -38,5 +38,7 @@ return [
     'payment' => 'Payment',
     'ar_invoices' => 'AR Invoices',
     'ar_invoice' => 'AR Invoice',
+    'installments' => 'Installments',
+    'installment' => 'Installment',
 ];
 

@@ -38,5 +38,7 @@ return [
     'payment' => 'دفعة',
     'ar_invoices' => 'فواتير الذمم المدينة',
     'ar_invoice' => 'فاتورة الذمم المدينة',
+    'installments' => 'الأقساط',
+    'installment' => 'قسط',
 ];
 
