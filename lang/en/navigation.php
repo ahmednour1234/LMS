@@ -40,5 +40,8 @@ return [
     'ar_invoice' => 'AR Invoice',
     'installments' => 'Installments',
     'installment' => 'Installment',
+    'audit_logs' => 'Audit Logs',
+    'audit_log' => 'Audit Log',
+    'menu' => 'Menu',
 ];
 

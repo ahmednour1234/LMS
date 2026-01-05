@@ -40,5 +40,8 @@ return [
     'ar_invoice' => 'فاتورة الذمم المدينة',
     'installments' => 'الأقساط',
     'installment' => 'قسط',
+    'audit_logs' => 'سجلات التدقيق',
+    'audit_log' => 'سجل التدقيق',
+    'menu' => 'القائمة',
 ];
 
