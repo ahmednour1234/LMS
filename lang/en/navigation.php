@@ -32,5 +32,11 @@ return [
     ],
     'student' => 'Student',
     'students' => 'Students',
+    'enrollments' => 'Enrollments',
+    'enrollment' => 'Enrollment',
+    'payments' => 'Payments',
+    'payment' => 'Payment',
+    'ar_invoices' => 'AR Invoices',
+    'ar_invoice' => 'AR Invoice',
 ];
 

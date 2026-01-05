@@ -9,19 +9,22 @@ use App\Support\Traits\HasVisibilityScope;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 
 class Payment extends Model
 {
     use HasFactory, HasVisibilityScope;
 
     protected $fillable = [
-        'reference',
+        'enrollment_id',
+        'user_id',
+        'branch_id',
+        'installment_id',
         'amount',
-        'payment_method_id',
+        'method',
+        'gateway_ref',
         'status',
         'paid_at',
-        'notes',
-        'branch_id',
         'created_by',
         'updated_by',
     ];
@@ -30,9 +33,20 @@ class Payment extends Model
     {
         return [
             'amount' => 'decimal:2',
-            'status' => PaymentStatus::class,
+            'method' => 'string',
+            'status' => 'string',
             'paid_at' => 'datetime',
         ];
+    }
+
+    public function enrollment(): BelongsTo
+    {
+        return $this->belongsTo(\App\Domain\Enrollment\Models\Enrollment::class);
+    }
+
+    public function user(): BelongsTo
+    {
+        return $this->belongsTo(User::class);
     }
 
     public function branch(): BelongsTo
@@ -40,9 +54,14 @@ class Payment extends Model
         return $this->belongsTo(Branch::class);
     }
 
-    public function paymentMethod(): BelongsTo
+    public function installment(): BelongsTo
     {
-        return $this->belongsTo(PaymentMethod::class);
+        return $this->belongsTo(ArInstallment::class);
+    }
+
+    public function pdfInvoice(): HasOne
+    {
+        return $this->hasOne(PdfInvoice::class);
     }
 
     public function creator(): BelongsTo

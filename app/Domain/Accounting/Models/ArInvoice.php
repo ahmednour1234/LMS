@@ -8,21 +8,20 @@ use App\Support\Traits\HasVisibilityScope;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class ArInvoice extends Model
 {
     use HasFactory, HasVisibilityScope;
 
     protected $fillable = [
-        'invoice_number',
-        'customer_id',
-        'amount',
-        'tax_amount',
-        'total_amount',
-        'due_date',
-        'paid_at',
-        'notes',
+        'enrollment_id',
+        'user_id',
         'branch_id',
+        'total_amount',
+        'due_amount',
+        'status',
+        'issued_at',
         'created_by',
         'updated_by',
     ];
@@ -30,12 +29,21 @@ class ArInvoice extends Model
     protected function casts(): array
     {
         return [
-            'amount' => 'decimal:2',
-            'tax_amount' => 'decimal:2',
             'total_amount' => 'decimal:2',
-            'due_date' => 'date',
-            'paid_at' => 'datetime',
+            'due_amount' => 'decimal:2',
+            'status' => 'string',
+            'issued_at' => 'datetime',
         ];
+    }
+
+    public function enrollment(): BelongsTo
+    {
+        return $this->belongsTo(\App\Domain\Enrollment\Models\Enrollment::class);
+    }
+
+    public function user(): BelongsTo
+    {
+        return $this->belongsTo(User::class);
     }
 
     public function branch(): BelongsTo
@@ -51,6 +59,11 @@ class ArInvoice extends Model
     public function updater(): BelongsTo
     {
         return $this->belongsTo(User::class, 'updated_by');
+    }
+
+    public function arInstallments(): HasMany
+    {
+        return $this->hasMany(ArInstallment::class);
     }
 }
 

@@ -21,6 +21,7 @@ class AccountingAccountSeeder extends Seeder
                 'code' => '1000',
                 'name' => 'Assets',
                 'type' => 'asset',
+                'normal_balance' => 'debit',
                 'opening_balance' => 0,
                 'is_active' => true,
             ],
@@ -28,6 +29,7 @@ class AccountingAccountSeeder extends Seeder
                 'code' => '2000',
                 'name' => 'Liabilities',
                 'type' => 'liability',
+                'normal_balance' => 'credit',
                 'opening_balance' => 0,
                 'is_active' => true,
             ],
@@ -35,6 +37,7 @@ class AccountingAccountSeeder extends Seeder
                 'code' => '3000',
                 'name' => 'Equity',
                 'type' => 'equity',
+                'normal_balance' => 'credit',
                 'opening_balance' => 0,
                 'is_active' => true,
             ],
@@ -42,6 +45,7 @@ class AccountingAccountSeeder extends Seeder
                 'code' => '4000',
                 'name' => 'Revenue',
                 'type' => 'revenue',
+                'normal_balance' => 'credit',
                 'opening_balance' => 0,
                 'is_active' => true,
             ],
@@ -49,6 +53,7 @@ class AccountingAccountSeeder extends Seeder
                 'code' => '5000',
                 'name' => 'Expenses',
                 'type' => 'expense',
+                'normal_balance' => 'debit',
                 'opening_balance' => 0,
                 'is_active' => true,
             ],
@@ -65,6 +70,7 @@ class AccountingAccountSeeder extends Seeder
                 'code' => '1100',
                 'name' => 'Current Assets',
                 'type' => 'asset',
+                'normal_balance' => 'debit',
                 'parent_id' => $createdParents[0]->id, // Assets
                 'opening_balance' => 0,
                 'is_active' => true,
@@ -73,6 +79,7 @@ class AccountingAccountSeeder extends Seeder
                 'code' => '1200',
                 'name' => 'Fixed Assets',
                 'type' => 'asset',
+                'normal_balance' => 'debit',
                 'parent_id' => $createdParents[0]->id, // Assets
                 'opening_balance' => 0,
                 'is_active' => true,
@@ -90,14 +97,16 @@ class AccountingAccountSeeder extends Seeder
                 'code' => '1110',
                 'name' => 'Cash',
                 'type' => 'asset',
+                'normal_balance' => 'debit',
                 'parent_id' => $createdAssetParents[0]->id, // Current Assets
                 'opening_balance' => 50000.00,
                 'is_active' => true,
             ],
             [
                 'code' => '1120',
-                'name' => 'Bank Account',
+                'name' => 'Bank',
                 'type' => 'asset',
+                'normal_balance' => 'debit',
                 'parent_id' => $createdAssetParents[0]->id, // Current Assets
                 'opening_balance' => 100000.00,
                 'is_active' => true,
@@ -106,6 +115,7 @@ class AccountingAccountSeeder extends Seeder
                 'code' => '1130',
                 'name' => 'Accounts Receivable',
                 'type' => 'asset',
+                'normal_balance' => 'debit',
                 'parent_id' => $createdAssetParents[0]->id, // Current Assets
                 'opening_balance' => 0,
                 'is_active' => true,
@@ -114,6 +124,7 @@ class AccountingAccountSeeder extends Seeder
                 'code' => '1210',
                 'name' => 'Buildings',
                 'type' => 'asset',
+                'normal_balance' => 'debit',
                 'parent_id' => $createdAssetParents[1]->id, // Fixed Assets
                 'opening_balance' => 500000.00,
                 'is_active' => true,
@@ -122,6 +133,7 @@ class AccountingAccountSeeder extends Seeder
                 'code' => '1220',
                 'name' => 'Equipment',
                 'type' => 'asset',
+                'normal_balance' => 'debit',
                 'parent_id' => $createdAssetParents[1]->id, // Fixed Assets
                 'opening_balance' => 100000.00,
                 'is_active' => true,
@@ -138,6 +150,7 @@ class AccountingAccountSeeder extends Seeder
                 'code' => '2100',
                 'name' => 'Current Liabilities',
                 'type' => 'liability',
+                'normal_balance' => 'credit',
                 'parent_id' => $createdParents[1]->id, // Liabilities
                 'opening_balance' => 0,
                 'is_active' => true,
@@ -146,6 +159,7 @@ class AccountingAccountSeeder extends Seeder
                 'code' => '2200',
                 'name' => 'Long-term Liabilities',
                 'type' => 'liability',
+                'normal_balance' => 'credit',
                 'parent_id' => $createdParents[1]->id, // Liabilities
                 'opening_balance' => 0,
                 'is_active' => true,
@@ -163,6 +177,7 @@ class AccountingAccountSeeder extends Seeder
                 'code' => '2110',
                 'name' => 'Accounts Payable',
                 'type' => 'liability',
+                'normal_balance' => 'credit',
                 'parent_id' => $createdLiabilityParents[0]->id, // Current Liabilities
                 'opening_balance' => 0,
                 'is_active' => true,
@@ -171,6 +186,7 @@ class AccountingAccountSeeder extends Seeder
                 'code' => '2120',
                 'name' => 'Accrued Expenses',
                 'type' => 'liability',
+                'normal_balance' => 'credit',
                 'parent_id' => $createdLiabilityParents[0]->id, // Current Liabilities
                 'opening_balance' => 0,
                 'is_active' => true,
@@ -179,6 +195,7 @@ class AccountingAccountSeeder extends Seeder
                 'code' => '2130',
                 'name' => 'Deferred Revenue',
                 'type' => 'liability',
+                'normal_balance' => 'credit',
                 'parent_id' => $createdLiabilityParents[0]->id, // Current Liabilities
                 'opening_balance' => 0,
                 'is_active' => true,
@@ -195,6 +212,7 @@ class AccountingAccountSeeder extends Seeder
                 'code' => '3100',
                 'name' => 'Capital',
                 'type' => 'equity',
+                'normal_balance' => 'credit',
                 'parent_id' => $createdParents[2]->id, // Equity
                 'opening_balance' => 500000.00,
                 'is_active' => true,
@@ -203,6 +221,7 @@ class AccountingAccountSeeder extends Seeder
                 'code' => '3200',
                 'name' => 'Retained Earnings',
                 'type' => 'equity',
+                'normal_balance' => 'credit',
                 'parent_id' => $createdParents[2]->id, // Equity
                 'opening_balance' => 0,
                 'is_active' => true,
@@ -219,6 +238,7 @@ class AccountingAccountSeeder extends Seeder
                 'code' => '4100',
                 'name' => 'Tuition Revenue',
                 'type' => 'revenue',
+                'normal_balance' => 'credit',
                 'parent_id' => $createdParents[3]->id, // Revenue
                 'opening_balance' => 0,
                 'is_active' => true,
@@ -227,6 +247,7 @@ class AccountingAccountSeeder extends Seeder
                 'code' => '4110',
                 'name' => 'Training Revenue',
                 'type' => 'revenue',
+                'normal_balance' => 'credit',
                 'parent_id' => $createdParents[3]->id, // Revenue
                 'opening_balance' => 0,
                 'is_active' => true,
@@ -235,6 +256,7 @@ class AccountingAccountSeeder extends Seeder
                 'code' => '4200',
                 'name' => 'Registration Fees',
                 'type' => 'revenue',
+                'normal_balance' => 'credit',
                 'parent_id' => $createdParents[3]->id, // Revenue
                 'opening_balance' => 0,
                 'is_active' => true,
@@ -243,6 +265,7 @@ class AccountingAccountSeeder extends Seeder
                 'code' => '4300',
                 'name' => 'Other Income',
                 'type' => 'revenue',
+                'normal_balance' => 'credit',
                 'parent_id' => $createdParents[3]->id, // Revenue
                 'opening_balance' => 0,
                 'is_active' => true,
@@ -259,6 +282,7 @@ class AccountingAccountSeeder extends Seeder
                 'code' => '5100',
                 'name' => 'Salaries and Wages',
                 'type' => 'expense',
+                'normal_balance' => 'debit',
                 'parent_id' => $createdParents[4]->id, // Expenses
                 'opening_balance' => 0,
                 'is_active' => true,
@@ -267,6 +291,7 @@ class AccountingAccountSeeder extends Seeder
                 'code' => '5200',
                 'name' => 'Rent Expense',
                 'type' => 'expense',
+                'normal_balance' => 'debit',
                 'parent_id' => $createdParents[4]->id, // Expenses
                 'opening_balance' => 0,
                 'is_active' => true,
@@ -275,6 +300,7 @@ class AccountingAccountSeeder extends Seeder
                 'code' => '5300',
                 'name' => 'Utilities',
                 'type' => 'expense',
+                'normal_balance' => 'debit',
                 'parent_id' => $createdParents[4]->id, // Expenses
                 'opening_balance' => 0,
                 'is_active' => true,
@@ -283,6 +309,7 @@ class AccountingAccountSeeder extends Seeder
                 'code' => '5400',
                 'name' => 'Office Supplies',
                 'type' => 'expense',
+                'normal_balance' => 'debit',
                 'parent_id' => $createdParents[4]->id, // Expenses
                 'opening_balance' => 0,
                 'is_active' => true,
@@ -291,6 +318,7 @@ class AccountingAccountSeeder extends Seeder
                 'code' => '5500',
                 'name' => 'Marketing and Advertising',
                 'type' => 'expense',
+                'normal_balance' => 'debit',
                 'parent_id' => $createdParents[4]->id, // Expenses
                 'opening_balance' => 0,
                 'is_active' => true,

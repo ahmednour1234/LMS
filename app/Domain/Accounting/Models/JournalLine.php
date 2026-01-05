@@ -16,6 +16,8 @@ class JournalLine extends Model
         'debit',
         'credit',
         'memo',
+        'user_id',
+        'enrollment_id',
         'cost_center_id',
     ];
 
@@ -40,6 +42,16 @@ class JournalLine extends Model
     public function costCenter(): BelongsTo
     {
         return $this->belongsTo(CostCenter::class);
+    }
+
+    public function user(): BelongsTo
+    {
+        return $this->belongsTo(\App\Models\User::class);
+    }
+
+    public function enrollment(): BelongsTo
+    {
+        return $this->belongsTo(\App\Domain\Enrollment\Models\Enrollment::class);
     }
 }
 

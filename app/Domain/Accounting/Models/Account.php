@@ -19,6 +19,7 @@ class Account extends Model
         'name',
         'type',
         'parent_id',
+        'normal_balance',
         'opening_balance',
         'is_active',
         'branch_id',
@@ -27,6 +28,7 @@ class Account extends Model
     protected function casts(): array
     {
         return [
+            'normal_balance' => 'string',
             'opening_balance' => 'decimal:2',
             'is_active' => 'boolean',
         ];

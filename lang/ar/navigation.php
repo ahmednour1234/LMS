@@ -32,5 +32,11 @@ return [
     ],
     'student' => 'طالب',
     'students' => 'الطلاب',
+    'enrollments' => 'التسجيلات',
+    'enrollment' => 'تسجيل',
+    'payments' => 'المدفوعات',
+    'payment' => 'دفعة',
+    'ar_invoices' => 'فواتير الذمم المدينة',
+    'ar_invoice' => 'فاتورة الذمم المدينة',
 ];
 
