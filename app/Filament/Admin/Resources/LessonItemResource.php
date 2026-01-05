@@ -175,9 +175,10 @@ class LessonItemResource extends Resource
             ->modifyQueryUsing(function (Builder $query) {
                 $user = auth()->user();
 
-                // ✅ حل مهم: Eager load عشان dot state ميطلعش null
+                // Eager load relationships to avoid N+1 queries
                 $query->with(['lesson', 'mediaFile']);
 
+                // Apply branch filter if user is not super admin
                 if ($user && method_exists($user, 'isSuperAdmin') && !$user->isSuperAdmin()) {
                     $query->whereHas('lesson.section.course', fn ($q) => $q->where('branch_id', $user->branch_id));
                 }
@@ -185,12 +186,26 @@ class LessonItemResource extends Resource
                 return $query;
             })
             ->columns([
-                // ✅ بدال make('lesson.title') اللي ممكن يرجع null/string
                 Tables\Columns\TextColumn::make('lesson_display')
                     ->label(__('lesson_items.lesson'))
-                    ->getStateUsing(fn (LessonItem $record) => static::transValue($record->lesson?->title, ''))
+                    ->getStateUsing(function (LessonItem $record) {
+                        // Ensure lesson is loaded
+                        if (!$record->relationLoaded('lesson')) {
+                            $record->load('lesson');
+                        }
+
+                        // Get lesson title
+                        if ($record->lesson && isset($record->lesson->title)) {
+                            $title = static::transValue($record->lesson->title, '');
+                            if ($title !== '') {
+                                return $title;
+                            }
+                        }
+
+                        // Fallback: show lesson ID if title is empty
+                        return $record->lesson_id ? "Lesson #{$record->lesson_id}" : '';
+                    })
                     ->sortable(query: function (Builder $query, string $direction) {
-                        // sort by lesson_id كحل بسيط
                         $query->orderBy('lesson_id', $direction);
                     }),
 
