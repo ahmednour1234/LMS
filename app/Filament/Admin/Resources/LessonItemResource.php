@@ -51,31 +51,26 @@ class LessonItemResource extends Resource
                     ->relationship('lesson', 'id', fn (Builder $query) => $query->whereHas('section.course', fn ($q) => $q->where('branch_id', auth()->user()->branch_id ?? null))->orderBy('id'))
                     ->getOptionLabelUsing(function ($record): string {
                         $title = 'Untitled';
-                        if (is_object($record)) {
+                        
+                        if (is_object($record) && isset($record->title) && is_array($record->title)) {
                             $locale = app()->getLocale();
                             $title = $record->title[$locale] 
                                 ?? $record->title['en'] 
                                 ?? $record->title['ar'] 
-                                ?? null;
-                            
-                            if (empty($title) || !is_string($title)) {
-                                $title = 'Untitled';
-                            }
-                        } else {
+                                ?? 'Untitled';
+                        } elseif (!is_object($record)) {
                             $lesson = \App\Domain\Training\Models\Lesson::find($record);
-                            if ($lesson) {
+                            if ($lesson && isset($lesson->title) && is_array($lesson->title)) {
                                 $locale = app()->getLocale();
                                 $title = $lesson->title[$locale] 
                                     ?? $lesson->title['en'] 
                                     ?? $lesson->title['ar'] 
-                                    ?? null;
-                                
-                                if (empty($title) || !is_string($title)) {
-                                    $title = 'Untitled';
-                                }
+                                    ?? 'Untitled';
                             }
                         }
-                        return (string) $title;
+                        
+                        // Ensure we always return a non-empty string
+                        return is_string($title) && $title !== '' ? $title : 'Untitled';
                     })
                     ->searchable()
                     ->preload()
@@ -101,6 +96,26 @@ class LessonItemResource extends Resource
                     ->maxLength(255),
                 Forms\Components\Select::make('media_file_id')
                     ->relationship('mediaFile', 'original_filename')
+                    ->getOptionLabelUsing(function ($record): string {
+                        if (is_object($record)) {
+                            $filename = $record->original_filename 
+                                ?? $record->filename 
+                                ?? null;
+                            
+                            return is_string($filename) && $filename !== '' ? $filename : 'Untitled File';
+                        }
+                        
+                        $mediaFile = MediaFile::find($record);
+                        if ($mediaFile) {
+                            $filename = $mediaFile->original_filename 
+                                ?? $mediaFile->filename 
+                                ?? null;
+                            
+                            return is_string($filename) && $filename !== '' ? $filename : 'Untitled File';
+                        }
+                        
+                        return 'Untitled File';
+                    })
                     ->searchable()
                     ->preload()
                     ->label(__('lesson_items.media_file'))
