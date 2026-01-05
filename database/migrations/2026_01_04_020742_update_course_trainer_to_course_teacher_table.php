@@ -7,63 +7,47 @@ use Illuminate\Support\Facades\Schema;
 
 return new class extends Migration
 {
-    // ---------- low-level helpers (information_schema) ----------
-    private function dbName(): string
+    // ---------- helpers ----------
+    private function dropColumnSafe(string $table, string $column): void
     {
-        return DB::getDatabaseName();
-    }
-
-    private function columnExists(string $table, string $column): bool
-    {
-        $db = $this->dbName();
-
-        $row = DB::selectOne("
-            SELECT 1
-            FROM information_schema.COLUMNS
-            WHERE TABLE_SCHEMA = ?
-              AND TABLE_NAME = ?
-              AND COLUMN_NAME = ?
-            LIMIT 1
-        ", [$db, $table, $column]);
-
-        return (bool) $row;
-    }
-
-    private function dropColumnIfExists(string $table, string $column): void
-    {
-        if ($this->columnExists($table, $column)) {
+        try {
             DB::statement("ALTER TABLE `$table` DROP COLUMN `$column`");
+        } catch (\Throwable $e) {
+            // MySQL: 1072 = Key column doesn't exist
+            // ignore any "doesn't exist" errors and continue
+            // also ignore if table doesn't exist or already modified
         }
     }
 
-    private function fkNamesForColumn(string $table, string $column): array
+    private function dropFkByDiscovery(string $table, string $column): void
     {
-        $db = $this->dbName();
+        try {
+            $db = DB::getDatabaseName();
 
-        $rows = DB::select("
-            SELECT CONSTRAINT_NAME as name
-            FROM information_schema.KEY_COLUMN_USAGE
-            WHERE TABLE_SCHEMA = ?
-              AND TABLE_NAME = ?
-              AND COLUMN_NAME = ?
-              AND REFERENCED_TABLE_NAME IS NOT NULL
-        ", [$db, $table, $column]);
+            $rows = DB::select("
+                SELECT CONSTRAINT_NAME as name
+                FROM information_schema.KEY_COLUMN_USAGE
+                WHERE TABLE_SCHEMA = ?
+                  AND TABLE_NAME = ?
+                  AND COLUMN_NAME = ?
+                  AND REFERENCED_TABLE_NAME IS NOT NULL
+            ", [$db, $table, $column]);
 
-        return array_values(array_unique(array_map(fn ($r) => $r->name, $rows)));
-    }
+            $names = array_values(array_unique(array_map(fn($r) => $r->name, $rows)));
 
-    private function dropAllForeignKeysForColumn(string $table, string $column): void
-    {
-        foreach ($this->fkNamesForColumn($table, $column) as $fkName) {
-            try {
-                DB::statement("ALTER TABLE `$table` DROP FOREIGN KEY `$fkName`");
-            } catch (\Throwable $e) {
-                // ignore
+            foreach ($names as $fk) {
+                try {
+                    DB::statement("ALTER TABLE `$table` DROP FOREIGN KEY `$fk`");
+                } catch (\Throwable $e) {
+                    // ignore
+                }
             }
+        } catch (\Throwable $e) {
+            // ignore
         }
     }
 
-    private function dropPrimaryIfExists(string $table): void
+    private function dropPrimarySafe(string $table): void
     {
         try {
             DB::statement("ALTER TABLE `$table` DROP PRIMARY KEY");
@@ -72,47 +56,28 @@ return new class extends Migration
         }
     }
 
-    private function indexExists(string $table, string $indexName): bool
+    private function dropIndexSafe(string $table, string $indexName): void
     {
-        $db = $this->dbName();
-
-        $row = DB::selectOne("
-            SELECT 1
-            FROM information_schema.statistics
-            WHERE table_schema = ?
-              AND table_name   = ?
-              AND index_name   = ?
-            LIMIT 1
-        ", [$db, $table, $indexName]);
-
-        return (bool) $row;
-    }
-
-    private function dropIndexIfExists(string $table, string $indexName): void
-    {
-        if ($this->indexExists($table, $indexName)) {
-            try {
-                DB::statement("ALTER TABLE `$table` DROP INDEX `$indexName`");
-            } catch (\Throwable $e) {
-                // ignore
-            }
+        try {
+            DB::statement("ALTER TABLE `$table` DROP INDEX `$indexName`");
+        } catch (\Throwable $e) {
+            // ignore (index doesn't exist)
         }
     }
 
     // ---------- migration ----------
     public function up(): void
     {
-        // Determine source
         $hasTrainer = Schema::hasTable('course_trainer');
         $hasTeacher = Schema::hasTable('course_teacher');
 
-        // Rename old -> new if needed
+        // Rename old table if needed
         if ($hasTrainer && !$hasTeacher) {
             Schema::rename('course_trainer', 'course_teacher');
             $hasTeacher = true;
         }
 
-        // If not exists create fresh
+        // Create if missing
         if (!$hasTeacher) {
             Schema::create('course_teacher', function (Blueprint $table) {
                 $table->engine = 'InnoDB';
@@ -135,15 +100,21 @@ return new class extends Migration
             return;
         }
 
-        // 1) Drop any FKs on legacy columns (only if column exists)
+        /**
+         * Normalize existing course_teacher:
+         * - remove trainer_id/user_id + timestamps
+         * - ensure teacher_id
+         * - ensure PK(course_id, teacher_id)
+         * - ensure FK -> courses/teachers
+         */
+
+        // 1) Drop any FKs on possible legacy columns (best-effort)
         foreach (['course_id', 'teacher_id', 'trainer_id', 'user_id'] as $col) {
-            if ($this->columnExists('course_teacher', $col)) {
-                $this->dropAllForeignKeysForColumn('course_teacher', $col);
-            }
+            $this->dropFkByDiscovery('course_teacher', $col);
         }
 
-        // 2) Drop PK and common indexes
-        $this->dropPrimaryIfExists('course_teacher');
+        // 2) Drop PK + common indexes (best-effort)
+        $this->dropPrimarySafe('course_teacher');
 
         foreach ([
             'course_teacher_course_id_trainer_id_unique',
@@ -152,44 +123,46 @@ return new class extends Migration
             'course_teacher_teacher_id_index',
             'course_teacher_user_id_index',
             'course_teacher_teacher_idx',
+            'course_teacher_pk',
         ] as $idx) {
-            $this->dropIndexIfExists('course_teacher', $idx);
+            $this->dropIndexSafe('course_teacher', $idx);
         }
 
-        // 3) Drop legacy columns safely using information_schema (NO Schema::dropColumn)
-        $this->dropColumnIfExists('course_teacher', 'trainer_id');
-        $this->dropColumnIfExists('course_teacher', 'user_id');
+        // 3) Drop legacy columns safely (NO checks, just try)
+        $this->dropColumnSafe('course_teacher', 'trainer_id');
+        $this->dropColumnSafe('course_teacher', 'user_id');
+        $this->dropColumnSafe('course_teacher', 'created_at');
+        $this->dropColumnSafe('course_teacher', 'updated_at');
 
-        // Drop timestamps safely (each one separately)
-        $this->dropColumnIfExists('course_teacher', 'created_at');
-        $this->dropColumnIfExists('course_teacher', 'updated_at');
-
-        // 4) Ensure teacher_id exists
-        if (!$this->columnExists('course_teacher', 'teacher_id')) {
+        // 4) Ensure teacher_id column exists (this one لازم نعمله عبر Schema)
+        if (!Schema::hasColumn('course_teacher', 'teacher_id')) {
             Schema::table('course_teacher', function (Blueprint $table) {
                 $table->unsignedBigInteger('teacher_id')->after('course_id');
             });
         }
 
-        // 5) Ensure index on teacher_id
-        if (!$this->indexExists('course_teacher', 'course_teacher_teacher_idx')) {
+        // 5) Ensure teacher_id index
+        try {
             Schema::table('course_teacher', function (Blueprint $table) {
                 $table->index('teacher_id', 'course_teacher_teacher_idx');
             });
+        } catch (\Throwable $e) {
+            // ignore (already exists)
         }
 
         // 6) Ensure composite PK
-        Schema::table('course_teacher', function (Blueprint $table) {
-            try {
+        try {
+            Schema::table('course_teacher', function (Blueprint $table) {
                 $table->primary(['course_id', 'teacher_id'], 'course_teacher_pk');
-            } catch (\Throwable $e) {
-                // ignore
-            }
-        });
+            });
+        } catch (\Throwable $e) {
+            // ignore
+        }
 
-        // 7) Recreate FKs with fixed names
-        $this->dropAllForeignKeysForColumn('course_teacher', 'course_id');
-        $this->dropAllForeignKeysForColumn('course_teacher', 'teacher_id');
+        // 7) Add FKs with fixed names (best-effort)
+        // Drop any FKs currently on course_id/teacher_id then add ours
+        $this->dropFkByDiscovery('course_teacher', 'course_id');
+        $this->dropFkByDiscovery('course_teacher', 'teacher_id');
 
         if (Schema::hasTable('courses')) {
             try {
@@ -224,55 +197,50 @@ return new class extends Migration
             return;
         }
 
-        // drop FKs
+        // Drop FKs best-effort
         foreach (['course_id', 'teacher_id'] as $col) {
-            if ($this->columnExists('course_teacher', $col)) {
-                $this->dropAllForeignKeysForColumn('course_teacher', $col);
-            }
+            $this->dropFkByDiscovery('course_teacher', $col);
         }
 
-        // drop PK + index
-        $this->dropPrimaryIfExists('course_teacher');
-        $this->dropIndexIfExists('course_teacher', 'course_teacher_teacher_idx');
+        // Drop PK + index
+        $this->dropPrimarySafe('course_teacher');
+        $this->dropIndexSafe('course_teacher', 'course_teacher_teacher_idx');
 
-        // rename back if course_trainer doesn't exist
+        // Rename back
         if (!Schema::hasTable('course_trainer')) {
             Schema::rename('course_teacher', 'course_trainer');
         }
 
-        // best-effort restore old structure
-        if (Schema::hasTable('course_trainer')) {
-            if (!$this->columnExists('course_trainer', 'user_id')) {
-                Schema::table('course_trainer', function (Blueprint $table) {
-                    $table->unsignedBigInteger('user_id')->after('course_id');
-                });
-            }
-
+        // Restore user_id best-effort
+        if (Schema::hasTable('course_trainer') && !Schema::hasColumn('course_trainer', 'user_id')) {
             Schema::table('course_trainer', function (Blueprint $table) {
-                try {
-                    $table->primary(['course_id', 'user_id'], 'course_trainer_pk');
-                } catch (\Throwable $e) {
-                    // ignore
-                }
+                $table->unsignedBigInteger('user_id')->after('course_id');
             });
-
-            try {
-                DB::statement("
-                    ALTER TABLE `course_trainer`
-                    ADD CONSTRAINT `course_trainer_course_fk`
-                    FOREIGN KEY (`course_id`) REFERENCES `courses`(`id`)
-                    ON DELETE CASCADE
-                ");
-            } catch (\Throwable $e) {}
-
-            try {
-                DB::statement("
-                    ALTER TABLE `course_trainer`
-                    ADD CONSTRAINT `course_trainer_user_fk`
-                    FOREIGN KEY (`user_id`) REFERENCES `users`(`id`)
-                    ON DELETE CASCADE
-                ");
-            } catch (\Throwable $e) {}
         }
+
+        // Restore PK/FKs best-effort
+        try {
+            Schema::table('course_trainer', function (Blueprint $table) {
+                $table->primary(['course_id', 'user_id'], 'course_trainer_pk');
+            });
+        } catch (\Throwable $e) {}
+
+        try {
+            DB::statement("
+                ALTER TABLE `course_trainer`
+                ADD CONSTRAINT `course_trainer_course_fk`
+                FOREIGN KEY (`course_id`) REFERENCES `courses`(`id`)
+                ON DELETE CASCADE
+            ");
+        } catch (\Throwable $e) {}
+
+        try {
+            DB::statement("
+                ALTER TABLE `course_trainer`
+                ADD CONSTRAINT `course_trainer_user_fk`
+                FOREIGN KEY (`user_id`) REFERENCES `users`(`id`)
+                ON DELETE CASCADE
+            ");
+        } catch (\Throwable $e) {}
     }
 };
