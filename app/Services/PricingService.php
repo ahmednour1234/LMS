@@ -69,5 +69,56 @@ class PricingService
 
         return (string) $coursePrice->price;
     }
+
+    /**
+     * Resolve CoursePrice model based on course_id, branch_id, and delivery_type
+     * 
+     * @param int $courseId
+     * @param int|null $branchId
+     * @param string $deliveryType 'onsite' or 'online' (from registration_type)
+     * @return CoursePrice|null
+     */
+    public function resolveCoursePrice(
+        int $courseId,
+        ?int $branchId,
+        string $deliveryType
+    ): ?CoursePrice {
+        // Map registration_type/delivery_type to CoursePrice delivery_type enum values
+        $deliveryTypeEnums = match ($deliveryType) {
+            'onsite' => [DeliveryType::Onsite],
+            'online' => [DeliveryType::Online, DeliveryType::Virtual],
+            default => throw new \InvalidArgumentException("Invalid delivery_type: {$deliveryType}"),
+        };
+
+        // Build query for CoursePrice
+        $query = CoursePrice::where('course_id', $courseId)
+            ->whereIn('delivery_type', $deliveryTypeEnums)
+            ->where('is_active', true);
+
+        // Branch matching logic:
+        // - For onsite: require branch_id, no NULL fallback
+        // - For online: allow NULL branch_id fallback
+        if ($deliveryType === 'onsite') {
+            // Onsite requires branch_id - no fallback to NULL
+            if ($branchId) {
+                $query->where('branch_id', $branchId);
+            } else {
+                // No branch_id for onsite - return null (validation will catch this)
+                return null;
+            }
+        } else {
+            // Online allows NULL branch_id fallback
+            if ($branchId) {
+                $query->where(function ($q) use ($branchId) {
+                    $q->where('branch_id', $branchId)
+                      ->orWhereNull('branch_id');
+                })->orderByRaw('CASE WHEN branch_id IS NOT NULL THEN 0 ELSE 1 END'); // Prefer branch-specific
+            } else {
+                $query->whereNull('branch_id');
+            }
+        }
+
+        return $query->first();
+    }
 }
 

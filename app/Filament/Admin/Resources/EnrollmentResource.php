@@ -50,44 +50,49 @@ class EnrollmentResource extends Resource
     }
 
     /**
-     * Calculate total_amount using PricingService (with Get closure)
+     * Resolve CoursePrice and update form fields
+     * 
+     * @param Forms\Set $set
+     * @param Forms\Get $get
+     * @return void
      */
-    protected static function calculateTotalAmount(Forms\Get $get): float
+    protected static function resolveAndUpdatePrice(Forms\Set $set, Forms\Get $get): void
     {
-        return self::calculateTotalAmountFromValues(
-            $get('course_id'),
-            $get('branch_id'),
-            $get('registration_type') ?? 'online',
-            $get('pricing_type') ?? 'full'
-        );
-    }
+        $courseId = $get('course_id');
+        $branchId = $get('branch_id');
+        $registrationType = $get('registration_type') ?? 'online';
 
-    /**
-     * Calculate total_amount using PricingService (with direct values)
-     */
-    protected static function calculateTotalAmountFromValues(
-        ?int $courseId,
-        ?int $branchId,
-        string $registrationType,
-        string $pricingType
-    ): float {
         if (!$courseId) {
-            return 0;
+            $set('total_amount', 0);
+            $set('_allow_installments', false);
+            $set('_min_down_payment', null);
+            $set('_max_installments', null);
+            return;
         }
 
-        try {
-            $course = \App\Domain\Training\Models\Course::find($courseId);
-            if (!$course) {
-                return 0;
+        $pricingService = app(\App\Services\PricingService::class);
+        $coursePrice = $pricingService->resolveCoursePrice($courseId, $branchId, $registrationType);
+
+        if ($coursePrice) {
+            $set('total_amount', (float) $coursePrice->price);
+            $allowInstallments = (bool) $coursePrice->allow_installments;
+            $set('_allow_installments', $allowInstallments);
+            $set('_min_down_payment', $coursePrice->min_down_payment ? (float) $coursePrice->min_down_payment : null);
+            $set('_max_installments', $coursePrice->max_installments);
+            
+            // Reset pricing_type to 'full' if installment is selected but not allowed
+            if ($get('pricing_type') === 'installment' && !$allowInstallments) {
+                $set('pricing_type', 'full');
             }
-
-            $branch = $branchId ? \App\Domain\Branch\Models\Branch::find($branchId) : null;
-            $pricingService = app(\App\Services\PricingService::class);
-
-            return (float) $pricingService->getCoursePrice($course, $branch, $registrationType, $pricingType);
-        } catch (\Exception $e) {
-            // Return 0 if price not found - validation will catch it
-            return 0;
+        } else {
+            $set('total_amount', 0);
+            $set('_allow_installments', false);
+            $set('_min_down_payment', null);
+            $set('_max_installments', null);
+            // Reset to full if price not found
+            if ($get('pricing_type') === 'installment') {
+                $set('pricing_type', 'full');
+            }
         }
     }
 
@@ -148,17 +153,14 @@ class EnrollmentResource extends Resource
                                     default => 'online',
                                 };
                                 $set('registration_type', $registrationType);
-                                // Recalculate total_amount - registration_type's afterStateUpdated will also trigger
-                                $totalAmount = self::calculateTotalAmountFromValues(
-                                    $state,
-                                    $get('branch_id'),
-                                    $registrationType,
-                                    $get('pricing_type') ?? 'full'
-                                );
-                                $set('total_amount', $totalAmount);
+                                // Resolve price - registration_type's afterStateUpdated will also trigger
+                                self::resolveAndUpdatePrice($set, $get);
                             }
                         } else {
                             $set('total_amount', 0);
+                            $set('_allow_installments', false);
+                            $set('_min_down_payment', null);
+                            $set('_max_installments', null);
                         }
                     })
                     ->label(__('enrollments.course')),
@@ -170,9 +172,9 @@ class EnrollmentResource extends Resource
                     ->default('full')
                     ->required()
                     ->reactive()
-                    ->afterStateUpdated(function (Forms\Set $set, Forms\Get $get) {
-                        // Recalculate total_amount when pricing_type changes
-                        $set('total_amount', self::calculateTotalAmount($get));
+                    ->disabled(function (Forms\Get $get) {
+                        // Disable installment option if not allowed
+                        return $get('_allow_installments') === false;
                     })
                     ->label(__('enrollments.pricing_type')),
                 Forms\Components\Select::make('registration_type')
@@ -196,8 +198,8 @@ class EnrollmentResource extends Resource
                         return $course->delivery_type === \App\Domain\Training\Enums\DeliveryType::Hybrid;
                     })
                     ->afterStateUpdated(function (Forms\Set $set, Forms\Get $get) {
-                        // Recalculate total_amount when registration_type changes
-                        $set('total_amount', self::calculateTotalAmount($get));
+                        // Resolve price when registration_type changes
+                        self::resolveAndUpdatePrice($set, $get);
                     })
                     ->label(__('enrollments.registration_type') ?? 'Registration Type'),
                 Forms\Components\TextInput::make('total_amount')
@@ -206,7 +208,50 @@ class EnrollmentResource extends Resource
                     ->default(0)
                     ->disabled()
                     ->dehydrated()
-                    ->label(__('enrollments.total_amount')),
+                    ->label(__('enrollments.total_amount'))
+                    ->helperText(function (Forms\Get $get) {
+                        $courseId = $get('course_id');
+                        $branchId = $get('branch_id');
+                        $registrationType = $get('registration_type') ?? 'online';
+                        
+                        if (!$courseId) {
+                            return null;
+                        }
+                        
+                        $pricingService = app(\App\Services\PricingService::class);
+                        $coursePrice = $pricingService->resolveCoursePrice($courseId, $branchId, $registrationType);
+                        
+                        if (!$coursePrice) {
+                            return __('enrollments.no_price_found_helper') ?? 'No active price found for this selection. Please configure pricing.';
+                        }
+                        
+                        return null;
+                    }),
+                Forms\Components\Hidden::make('_allow_installments')
+                    ->default(false)
+                    ->dehydrated(false),
+                Forms\Components\TextInput::make('_allow_installments_display')
+                    ->label(__('enrollments.allow_installments') ?? 'Allow Installments')
+                    ->disabled()
+                    ->dehydrated(false)
+                    ->formatStateUsing(fn ($state, Forms\Get $get) => $get('_allow_installments') ? __('Yes') : __('No'))
+                    ->visible(fn (Forms\Get $get) => $get('course_id') && $get('total_amount') > 0),
+                Forms\Components\TextInput::make('_min_down_payment_display')
+                    ->label(__('enrollments.min_down_payment') ?? 'Min Down Payment')
+                    ->disabled()
+                    ->dehydrated(false)
+                    ->formatStateUsing(fn ($state, Forms\Get $get) => $get('_min_down_payment') ? number_format((float) $get('_min_down_payment'), 2) . ' SAR' : '-')
+                    ->visible(fn (Forms\Get $get) => $get('course_id') && $get('total_amount') > 0 && $get('_allow_installments')),
+                Forms\Components\Hidden::make('_min_down_payment')
+                    ->dehydrated(false),
+                Forms\Components\TextInput::make('_max_installments_display')
+                    ->label(__('enrollments.max_installments') ?? 'Max Installments')
+                    ->disabled()
+                    ->dehydrated(false)
+                    ->formatStateUsing(fn ($state, Forms\Get $get) => $get('_max_installments') ?? '-')
+                    ->visible(fn (Forms\Get $get) => $get('course_id') && $get('total_amount') > 0 && $get('_allow_installments')),
+                Forms\Components\Hidden::make('_max_installments')
+                    ->dehydrated(false),
                 Forms\Components\TextInput::make('progress_percent')
                     ->numeric()
                     ->default(0)
@@ -237,8 +282,8 @@ class EnrollmentResource extends Resource
                         return $get('registration_type') === 'onsite';
                     })
                     ->afterStateUpdated(function (Forms\Set $set, Forms\Get $get) {
-                        // Recalculate total_amount when branch changes
-                        $set('total_amount', self::calculateTotalAmount($get));
+                        // Resolve price when branch changes
+                        self::resolveAndUpdatePrice($set, $get);
                     })
                     ->visible(function (Forms\Get $get) {
                         // Visible for super admin OR when registration_type is 'onsite'
