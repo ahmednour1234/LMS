@@ -60,14 +60,18 @@ class EnrollmentResource extends Resource
                     ->preload()
                     ->label(__('enrollments.user')),
                 Forms\Components\Select::make('course_id')
-                    ->relationship('course', 'code', function (Builder $query) {
-                        $user = auth()->user();
-                        $query = $query->where('is_active', true);
-                        if (!$user->isSuperAdmin()) {
-                            $query->where('branch_id', $user->branch_id);
-                        }
-                        return $query;
-                    })
+                    ->relationship(
+                        name: 'course',
+                        titleAttribute: 'code',
+                        modifyQueryUsing: function (Builder $query) {
+                            $user = auth()->user();
+                            $query = $query->where('is_active', true);
+                            if (!$user->isSuperAdmin()) {
+                                $query->where('branch_id', $user->branch_id);
+                            }
+                            return $query;
+                        },
+                    )
                     ->getOptionLabelUsing(function ($value) {
                         $course = \App\Domain\Training\Models\Course::find($value);
                         if (!$course) return '';
@@ -75,13 +79,7 @@ class EnrollmentResource extends Resource
                         $name = is_array($course->name) ? ($course->name[app()->getLocale()] ?? $course->name['ar'] ?? '') : $course->name;
                         return $code . ' - ' . $name;
                     })
-                    ->searchable(function ($query, $search) {
-                        return $query->where(function ($q) use ($search) {
-                            $q->where('code', 'like', "%{$search}%")
-                              ->orWhereJsonContains('name->ar', $search)
-                              ->orWhereJsonContains('name->en', $search);
-                        });
-                    })
+                    ->searchable()
                     ->preload()
                     ->required()
                     ->label(__('enrollments.course')),
