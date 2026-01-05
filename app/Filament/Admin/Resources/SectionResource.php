@@ -44,7 +44,8 @@ class SectionResource extends Resource
 
     public static function canViewAny(): bool
     {
-        return auth()->user()->hasAnyRole(['super-admin', 'admin']);
+        $user = auth()->user();
+        return $user && $user->hasAnyRole(['super_admin', 'admin']);
     }
 
     public static function form(Form $form): Form
