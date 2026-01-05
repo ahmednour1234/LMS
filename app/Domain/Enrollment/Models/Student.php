@@ -3,20 +3,20 @@
 namespace App\Domain\Enrollment\Models;
 
 use App\Domain\Branch\Models\Branch;
-use App\Models\User;
 use App\Support\Traits\HasVisibilityScope;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
-use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
+use Illuminate\Foundation\Auth\User as Authenticatable;
+use Illuminate\Notifications\Notifiable;
+use Tymon\JWTAuth\Contracts\JWTSubject;
 
-class Student extends Model
+class Student extends Authenticatable implements JWTSubject
 {
-    use HasFactory, HasVisibilityScope, SoftDeletes;
+    use HasFactory, HasVisibilityScope, SoftDeletes, Notifiable;
 
     protected $fillable = [
-        'user_id',
         'branch_id',
         'name',
         'student_code',
@@ -25,26 +25,42 @@ class Student extends Model
         'email',
         'password',
         'sex',
-        'photo',
+        'image',
         'status',
-        'active',
+        'email_verified_at',
     ];
 
     protected $hidden = [
         'password',
+        'remember_token',
     ];
 
     protected function casts(): array
     {
         return [
+            'email_verified_at' => 'datetime',
             'status' => 'string',
-            'active' => 'boolean',
         ];
     }
 
-    public function user(): BelongsTo
+    /**
+     * Get the identifier that will be stored in the subject claim of the JWT.
+     *
+     * @return mixed
+     */
+    public function getJWTIdentifier()
     {
-        return $this->belongsTo(User::class);
+        return $this->getKey();
+    }
+
+    /**
+     * Return a key value array, containing any custom claims to be added to the JWT.
+     *
+     * @return array
+     */
+    public function getJWTCustomClaims()
+    {
+        return [];
     }
 
     public function branch(): BelongsTo
@@ -55,6 +71,11 @@ class Student extends Model
     public function enrollments(): HasMany
     {
         return $this->hasMany(Enrollment::class);
+    }
+
+    public function otpCodes(): HasMany
+    {
+        return $this->hasMany(\App\Models\OtpCode::class);
     }
 }
 
