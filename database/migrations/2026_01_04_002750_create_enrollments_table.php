@@ -15,9 +15,6 @@ return new class extends Migration
 
             $table->string('reference', 64)->unique();
 
-            $table->foreignId('student_id')->constrained('students')->cascadeOnDelete();
-            $table->foreignId('course_id')->constrained('courses')->cascadeOnDelete();
-
             $table->enum('status', ['pending', 'active', 'completed', 'cancelled'])
                 ->default('pending');
 
