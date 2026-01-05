@@ -8,6 +8,7 @@ use Filament\Forms;
 use Filament\Forms\Form;
 use Filament\Resources\Resource;
 use Filament\Tables;
+use Filament\Tables\Filters\Filter;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
 
@@ -106,7 +107,8 @@ class ArInstallmentResource extends Resource
                 $user = auth()->user();
                 if (!$user->isSuperAdmin()) {
                     $query->whereHas('arInvoice', function ($q) use ($user) {
-                        $q->where('branch_id', $user->branch_id);
+                        $q->where('branch_id', $user->branch_id)
+                            ->where('user_id', $user->id);
                     });
                 }
             })
@@ -155,6 +157,47 @@ class ArInstallmentResource extends Resource
                     ->toggleable(isToggledHiddenByDefault: true),
             ])
             ->filters([
+                Filter::make('branch_id')
+                    ->form([
+                        Forms\Components\Select::make('branch_id')
+                            ->options(function () {
+                                return \App\Domain\Branch\Models\Branch::query()
+                                    ->pluck('name', 'id')
+                                    ->toArray();
+                            })
+                            ->searchable()
+                            ->label(__('filters.branch')),
+                    ])
+                    ->query(function (Builder $query, array $data): Builder {
+                        return $query->when(
+                            $data['branch_id'],
+                            fn (Builder $query, $branchId): Builder => $query->whereHas('arInvoice', function ($q) use ($branchId) {
+                                $q->where('branch_id', $branchId);
+                            })
+                        );
+                    })
+                    ->visible(fn () => auth()->user()->isSuperAdmin())
+                    ->label(__('filters.branch')),
+                Filter::make('user_id')
+                    ->form([
+                        Forms\Components\Select::make('user_id')
+                            ->options(function () {
+                                return \App\Models\User::query()
+                                    ->pluck('name', 'id')
+                                    ->toArray();
+                            })
+                            ->searchable()
+                            ->label(__('filters.user')),
+                    ])
+                    ->query(function (Builder $query, array $data): Builder {
+                        return $query->when(
+                            $data['user_id'],
+                            fn (Builder $query, $userId): Builder => $query->whereHas('arInvoice', function ($q) use ($userId) {
+                                $q->where('user_id', $userId);
+                            })
+                        );
+                    })
+                    ->label(__('filters.user')),
                 Tables\Filters\SelectFilter::make('status')
                     ->options([
                         'pending' => __('installments.status_options.pending'),
@@ -166,6 +209,25 @@ class ArInstallmentResource extends Resource
                     ->label(__('installments.overdue'))
                     ->query(fn (Builder $query): Builder => $query->where('due_date', '<', now())
                         ->where('status', '!=', 'paid')),
+                Filter::make('date_range')
+                    ->form([
+                        Forms\Components\DatePicker::make('from')
+                            ->label(__('filters.date_from')),
+                        Forms\Components\DatePicker::make('until')
+                            ->label(__('filters.date_to')),
+                    ])
+                    ->query(function (Builder $query, array $data): Builder {
+                        return $query
+                            ->when(
+                                $data['from'],
+                                fn (Builder $query, $date): Builder => $query->whereDate('due_date', '>=', $date)
+                            )
+                            ->when(
+                                $data['until'],
+                                fn (Builder $query, $date): Builder => $query->whereDate('due_date', '<=', $date)
+                            );
+                    })
+                    ->label(__('filters.date_range')),
             ])
             ->actions([
                 Tables\Actions\ViewAction::make(),

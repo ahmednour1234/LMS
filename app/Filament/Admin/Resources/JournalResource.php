@@ -211,6 +211,10 @@ class JournalResource extends Resource
                     ->relationship('branch', 'name')
                     ->label(__('journals.branch'))
                     ->visible(fn () => auth()->user()->isSuperAdmin()),
+                Tables\Filters\SelectFilter::make('user_id')
+                    ->relationship('creator', 'name')
+                    ->searchable()
+                    ->label(__('filters.user')),
             ])
             ->actions([
                 PostAction::make(),

@@ -136,7 +136,8 @@ class EnrollmentResource extends Resource
             ->modifyQueryUsing(function (Builder $query) {
                 $user = auth()->user();
                 if (!$user->isSuperAdmin()) {
-                    $query->where('branch_id', $user->branch_id);
+                    $query->where('branch_id', $user->branch_id)
+                        ->where('user_id', $user->id);
                 }
             })
             ->columns([
@@ -194,6 +195,15 @@ class EnrollmentResource extends Resource
                     ->toggleable(isToggledHiddenByDefault: true),
             ])
             ->filters([
+                Tables\Filters\SelectFilter::make('branch_id')
+                    ->relationship('branch', 'name')
+                    ->searchable()
+                    ->label(__('filters.branch'))
+                    ->visible(fn () => auth()->user()->isSuperAdmin()),
+                Tables\Filters\SelectFilter::make('user_id')
+                    ->relationship('user', 'name')
+                    ->searchable()
+                    ->label(__('filters.user')),
                 Tables\Filters\SelectFilter::make('status')
                     ->options([
                         'pending' => __('enrollments.status_options.pending'),
@@ -329,6 +339,7 @@ class EnrollmentResource extends Resource
     public static function getRelations(): array
     {
         return [
+            RelationManagers\ArInvoiceRelationManager::class,
             RelationManagers\PaymentsRelationManager::class,
             RelationManagers\PdfInvoicesRelationManager::class,
         ];

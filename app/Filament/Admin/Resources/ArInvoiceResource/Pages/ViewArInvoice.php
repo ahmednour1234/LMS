@@ -13,7 +13,7 @@ class ViewArInvoice extends ViewRecord
     protected function getHeaderActions(): array
     {
         return [
-            Actions\EditAction::make(),
+            // No actions - view only
         ];
     }
 }

@@ -4,6 +4,7 @@ namespace App\Providers;
 
 use App\Domain\Accounting\Events\PaymentPaid;
 use App\Domain\Accounting\Events\RefundCreated;
+use App\Domain\Accounting\Listeners\CreateArInvoice;
 use App\Domain\Accounting\Listeners\PostCashReceipt;
 use App\Domain\Accounting\Listeners\PostRefundEntry;
 use App\Domain\Accounting\Listeners\PostDeferredRevenue;
@@ -16,6 +17,7 @@ class EventServiceProvider extends ServiceProvider
 {
     protected $listen = [
         EnrollmentCreated::class => [
+            CreateArInvoice::class,
             PostDeferredRevenue::class,
         ],
         PaymentPaid::class => [

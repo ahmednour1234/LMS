@@ -8,6 +8,7 @@ use Filament\Forms;
 use Filament\Forms\Form;
 use Filament\Resources\Resource;
 use Filament\Tables;
+use Filament\Tables\Filters\Filter;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
 
@@ -118,7 +119,8 @@ class PaymentResource extends Resource
             ->modifyQueryUsing(function (Builder $query) {
                 $user = auth()->user();
                 if (!$user->isSuperAdmin()) {
-                    $query->where('branch_id', $user->branch_id);
+                    $query->where('branch_id', $user->branch_id)
+                        ->where('user_id', $user->id);
                 }
             })
             ->columns([
@@ -157,6 +159,15 @@ class PaymentResource extends Resource
                     ->toggleable(isToggledHiddenByDefault: true),
             ])
             ->filters([
+                Tables\Filters\SelectFilter::make('branch_id')
+                    ->relationship('branch', 'name')
+                    ->searchable()
+                    ->label(__('filters.branch'))
+                    ->visible(fn () => auth()->user()->isSuperAdmin()),
+                Tables\Filters\SelectFilter::make('user_id')
+                    ->relationship('user', 'name')
+                    ->searchable()
+                    ->label(__('filters.user')),
                 Tables\Filters\SelectFilter::make('status')
                     ->options([
                         'pending' => __('payments.status_options.pending'),
@@ -172,6 +183,25 @@ class PaymentResource extends Resource
                         'gateway' => __('payments.method_options.gateway'),
                     ])
                     ->label(__('payments.method')),
+                Filter::make('date_range')
+                    ->form([
+                        Forms\Components\DatePicker::make('from')
+                            ->label(__('filters.date_from')),
+                        Forms\Components\DatePicker::make('until')
+                            ->label(__('filters.date_to')),
+                    ])
+                    ->query(function (Builder $query, array $data): Builder {
+                        return $query
+                            ->when(
+                                $data['from'],
+                                fn (Builder $query, $date): Builder => $query->whereDate('paid_at', '>=', $date)
+                            )
+                            ->when(
+                                $data['until'],
+                                fn (Builder $query, $date): Builder => $query->whereDate('paid_at', '<=', $date)
+                            );
+                    })
+                    ->label(__('filters.date_range')),
             ])
             ->actions([
                 Tables\Actions\ViewAction::make(),

@@ -19,7 +19,6 @@ class ArInvoice extends Model
         'user_id',
         'branch_id',
         'total_amount',
-        'due_amount',
         'status',
         'issued_at',
         'created_by',
@@ -64,6 +63,29 @@ class ArInvoice extends Model
     public function arInstallments(): HasMany
     {
         return $this->hasMany(ArInstallment::class);
+    }
+
+    /**
+     * Calculate paid amount from payments on installments
+     */
+    public function getPaidAmountAttribute(): float
+    {
+        return $this->arInstallments()
+            ->with('payments')
+            ->get()
+            ->flatMap->payments
+            ->where('status', 'paid')
+            ->sum('amount');
+    }
+
+    /**
+     * Calculate due amount as total_amount - paid_amount
+     * This is always computed and ignores the stored database value
+     */
+    public function getDueAmountAttribute(): float
+    {
+        $paidAmount = $this->getPaidAmountAttribute();
+        return max(0, $this->total_amount - $paidAmount);
     }
 }
 
