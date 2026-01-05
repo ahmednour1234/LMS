@@ -4,6 +4,7 @@ namespace App\Filament\Admin\Resources;
 
 use App\Domain\Accounting\Models\ArInstallment;
 use App\Filament\Admin\Resources\ArInstallmentResource\Pages;
+use App\Filament\Concerns\HasTableExports;
 use Filament\Forms;
 use Filament\Forms\Form;
 use Filament\Resources\Resource;
@@ -14,6 +15,7 @@ use Illuminate\Database\Eloquent\Builder;
 
 class ArInstallmentResource extends Resource
 {
+    use HasTableExports;
     protected static ?string $model = ArInstallment::class;
 
     protected static ?string $navigationIcon = 'heroicon-o-calendar-days';
@@ -232,7 +234,50 @@ class ArInstallmentResource extends Resource
             ->actions([
                 Tables\Actions\ViewAction::make(),
                 Tables\Actions\EditAction::make(),
+                Tables\Actions\Action::make('print')
+                    ->label(__('exports.print'))
+                    ->icon('heroicon-o-printer')
+                    ->color('gray')
+                    ->url(fn (ArInstallment $record) => route('installments.print', $record))
+                    ->openUrlInNewTab(),
+                Tables\Actions\Action::make('qr_code')
+                    ->label(__('installments.qr_code'))
+                    ->icon('heroicon-o-qr-code')
+                    ->color('info')
+                    ->modalHeading(__('installments.qr_code'))
+                    ->modalContent(function (ArInstallment $record) {
+                        $publicUrl = route('public.installment.show', ['id' => $record->id]);
+                        $qrCodeService = app(\App\Services\QrCodeService::class);
+                        $qrCodeSvg = $qrCodeService->generateSvg($publicUrl);
+                        
+                        return new \Illuminate\Support\HtmlString('
+                            <div class="p-4">
+                                <div class="flex flex-col items-center space-y-4">
+                                    <div class="bg-white p-4 rounded-lg border">
+                                        ' . $qrCodeSvg . '
+                                    </div>
+                                    <div class="text-center w-full">
+                                        <p class="text-sm font-medium mb-2">' . __('installments.public_link') . '</p>
+                                        <div class="flex items-center space-x-2">
+                                            <input type="text" 
+                                                   value="' . htmlspecialchars($publicUrl) . '" 
+                                                   readonly 
+                                                   class="flex-1 px-3 py-2 border rounded-md text-sm"
+                                                   id="public-url-' . $record->id . '">
+                                            <button onclick="navigator.clipboard.writeText(\'' . htmlspecialchars($publicUrl, ENT_QUOTES) . '\').then(() => alert(\'' . htmlspecialchars(__('installments.copied'), ENT_QUOTES) . '\'))" 
+                                                    class="px-4 py-2 bg-primary-600 text-white rounded-md hover:bg-primary-700 text-sm">
+                                                ' . __('installments.copy') . '
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        ');
+                    })
+                    ->modalSubmitAction(false)
+                    ->modalCancelActionLabel(__('installments.close')),
             ])
+            ->headerActions(static::getExportActions())
             ->bulkActions([
                 Tables\Actions\BulkActionGroup::make([
                     Tables\Actions\DeleteBulkAction::make(),

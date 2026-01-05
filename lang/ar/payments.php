@@ -4,6 +4,8 @@ return [
     'enrollment' => 'التسجيل',
     'user' => 'المستخدم',
     'installment' => 'القسط',
+    'payment' => 'الدفع',
+    'branch' => 'الفرع',
     'amount' => 'المبلغ',
     'method' => 'طريقة الدفع',
     'method_options' => [
@@ -23,5 +25,12 @@ return [
     'student' => 'الطالب',
     'course' => 'الدورة',
     'select_installment' => 'اختر قسط (اختياري)',
+    'payment' => 'الدفع',
+    'branch' => 'الفرع',
+    'qr_code' => 'رمز QR',
+    'public_link' => 'رابط عام',
+    'copy' => 'نسخ',
+    'copied' => 'تم النسخ!',
+    'close' => 'إغلاق',
 ];
 

@@ -42,6 +42,10 @@ Route::middleware(['web'])->group(function () {
         ->name('public.enrollment.show');
     Route::get('/invoice/{id}', [App\Http\Controllers\PublicInvoiceController::class, 'show'])
         ->name('public.invoice.show');
+    Route::get('/payment/{id}', [App\Http\Controllers\PublicPaymentController::class, 'show'])
+        ->name('public.payment.show');
+    Route::get('/installment/{id}', [App\Http\Controllers\PublicInstallmentController::class, 'show'])
+        ->name('public.installment.show');
 });
 
 Route::middleware(['web', 'auth'])->group(function () {
@@ -57,4 +61,8 @@ Route::middleware(['web', 'auth'])->group(function () {
         ->name('enrollments.print');
     Route::get('/admin/invoices/{invoice}/print', [App\Http\Controllers\InvoiceController::class, 'print'])
         ->name('invoices.print');
+    Route::get('/admin/payments/{payment}/print', [App\Http\Controllers\PaymentController::class, 'print'])
+        ->name('payments.print');
+    Route::get('/admin/installments/{installment}/print', [App\Http\Controllers\InstallmentController::class, 'print'])
+        ->name('installments.print');
 });

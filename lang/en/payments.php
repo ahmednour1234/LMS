@@ -23,5 +23,12 @@ return [
     'student' => 'Student',
     'course' => 'Course',
     'select_installment' => 'Select Installment (Optional)',
+    'payment' => 'Payment',
+    'branch' => 'Branch',
+    'qr_code' => 'QR Code',
+    'public_link' => 'Public Link',
+    'copy' => 'Copy',
+    'copied' => 'Copied!',
+    'close' => 'Close',
 ];
 

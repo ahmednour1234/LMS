@@ -17,5 +17,10 @@ return [
     'student' => 'Student',
     'overdue' => 'Overdue',
     'installments' => 'Installments',
+    'qr_code' => 'QR Code',
+    'public_link' => 'Public Link',
+    'copy' => 'Copy',
+    'copied' => 'Copied!',
+    'close' => 'Close',
 ];
 

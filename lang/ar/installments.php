@@ -17,5 +17,10 @@ return [
     'student' => 'الطالب',
     'overdue' => 'متأخر',
     'installments' => 'الأقساط',
+    'qr_code' => 'رمز QR',
+    'public_link' => 'رابط عام',
+    'copy' => 'نسخ',
+    'copied' => 'تم النسخ!',
+    'close' => 'إغلاق',
 ];
 

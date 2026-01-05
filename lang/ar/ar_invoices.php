@@ -15,5 +15,10 @@ return [
     'issued_at' => 'تاريخ الإصدار',
     'student' => 'الطالب',
     'branch' => 'الفرع',
+    'qr_code' => 'رمز QR',
+    'public_link' => 'رابط عام',
+    'copy' => 'نسخ',
+    'copied' => 'تم النسخ!',
+    'close' => 'إغلاق',
 ];
 

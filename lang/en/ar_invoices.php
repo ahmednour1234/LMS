@@ -15,5 +15,10 @@ return [
     'issued_at' => 'Issued At',
     'student' => 'Student',
     'branch' => 'Branch',
+    'qr_code' => 'QR Code',
+    'public_link' => 'Public Link',
+    'copy' => 'Copy',
+    'copied' => 'Copied!',
+    'close' => 'Close',
 ];
 
