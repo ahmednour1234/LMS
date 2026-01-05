@@ -29,10 +29,6 @@ return new class extends Migration
 
             $table->timestamps();
 
-            $table->index(['student_id', 'course_id']);
-            $table->index('status');
-            $table->index('branch_id');
-            $table->index(['student_id', 'status']);
         });
     }
 
