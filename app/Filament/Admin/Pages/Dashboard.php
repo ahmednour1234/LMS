@@ -14,7 +14,7 @@ class Dashboard extends BaseDashboard
 {
     protected static ?string $navigationIcon = 'heroicon-o-document-chart-bar';
 
-    protected function getWidgets(): array
+    public function getWidgets(): array
     {
         return [
             StatsOverviewWidget::class,
