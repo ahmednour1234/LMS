@@ -40,8 +40,8 @@ class StatsOverviewWidget extends BaseWidget
             ->when($branchId, fn($query) => $query->where('branch_id', $branchId))
             ->count();
 
-        return Stat::make('Enrollments Today', $count)
-            ->description('New enrollments today')
+        return Stat::make(__('dashboard.stats.enrollments_today'), $count)
+            ->description(__('dashboard.stats.enrollments_today_desc'))
             ->descriptionIcon('heroicon-m-user-plus')
             ->color('success');
     }
@@ -53,8 +53,8 @@ class StatsOverviewWidget extends BaseWidget
             ->when($branchId, fn($query) => $query->where('branch_id', $branchId))
             ->sum('amount');
 
-        return Stat::make('Payments Collected Today', number_format($amount, 2))
-            ->description('Total payments received today')
+        return Stat::make(__('dashboard.stats.payments_collected_today'), number_format($amount, 2))
+            ->description(__('dashboard.stats.payments_collected_today_desc'))
             ->descriptionIcon('heroicon-m-currency-dollar')
             ->color('success');
     }
@@ -69,8 +69,8 @@ class StatsOverviewWidget extends BaseWidget
             ->when($branchId, fn($query) => $query->where('branch_id', $branchId))
             ->sum('amount');
 
-        return Stat::make('Collections This Month', number_format($amount, 2))
-            ->description('Total collections this month')
+        return Stat::make(__('dashboard.stats.collections_this_month'), number_format($amount, 2))
+            ->description(__('dashboard.stats.collections_this_month_desc'))
             ->descriptionIcon('heroicon-m-banknotes')
             ->color('info');
     }
@@ -86,8 +86,8 @@ class StatsOverviewWidget extends BaseWidget
             })
             ->count();
 
-        return Stat::make('Overdue Installments', $count)
-            ->description('Installments past due date')
+        return Stat::make(__('dashboard.stats.overdue_installments'), $count)
+            ->description(__('dashboard.stats.overdue_installments_desc'))
             ->descriptionIcon('heroicon-m-exclamation-triangle')
             ->color('danger');
     }
@@ -99,8 +99,8 @@ class StatsOverviewWidget extends BaseWidget
             ->get()
             ->sum('due_amount');
 
-        return Stat::make('AR Open Amount', number_format($amount, 2))
-            ->description('Total accounts receivable open')
+        return Stat::make(__('dashboard.stats.ar_open_amount'), number_format($amount, 2))
+            ->description(__('dashboard.stats.ar_open_amount_desc'))
             ->descriptionIcon('heroicon-m-document-text')
             ->color('warning');
     }
@@ -118,8 +118,8 @@ class StatsOverviewWidget extends BaseWidget
             })
             ->sum('recognized_amount');
 
-        return Stat::make('Recognized Revenue This Month', number_format($amount, 2))
-            ->description('Revenue recognized this month')
+        return Stat::make(__('dashboard.stats.recognized_revenue_this_month'), number_format($amount, 2))
+            ->description(__('dashboard.stats.recognized_revenue_this_month_desc'))
             ->descriptionIcon('heroicon-m-chart-bar')
             ->color('success');
     }
