@@ -171,12 +171,13 @@ class LessonResource extends Resource
     public static function getRelations(): array
     {
         return [
-            RelationManagers\LessonVideosRelationManager::class,
-            RelationManagers\LessonDocumentsRelationManager::class,
-            RelationManagers\LessonTasksRelationManager::class,
-            RelationManagers\LessonQuizzesRelationManager::class,
-            RelationManagers\LessonMeetingsRelationManager::class,
-            RelationManagers\LessonReviewsRelationManager::class,
+            // TODO: Enable relation managers in future phases when tables are created
+            // RelationManagers\LessonVideosRelationManager::class,
+            // RelationManagers\LessonDocumentsRelationManager::class,
+            // RelationManagers\LessonTasksRelationManager::class,
+            // RelationManagers\LessonQuizzesRelationManager::class,
+            // RelationManagers\LessonMeetingsRelationManager::class,
+            // RelationManagers\LessonReviewsRelationManager::class,
         ];
     }
 
