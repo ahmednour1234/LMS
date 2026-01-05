@@ -133,7 +133,13 @@ class CourseResource extends Resource
                     ->sortable()
                     ->label(__('courses.code')),
                 Tables\Columns\TextColumn::make('name')
-                    ->formatStateUsing(fn ($state) => $state[app()->getLocale()] ?? $state['ar'] ?? '')
+                    ->formatStateUsing(function ($state) {
+                        if (empty($state) || !is_array($state)) {
+                            return '';
+                        }
+                        $locale = app()->getLocale();
+                        return $state[$locale] ?? $state['ar'] ?? $state['en'] ?? '';
+                    })
                     ->searchable()
                     ->sortable()
                     ->label(__('courses.name')),
