@@ -54,6 +54,19 @@ class PaymentResource extends Resource
                     ->searchable()
                     ->preload()
                     ->required()
+                    ->reactive()
+                    ->afterStateUpdated(function ($state, callable $set, callable $get) {
+                        if ($state) {
+                            $enrollment = \App\Domain\Enrollment\Models\Enrollment::with('student')->find($state);
+                            if ($enrollment) {
+                                $userId = $enrollment->user_id 
+                                    ?? ($enrollment->student ? $enrollment->student->user_id : null);
+                                if ($userId) {
+                                    $set('user_id', $userId);
+                                }
+                            }
+                        }
+                    })
                     ->label(__('payments.enrollment')),
                 Forms\Components\Select::make('user_id')
                     ->relationship('user', 'name')
