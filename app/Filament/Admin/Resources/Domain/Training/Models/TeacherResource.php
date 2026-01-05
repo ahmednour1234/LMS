@@ -38,6 +38,11 @@ class TeacherResource extends Resource
         return __('teachers.teachers');
     }
 
+    public static function shouldRegisterNavigation(): bool
+    {
+        return false;
+    }
+
     public static function getNavigationGroup(): ?string
     {
         return __('navigation.groups.training');
