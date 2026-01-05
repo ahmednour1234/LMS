@@ -2,9 +2,11 @@
 
 namespace App\Filament\Admin\Resources;
 
-use App\Domain\Training\Models\CourseSection;
+use App\Domain\Training\Enums\LessonType;
 use App\Domain\Training\Models\Lesson;
+use App\Domain\Training\Models\Section;
 use App\Filament\Admin\Resources\LessonResource\Pages;
+use App\Filament\Admin\Resources\LessonResource\RelationManagers;
 use Filament\Forms;
 use Filament\Forms\Form;
 use Filament\Resources\Resource;
@@ -42,38 +44,52 @@ class LessonResource extends Resource
         return __('navigation.groups.training');
     }
 
+    public static function canViewAny(): bool
+    {
+        return auth()->user()->hasAnyRole(['super-admin', 'admin']);
+    }
+
     public static function form(Form $form): Form
     {
         return $form
             ->schema([
                 Forms\Components\Select::make('section_id')
-                    ->relationship('section', 'id', fn (Builder $query) => $query->whereHas('course', fn ($q) => $q->where('branch_id', auth()->user()->branch_id ?? null))->orderBy('id'))
-                    ->getOptionLabelUsing(fn ($record): ?string => is_object($record) ? ($record->title[app()->getLocale()] ?? $record->title['en'] ?? null) : (\App\Domain\Training\Models\CourseSection::find($record)?->title[app()->getLocale()] ?? \App\Domain\Training\Models\CourseSection::find($record)?->title['en'] ?? null))
+                    ->relationship('section', 'title', fn (Builder $query) => $query->whereHas('course', fn ($q) => $q->where('branch_id', auth()->user()->branch_id ?? null))->orderBy('sort_order'))
                     ->searchable()
                     ->preload()
                     ->required()
-                    ->label(__('lessons.section')),
-                Forms\Components\TextInput::make('title.ar')
-                    ->label(__('lessons.title_ar'))
+                    ->label(__('Section')),
+                Forms\Components\TextInput::make('title')
+                    ->label(__('Title'))
                     ->required()
                     ->maxLength(255),
-                Forms\Components\TextInput::make('title.en')
-                    ->label(__('lessons.title_en'))
+                Forms\Components\Textarea::make('description')
+                    ->label(__('Description'))
+                    ->rows(3),
+                Forms\Components\Select::make('lesson_type')
+                    ->options([
+                        LessonType::RECORDED->value => __('Recorded'),
+                        LessonType::LIVE->value => __('Live'),
+                        LessonType::MIXED->value => __('Mixed'),
+                    ])
+                    ->default(LessonType::RECORDED->value)
                     ->required()
-                    ->maxLength(255),
-                Forms\Components\Textarea::make('description.ar')
-                    ->label(__('lessons.description_ar'))
-                    ->rows(3),
-                Forms\Components\Textarea::make('description.en')
-                    ->label(__('lessons.description_en'))
-                    ->rows(3),
-                Forms\Components\TextInput::make('order')
+                    ->label(__('Lesson Type')),
+                Forms\Components\TextInput::make('sort_order')
                     ->numeric()
                     ->default(0)
-                    ->label(__('lessons.order')),
+                    ->label(__('Sort Order')),
+                Forms\Components\Toggle::make('is_preview')
+                    ->label(__('Is Preview'))
+                    ->default(false),
                 Forms\Components\Toggle::make('is_active')
-                    ->label(__('lessons.is_active'))
+                    ->label(__('Is Active'))
                     ->default(true),
+                Forms\Components\TextInput::make('estimated_minutes')
+                    ->numeric()
+                    ->label(__('Estimated Minutes')),
+                Forms\Components\DateTimePicker::make('published_at')
+                    ->label(__('Published At')),
             ]);
     }
 
@@ -87,21 +103,41 @@ class LessonResource extends Resource
                 }
             })
             ->columns([
-                Tables\Columns\TextColumn::make('section.title')
-                    ->formatStateUsing(fn ($state) => $state[app()->getLocale()] ?? $state['ar'] ?? '')
+                Tables\Columns\TextColumn::make('section.course.code')
                     ->sortable()
-                    ->label(__('lessons.section')),
+                    ->label(__('Course')),
+                Tables\Columns\TextColumn::make('section.title')
+                    ->sortable()
+                    ->label(__('Section')),
                 Tables\Columns\TextColumn::make('title')
-                    ->formatStateUsing(fn ($state) => $state[app()->getLocale()] ?? $state['ar'] ?? '')
                     ->searchable()
                     ->sortable()
-                    ->label(__('lessons.title')),
-                Tables\Columns\TextColumn::make('order')
-                    ->sortable()
-                    ->label(__('lessons.order')),
+                    ->label(__('Title')),
+                Tables\Columns\TextColumn::make('lesson_type')
+                    ->badge()
+                    ->formatStateUsing(fn ($state) => match($state?->value ?? $state) {
+                        LessonType::RECORDED->value => __('Recorded'),
+                        LessonType::LIVE->value => __('Live'),
+                        LessonType::MIXED->value => __('Mixed'),
+                        default => $state,
+                    })
+                    ->color(fn ($state) => match($state?->value ?? $state) {
+                        LessonType::RECORDED->value => 'success',
+                        LessonType::LIVE->value => 'warning',
+                        LessonType::MIXED->value => 'info',
+                        default => 'gray',
+                    })
+                    ->label(__('Type')),
                 Tables\Columns\IconColumn::make('is_active')
                     ->boolean()
-                    ->label(__('lessons.is_active')),
+                    ->label(__('Is Active')),
+                Tables\Columns\TextColumn::make('published_at')
+                    ->dateTime()
+                    ->sortable()
+                    ->label(__('Published At')),
+                Tables\Columns\TextColumn::make('sort_order')
+                    ->sortable()
+                    ->label(__('Sort Order')),
                 Tables\Columns\TextColumn::make('created_at')
                     ->dateTime()
                     ->sortable()
@@ -110,9 +146,16 @@ class LessonResource extends Resource
             ->filters([
                 Tables\Filters\SelectFilter::make('section_id')
                     ->relationship('section', 'title')
-                    ->label(__('lessons.section')),
+                    ->label(__('Section')),
+                Tables\Filters\SelectFilter::make('lesson_type')
+                    ->options([
+                        LessonType::RECORDED->value => __('Recorded'),
+                        LessonType::LIVE->value => __('Live'),
+                        LessonType::MIXED->value => __('Mixed'),
+                    ])
+                    ->label(__('Lesson Type')),
                 Tables\Filters\TernaryFilter::make('is_active')
-                    ->label(__('lessons.is_active')),
+                    ->label(__('Is Active')),
             ])
             ->actions([
                 Tables\Actions\ViewAction::make(),
@@ -123,6 +166,18 @@ class LessonResource extends Resource
                     Tables\Actions\DeleteBulkAction::make(),
                 ]),
             ]);
+    }
+
+    public static function getRelations(): array
+    {
+        return [
+            RelationManagers\LessonVideosRelationManager::class,
+            RelationManagers\LessonDocumentsRelationManager::class,
+            RelationManagers\LessonTasksRelationManager::class,
+            RelationManagers\LessonQuizzesRelationManager::class,
+            RelationManagers\LessonMeetingsRelationManager::class,
+            RelationManagers\LessonReviewsRelationManager::class,
+        ];
     }
 
     public static function getPages(): array

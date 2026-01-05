@@ -2,6 +2,7 @@
 
 namespace App\Domain\Training\Models;
 
+use App\Domain\Training\Enums\LessonType;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -15,23 +16,29 @@ class Lesson extends Model
         'section_id',
         'title',
         'description',
-        'order',
+        'lesson_type',
+        'sort_order',
+        'is_preview',
         'is_active',
+        'estimated_minutes',
+        'published_at',
     ];
 
     protected function casts(): array
     {
         return [
-            'title' => 'array',
-            'description' => 'array',
-            'order' => 'integer',
+            'lesson_type' => LessonType::class,
+            'sort_order' => 'integer',
+            'is_preview' => 'boolean',
             'is_active' => 'boolean',
+            'estimated_minutes' => 'integer',
+            'published_at' => 'datetime',
         ];
     }
 
     public function section(): BelongsTo
     {
-        return $this->belongsTo(CourseSection::class);
+        return $this->belongsTo(Section::class);
     }
 
     public function items(): HasMany
