@@ -91,7 +91,7 @@ class CourseSeeder extends Seeder
 
                     $data['is_active'] = true;
 
-                    $course = Course::firstOrCreate(
+                    $course = Course::updateOrCreate(
                         ['code' => $data['code'], 'branch_id' => $branch->id],
                         $data
                     );
