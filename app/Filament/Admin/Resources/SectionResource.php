@@ -42,6 +42,11 @@ class SectionResource extends Resource
         return __('Training');
     }
 
+    public static function shouldRegisterNavigation(): bool
+    {
+        return false;
+    }
+
     public static function canViewAny(): bool
     {
         $user = auth()->user();
