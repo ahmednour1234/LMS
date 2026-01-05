@@ -51,6 +51,7 @@ class Enrollment extends Model
         'course_id',
         'status',
         'pricing_type',
+        'registration_type',
         'total_amount',
         'progress_percent',
         'enrolled_at',
@@ -68,6 +69,7 @@ class Enrollment extends Model
         return [
             'status' => EnrollmentStatus::class,
             'pricing_type' => 'string',
+            'registration_type' => 'string',
             'total_amount' => 'decimal:2',
             'progress_percent' => 'decimal:2',
             'enrolled_at' => 'datetime',

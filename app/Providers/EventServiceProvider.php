@@ -7,6 +7,7 @@ use App\Domain\Accounting\Events\JournalPosted;
 use App\Domain\Accounting\Events\PaymentPaid;
 use App\Domain\Accounting\Events\RefundCreated;
 use App\Domain\Accounting\Listeners\CreateArInvoice;
+use App\Domain\Accounting\Listeners\LogEnrollmentCompleted;
 use App\Domain\Accounting\Listeners\LogEnrollmentCreated;
 use App\Domain\Accounting\Listeners\LogInvoiceGenerated;
 use App\Domain\Accounting\Listeners\LogJournalPosted;
@@ -34,6 +35,7 @@ class EventServiceProvider extends ServiceProvider
         ],
         EnrollmentCompleted::class => [
             RecognizeRevenue::class,
+            LogEnrollmentCompleted::class,
         ],
         RefundCreated::class => [
             PostRefundEntry::class,

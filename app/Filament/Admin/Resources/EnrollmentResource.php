@@ -10,6 +10,8 @@ use App\Filament\Concerns\HasTableExports;
 use App\Support\Helpers\MultilingualHelper;
 use Filament\Forms;
 use Filament\Forms\Form;
+use Filament\Forms\Get;
+use Filament\Forms\Set;
 use Filament\Resources\Resource;
 use Filament\Tables;
 use Filament\Tables\Table;
@@ -45,6 +47,48 @@ class EnrollmentResource extends Resource
     public static function getNavigationGroup(): ?string
     {
         return __('navigation.groups.enrollment');
+    }
+
+    /**
+     * Calculate total_amount using PricingService (with Get closure)
+     */
+    protected static function calculateTotalAmount(Forms\Get $get): float
+    {
+        return self::calculateTotalAmountFromValues(
+            $get('course_id'),
+            $get('branch_id'),
+            $get('registration_type') ?? 'online',
+            $get('pricing_type') ?? 'full'
+        );
+    }
+
+    /**
+     * Calculate total_amount using PricingService (with direct values)
+     */
+    protected static function calculateTotalAmountFromValues(
+        ?int $courseId,
+        ?int $branchId,
+        string $registrationType,
+        string $pricingType
+    ): float {
+        if (!$courseId) {
+            return 0;
+        }
+
+        try {
+            $course = \App\Domain\Training\Models\Course::find($courseId);
+            if (!$course) {
+                return 0;
+            }
+
+            $branch = $branchId ? \App\Domain\Branch\Models\Branch::find($branchId) : null;
+            $pricingService = app(\App\Services\PricingService::class);
+
+            return (float) $pricingService->getCoursePrice($course, $branch, $registrationType, $pricingType);
+        } catch (\Exception $e) {
+            // Return 0 if price not found - validation will catch it
+            return 0;
+        }
     }
 
     public static function form(Form $form): Form
@@ -90,6 +134,33 @@ class EnrollmentResource extends Resource
                     ->searchable()
                     ->preload()
                     ->required()
+                    ->reactive()
+                    ->afterStateUpdated(function (Forms\Set $set, $state, Forms\Get $get) {
+                        // When course changes, set registration_type based on course delivery_type
+                        if ($state) {
+                            $course = \App\Domain\Training\Models\Course::find($state);
+                            if ($course) {
+                                $registrationType = match ($course->delivery_type) {
+                                    \App\Domain\Training\Enums\DeliveryType::Onsite => 'onsite',
+                                    \App\Domain\Training\Enums\DeliveryType::Online => 'online',
+                                    \App\Domain\Training\Enums\DeliveryType::Virtual => 'online',
+                                    \App\Domain\Training\Enums\DeliveryType::Hybrid => 'online', // Default, can be changed
+                                    default => 'online',
+                                };
+                                $set('registration_type', $registrationType);
+                                // Recalculate total_amount - registration_type's afterStateUpdated will also trigger
+                                $totalAmount = self::calculateTotalAmountFromValues(
+                                    $state,
+                                    $get('branch_id'),
+                                    $registrationType,
+                                    $get('pricing_type') ?? 'full'
+                                );
+                                $set('total_amount', $totalAmount);
+                            }
+                        } else {
+                            $set('total_amount', 0);
+                        }
+                    })
                     ->label(__('enrollments.course')),
                 Forms\Components\Select::make('pricing_type')
                     ->options([
@@ -98,11 +169,55 @@ class EnrollmentResource extends Resource
                     ])
                     ->default('full')
                     ->required()
+                    ->reactive()
+                    ->afterStateUpdated(function (Forms\Set $set, Forms\Get $get) {
+                        // Recalculate total_amount when pricing_type changes
+                        $set('total_amount', self::calculateTotalAmount($get));
+                    })
                     ->label(__('enrollments.pricing_type')),
+                Forms\Components\Select::make('registration_type')
+                    ->options([
+                        'onsite' => __('enrollments.registration_type_options.onsite'),
+                        'online' => __('enrollments.registration_type_options.online'),
+                    ])
+                    ->default('online')
+                    ->required()
+                    ->reactive()
+                    ->visible(function (Forms\Get $get) {
+                        $courseId = $get('course_id');
+                        if (!$courseId) {
+                            return false;
+                        }
+                        $course = \App\Domain\Training\Models\Course::find($courseId);
+                        if (!$course) {
+                            return false;
+                        }
+                        // Only visible for hybrid courses
+                        return $course->delivery_type === \App\Domain\Training\Enums\DeliveryType::Hybrid;
+                    })
+                    ->disabled(function (Forms\Get $get) {
+                        $courseId = $get('course_id');
+                        if (!$courseId) {
+                            return false;
+                        }
+                        $course = \App\Domain\Training\Models\Course::find($courseId);
+                        if (!$course) {
+                            return false;
+                        }
+                        // Disabled (read-only) for non-hybrid courses
+                        return $course->delivery_type !== \App\Domain\Training\Enums\DeliveryType::Hybrid;
+                    })
+                    ->afterStateUpdated(function (Forms\Set $set, Forms\Get $get) {
+                        // Recalculate total_amount when registration_type changes
+                        $set('total_amount', self::calculateTotalAmount($get));
+                    })
+                    ->label(__('enrollments.registration_type')),
                 Forms\Components\TextInput::make('total_amount')
                     ->numeric()
                     ->required()
                     ->default(0)
+                    ->disabled()
+                    ->dehydrated()
                     ->label(__('enrollments.total_amount')),
                 Forms\Components\TextInput::make('progress_percent')
                     ->numeric()
@@ -128,8 +243,22 @@ class EnrollmentResource extends Resource
                     ->relationship('branch', 'name')
                     ->searchable()
                     ->preload()
-                    ->label(__('enrollments.branch'))
-                    ->visible(fn () => auth()->user()->isSuperAdmin()),
+                    ->reactive()
+                    ->required(function (Forms\Get $get) {
+                        // Required when registration_type is 'onsite'
+                        return $get('registration_type') === 'onsite';
+                    })
+                    ->afterStateUpdated(function (Forms\Set $set, Forms\Get $get) {
+                        // Recalculate total_amount when branch changes
+                        $set('total_amount', self::calculateTotalAmount($get));
+                    })
+                    ->visible(function (Forms\Get $get) {
+                        // Visible for super admin OR when registration_type is 'onsite'
+                        $isOnsite = $get('registration_type') === 'onsite';
+                        $isSuperAdmin = auth()->user()->isSuperAdmin();
+                        return $isSuperAdmin || $isOnsite;
+                    })
+                    ->label(__('enrollments.branch')),
             ]);
     }
 
