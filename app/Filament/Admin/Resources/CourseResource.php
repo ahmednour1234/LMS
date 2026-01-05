@@ -105,12 +105,13 @@ class CourseResource extends Resource
                     ->searchable()
                     ->preload()
                     ->label(__('Additional Teachers')),
-                Forms\Components\Select::make('trainers')
-                    ->relationship('trainers', 'name', fn (Builder $query) => $query->whereHas('roles', fn ($q) => $q->where('name', 'trainer')))
-                    ->multiple()
-                    ->searchable()
-                    ->preload()
-                    ->label(__('courses.trainers')),
+                // Trainers functionality removed - use teachers() relationship instead
+                // Forms\Components\Select::make('trainers')
+                //     ->relationship('trainers', 'name', fn (Builder $query) => $query->whereHas('roles', fn ($q) => $q->where('name', 'trainer')))
+                //     ->multiple()
+                //     ->searchable()
+                //     ->preload()
+                //     ->label(__('courses.trainers')),
                 Forms\Components\Toggle::make('is_active')
                     ->label(__('courses.is_active'))
                     ->default(true),
@@ -159,10 +160,6 @@ class CourseResource extends Resource
                 Tables\Columns\TextColumn::make('teachers_count')
                     ->counts('teachers')
                     ->label(__('Additional Teachers'))
-                    ->toggleable(),
-                Tables\Columns\TextColumn::make('trainers_count')
-                    ->counts('trainers')
-                    ->label(__('courses.trainers_count'))
                     ->toggleable(),
                 Tables\Columns\IconColumn::make('is_active')
                     ->boolean()

@@ -57,10 +57,6 @@ class Course extends Model
         return $this->belongsToMany(Teacher::class, 'course_teacher', 'course_id', 'teacher_id');
     }
 
-    public function trainers(): BelongsToMany
-    {
-        return $this->belongsToMany(User::class, 'course_trainer', 'course_id', 'trainer_id');
-    }
 
     public function prices(): HasMany
     {
