@@ -22,5 +22,6 @@ return [
     'paid_at' => 'Paid At',
     'student' => 'Student',
     'course' => 'Course',
+    'select_installment' => 'Select Installment (Optional)',
 ];
 

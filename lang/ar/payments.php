@@ -22,5 +22,6 @@ return [
     'paid_at' => 'تاريخ الدفع',
     'student' => 'الطالب',
     'course' => 'الدورة',
+    'select_installment' => 'اختر قسط (اختياري)',
 ];
 

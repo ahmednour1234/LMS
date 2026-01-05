@@ -218,11 +218,20 @@ class EnrollmentResource extends Resource
                     ->color('success')
                     ->form([
                         Forms\Components\Select::make('installment_id')
-                            ->relationship('arInvoice.arInstallments', 'installment_no', fn ($query, $get) => 
-                                $query->where('status', '!=', 'paid')
-                            )
-                            ->getOptionLabelUsing(fn ($value) => 'Installment #' . $value)
-                            ->label(__('payments.installment')),
+                            ->options(function (Enrollment $record) {
+                                if (!$record->arInvoice) {
+                                    return [];
+                                }
+                                return $record->arInvoice->arInstallments()
+                                    ->where('status', '!=', 'paid')
+                                    ->get()
+                                    ->mapWithKeys(function ($installment) {
+                                        return [$installment->id => 'Installment #' . $installment->installment_no . ' - ' . number_format($installment->amount, 2) . ' SAR (Due: ' . $installment->due_date->format('Y-m-d') . ')'];
+                                    });
+                            })
+                            ->label(__('payments.installment'))
+                            ->placeholder(__('payments.select_installment'))
+                            ->searchable(),
                         Forms\Components\TextInput::make('amount')
                             ->numeric()
                             ->required()
@@ -241,9 +250,22 @@ class EnrollmentResource extends Resource
                     ])
                     ->action(function (Enrollment $record, array $data) {
                         DB::transaction(function () use ($record, $data) {
+                            // Load student relationship if needed
+                            $record->loadMissing('student');
+                            
+                            // Determine user_id: use enrollment user_id, or student's user_id, or current user
+                            $userId = $record->user_id 
+                                ?? ($record->student ? $record->student->user_id : null)
+                                ?? auth()->id();
+                            
+                            // Ensure we have a valid user_id
+                            if (!$userId) {
+                                throw new \Exception('Unable to determine user for payment. Please set user on enrollment or student.');
+                            }
+                            
                             $payment = $record->payments()->create([
-                                'user_id' => $record->user_id,
-                                'branch_id' => $record->branch_id,
+                                'user_id' => $userId,
+                                'branch_id' => $record->branch_id ?? auth()->user()->branch_id,
                                 'installment_id' => $data['installment_id'] ?? null,
                                 'amount' => $data['amount'],
                                 'method' => $data['method'],
