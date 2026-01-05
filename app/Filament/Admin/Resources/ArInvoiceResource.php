@@ -5,6 +5,7 @@ namespace App\Filament\Admin\Resources;
 use App\Domain\Accounting\Models\ArInvoice;
 use App\Filament\Admin\Resources\ArInvoiceResource\Pages;
 use App\Filament\Admin\Resources\ArInvoiceResource\RelationManagers;
+use App\Filament\Concerns\HasTableExports;
 use Filament\Forms;
 use Filament\Forms\Form;
 use Filament\Resources\Resource;
@@ -15,6 +16,7 @@ use Illuminate\Database\Eloquent\Builder;
 
 class ArInvoiceResource extends Resource
 {
+    use HasTableExports;
     protected static ?string $model = ArInvoice::class;
 
     protected static ?string $navigationIcon = 'heroicon-o-document-text';
@@ -177,7 +179,14 @@ class ArInvoiceResource extends Resource
             ])
             ->actions([
                 Tables\Actions\ViewAction::make(),
+                Tables\Actions\Action::make('print')
+                    ->label(__('exports.print'))
+                    ->icon('heroicon-o-printer')
+                    ->color('gray')
+                    ->url(fn (ArInvoice $record) => route('invoices.print', $record))
+                    ->openUrlInNewTab(),
             ])
+            ->headerActions(static::getExportActions())
             ->bulkActions([
                 Tables\Actions\BulkActionGroup::make([
                     Tables\Actions\DeleteBulkAction::make(),

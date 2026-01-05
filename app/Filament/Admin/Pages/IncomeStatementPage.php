@@ -4,6 +4,7 @@ namespace App\Filament\Admin\Pages;
 
 use App\Domain\Accounting\Services\ReportService;
 use App\Services\PdfService;
+use App\Services\TableExportService;
 use App\Domain\Branch\Models\Branch;
 use Carbon\Carbon;
 use Filament\Actions\Action;
@@ -14,6 +15,7 @@ use Filament\Forms\Contracts\HasForms;
 use Filament\Forms\Form;
 use Filament\Pages\Page;
 use Illuminate\Support\Facades\App;
+use Rap2hpoutre\FastExcel\FastExcel;
 use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class IncomeStatementPage extends Page implements HasForms
@@ -56,9 +58,75 @@ class IncomeStatementPage extends Page implements HasForms
     protected function getHeaderActions(): array
     {
         return [
-            Action::make('print')
-                ->label(__('pdf.print'))
-                ->icon('heroicon-o-printer')
+            Action::make('exportExcel')
+                ->label(__('exports.excel'))
+                ->icon('heroicon-o-arrow-down-tray')
+                ->color('success')
+                ->action(function () {
+                    $reportService = App::make(ReportService::class);
+                    
+                    $result = $reportService->getIncomeStatement(
+                        Carbon::parse($this->startDate),
+                        Carbon::parse($this->endDate),
+                        $this->branchId,
+                        auth()->user()
+                    );
+                    
+                    // Prepare data for Excel export
+                    $exportData = collect();
+                    
+                    // Add revenues
+                    $exportData->push(['Type' => __('reports.revenue'), 'Account' => '', 'Amount' => '']);
+                    foreach ($result['revenues'] as $revenue) {
+                        $exportData->push([
+                            'Type' => '',
+                            'Account' => $revenue['account_name'] ?? '',
+                            'Amount' => number_format($revenue['amount'] ?? 0, 2),
+                        ]);
+                    }
+                    $exportData->push([
+                        'Type' => __('reports.total_revenue'),
+                        'Account' => '',
+                        'Amount' => number_format($result['total_revenue'] ?? 0, 2),
+                    ]);
+                    
+                    // Add expenses
+                    $exportData->push(['Type' => __('reports.expense'), 'Account' => '', 'Amount' => '']);
+                    foreach ($result['expenses'] as $expense) {
+                        $exportData->push([
+                            'Type' => '',
+                            'Account' => $expense['account_name'] ?? '',
+                            'Amount' => number_format($expense['amount'] ?? 0, 2),
+                        ]);
+                    }
+                    $exportData->push([
+                        'Type' => __('reports.total_expenses'),
+                        'Account' => '',
+                        'Amount' => number_format($result['total_expenses'] ?? 0, 2),
+                    ]);
+                    
+                    // Add net income
+                    $exportData->push([
+                        'Type' => __('reports.net_income'),
+                        'Account' => '',
+                        'Amount' => number_format($result['net_income'] ?? 0, 2),
+                    ]);
+                    
+                    $filename = 'income-statement-' . now()->format('Y-m-d_His');
+                    $filePath = storage_path('app/temp/' . $filename . '.xlsx');
+                    $directory = dirname($filePath);
+                    if (!is_dir($directory)) {
+                        mkdir($directory, 0755, true);
+                    }
+                    
+                    (new FastExcel($exportData))->export($filePath);
+                    
+                    return response()->download($filePath, $filename . '.xlsx')->deleteFileAfterSend(true);
+                }),
+            Action::make('exportPdf')
+                ->label(__('exports.pdf'))
+                ->icon('heroicon-o-document-arrow-down')
+                ->color('danger')
                 ->action(function (): StreamedResponse {
                     $reportService = App::make(ReportService::class);
                     $pdfService = App::make(PdfService::class);
@@ -84,8 +152,35 @@ class IncomeStatementPage extends Page implements HasForms
                     }, 'income-statement-' . now()->format('YmdHis') . '.pdf', [
                         'Content-Type' => 'application/pdf',
                     ]);
+                }),
+            Action::make('print')
+                ->label(__('exports.print'))
+                ->icon('heroicon-o-printer')
+                ->color('gray')
+                ->action(function () {
+                    $reportService = App::make(ReportService::class);
+                    
+                    $result = $reportService->getIncomeStatement(
+                        Carbon::parse($this->startDate),
+                        Carbon::parse($this->endDate),
+                        $this->branchId,
+                        auth()->user()
+                    );
+                    
+                    $token = \Illuminate\Support\Str::random(32);
+                    \Illuminate\Support\Facades\Cache::put("export_print_{$token}", [
+                        'type' => 'income-statement',
+                        'data' => [
+                            'revenues' => $result['revenues'],
+                            'expenses' => $result['expenses'],
+                            'startDate' => $this->startDate,
+                            'endDate' => $this->endDate,
+                        ],
+                    ], now()->addMinutes(5));
+                    
+                    return redirect()->route('filament.admin.exports.print', ['token' => $token]);
                 })
-                ->requiresConfirmation(false),
+                ->openUrlInNewTab(),
         ];
     }
 

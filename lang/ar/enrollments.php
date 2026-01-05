@@ -30,5 +30,11 @@ return [
         'record_payment' => 'تسجيل دفعة',
         'mark_completed' => 'تحديد كمكتمل',
     ],
+    'qr_code' => 'رمز QR',
+    'close' => 'إغلاق',
+    'public_link' => 'رابط عام',
+    'copy' => 'نسخ',
+    'copied' => 'تم النسخ!',
+    'enrollment' => 'التسجيل',
 ];
 

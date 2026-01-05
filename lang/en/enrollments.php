@@ -30,5 +30,11 @@ return [
         'record_payment' => 'Record Payment',
         'mark_completed' => 'Mark Completed',
     ],
+    'qr_code' => 'QR Code',
+    'close' => 'Close',
+    'public_link' => 'Public Link',
+    'copy' => 'Copy',
+    'copied' => 'Copied!',
+    'enrollment' => 'Enrollment',
 ];
 

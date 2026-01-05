@@ -16,5 +16,6 @@ return [
     'invoice_id' => 'رقم الفاتورة',
     'student' => 'الطالب',
     'overdue' => 'متأخر',
+    'installments' => 'الأقساط',
 ];
 

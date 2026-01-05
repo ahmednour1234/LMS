@@ -6,6 +6,7 @@ use App\Domain\Enrollment\Models\Enrollment;
 use App\Enums\EnrollmentStatus;
 use App\Filament\Admin\Resources\EnrollmentResource\Pages;
 use App\Filament\Admin\Resources\EnrollmentResource\RelationManagers;
+use App\Filament\Concerns\HasTableExports;
 use Filament\Forms;
 use Filament\Forms\Form;
 use Filament\Resources\Resource;
@@ -16,6 +17,7 @@ use Illuminate\Support\Facades\DB;
 
 class EnrollmentResource extends Resource
 {
+    use HasTableExports;
     protected static ?string $model = Enrollment::class;
 
     protected static ?string $navigationIcon = 'heroicon-o-academic-cap';
@@ -222,6 +224,48 @@ class EnrollmentResource extends Resource
             ->actions([
                 Tables\Actions\ViewAction::make(),
                 Tables\Actions\EditAction::make(),
+                Tables\Actions\Action::make('print')
+                    ->label(__('exports.print'))
+                    ->icon('heroicon-o-printer')
+                    ->color('gray')
+                    ->url(fn (Enrollment $record) => route('enrollments.print', $record))
+                    ->openUrlInNewTab(),
+                Tables\Actions\Action::make('qr_code')
+                    ->label(__('enrollments.qr_code'))
+                    ->icon('heroicon-o-qr-code')
+                    ->color('info')
+                    ->modalHeading(__('enrollments.qr_code'))
+                    ->modalContent(function (Enrollment $record) {
+                        $publicUrl = route('public.enrollment.show', ['reference' => $record->reference]);
+                        $qrCodeService = app(\App\Services\QrCodeService::class);
+                        $qrCodeSvg = $qrCodeService->generateSvg($publicUrl);
+                        
+                        return \Illuminate\Support\HtmlString::make('
+                            <div class="p-4">
+                                <div class="flex flex-col items-center space-y-4">
+                                    <div class="bg-white p-4 rounded-lg border">
+                                        ' . $qrCodeSvg . '
+                                    </div>
+                                    <div class="text-center w-full">
+                                        <p class="text-sm font-medium mb-2">' . __('enrollments.public_link') . '</p>
+                                        <div class="flex items-center space-x-2">
+                                            <input type="text" 
+                                                   value="' . $publicUrl . '" 
+                                                   readonly 
+                                                   class="flex-1 px-3 py-2 border rounded-md text-sm"
+                                                   id="public-url-' . $record->reference . '">
+                                            <button onclick="navigator.clipboard.writeText(\'' . $publicUrl . '\').then(() => alert(\'' . __('enrollments.copied') . '\'))" 
+                                                    class="px-4 py-2 bg-primary-600 text-white rounded-md hover:bg-primary-700 text-sm">
+                                                ' . __('enrollments.copy') . '
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        ');
+                    })
+                    ->modalSubmitAction(false)
+                    ->modalCancelActionLabel(__('enrollments.close')),
                 Tables\Actions\Action::make('record_payment')
                     ->label(__('enrollments.actions.record_payment'))
                     ->icon('heroicon-o-banknotes')
@@ -329,6 +373,7 @@ class EnrollmentResource extends Resource
                     })
                     ->visible(fn ($record) => $record->status !== EnrollmentStatus::COMPLETED),
             ])
+            ->headerActions(static::getExportActions())
             ->bulkActions([
                 Tables\Actions\BulkActionGroup::make([
                     Tables\Actions\DeleteBulkAction::make(),

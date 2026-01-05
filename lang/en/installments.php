@@ -16,5 +16,6 @@ return [
     'invoice_id' => 'Invoice ID',
     'student' => 'Student',
     'overdue' => 'Overdue',
+    'installments' => 'Installments',
 ];
 
