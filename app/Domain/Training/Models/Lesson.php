@@ -27,6 +27,8 @@ class Lesson extends Model
     protected function casts(): array
     {
         return [
+            'title' => 'array',
+            'description' => 'array',
             'lesson_type' => LessonType::class,
             'sort_order' => 'integer',
             'is_preview' => 'boolean',

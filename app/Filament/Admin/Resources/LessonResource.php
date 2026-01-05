@@ -61,12 +61,19 @@ class LessonResource extends Resource
                     ->preload()
                     ->required()
                     ->label(__('Section')),
-                Forms\Components\TextInput::make('title')
-                    ->label(__('Title'))
+                Forms\Components\TextInput::make('title.ar')
+                    ->label(__('Title (Arabic)'))
                     ->required()
                     ->maxLength(255),
-                Forms\Components\Textarea::make('description')
-                    ->label(__('Description'))
+                Forms\Components\TextInput::make('title.en')
+                    ->label(__('Title (English)'))
+                    ->required()
+                    ->maxLength(255),
+                Forms\Components\Textarea::make('description.ar')
+                    ->label(__('Description (Arabic)'))
+                    ->rows(3),
+                Forms\Components\Textarea::make('description.en')
+                    ->label(__('Description (English)'))
                     ->rows(3),
                 Forms\Components\Select::make('lesson_type')
                     ->options([
@@ -113,6 +120,7 @@ class LessonResource extends Resource
                     ->sortable()
                     ->label(__('Section')),
                 Tables\Columns\TextColumn::make('title')
+                    ->formatStateUsing(fn ($state) => $state[app()->getLocale()] ?? $state['ar'] ?? '')
                     ->searchable()
                     ->sortable()
                     ->label(__('Title')),
