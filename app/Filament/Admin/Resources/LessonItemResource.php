@@ -49,7 +49,34 @@ class LessonItemResource extends Resource
             ->schema([
                 Forms\Components\Select::make('lesson_id')
                     ->relationship('lesson', 'id', fn (Builder $query) => $query->whereHas('section.course', fn ($q) => $q->where('branch_id', auth()->user()->branch_id ?? null))->orderBy('id'))
-                    ->getOptionLabelUsing(fn ($record): ?string => is_object($record) ? ($record->title[app()->getLocale()] ?? $record->title['en'] ?? null) : (\App\Domain\Training\Models\Lesson::find($record)?->title[app()->getLocale()] ?? \App\Domain\Training\Models\Lesson::find($record)?->title['en'] ?? null))
+                    ->getOptionLabelUsing(function ($record): string {
+                        $title = 'Untitled';
+                        if (is_object($record)) {
+                            $locale = app()->getLocale();
+                            $title = $record->title[$locale] 
+                                ?? $record->title['en'] 
+                                ?? $record->title['ar'] 
+                                ?? null;
+                            
+                            if (empty($title) || !is_string($title)) {
+                                $title = 'Untitled';
+                            }
+                        } else {
+                            $lesson = \App\Domain\Training\Models\Lesson::find($record);
+                            if ($lesson) {
+                                $locale = app()->getLocale();
+                                $title = $lesson->title[$locale] 
+                                    ?? $lesson->title['en'] 
+                                    ?? $lesson->title['ar'] 
+                                    ?? null;
+                                
+                                if (empty($title) || !is_string($title)) {
+                                    $title = 'Untitled';
+                                }
+                            }
+                        }
+                        return (string) $title;
+                    })
                     ->searchable()
                     ->preload()
                     ->required()
