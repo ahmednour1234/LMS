@@ -7,6 +7,7 @@ use App\Domain\Training\Models\Course;
 use App\Domain\Training\Models\CoursePrice;
 use App\Domain\Training\Enums\DeliveryType;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
+use Illuminate\Support\Facades\Log;
 
 class PricingService
 {
@@ -92,6 +93,13 @@ class PricingService
         ?int $branchId,
         string $registrationType
     ): ?CoursePrice {
+        // Log inputs
+        Log::info('[PRICING_DEBUG] resolveCoursePrice called', [
+            'course_id' => $courseId,
+            'branch_id' => $branchId,
+            'registration_type' => $registrationType,
+        ]);
+
         // Validate registration_type
         if (!in_array($registrationType, ['onsite', 'online'])) {
             throw new \InvalidArgumentException("Invalid registration_type: {$registrationType}. Must be 'onsite' or 'online'.");
@@ -105,51 +113,121 @@ class PricingService
             default => throw new \InvalidArgumentException("Invalid registration_type: {$registrationType}"),
         };
 
+        // Log mapped delivery_type enum values
+        $deliveryTypeValues = array_map(fn($enum) => $enum->value, $deliveryTypeEnums);
+        Log::info('[PRICING_DEBUG] Mapped delivery_type enum values', [
+            'registration_type' => $registrationType,
+            'delivery_type_enums' => $deliveryTypeValues,
+        ]);
+
         // Priority 1: Exact match - course_id + branch_id + delivery_type + is_active=1
         if ($branchId) {
             foreach ($deliveryTypeEnums as $deliveryTypeEnum) {
-                $price = CoursePrice::where('course_id', $courseId)
+                $query = CoursePrice::where('course_id', $courseId)
                     ->where('branch_id', $branchId)
                     ->where('delivery_type', $deliveryTypeEnum)
-                    ->where('is_active', true)
-                    ->first();
+                    ->where('is_active', true);
+                
+                Log::info('[PRICING_DEBUG] Priority 1 query attempt', [
+                    'priority' => 1,
+                    'delivery_type' => $deliveryTypeEnum->value,
+                    'sql' => $query->toSql(),
+                    'bindings' => $query->getBindings(),
+                ]);
+
+                $price = $query->first();
 
                 if ($price) {
+                    Log::info('[PRICING_DEBUG] Price found at Priority 1', [
+                        'course_price_id' => $price->id,
+                        'price' => $price->price,
+                    ]);
                     return $price;
                 }
+
+                Log::info('[PRICING_DEBUG] Priority 1 query returned no results', [
+                    'delivery_type' => $deliveryTypeEnum->value,
+                ]);
             }
 
             // Priority 2: course_id + branch_id + delivery_type NULL + is_active=1
-            $price = CoursePrice::where('course_id', $courseId)
+            $query = CoursePrice::where('course_id', $courseId)
                 ->where('branch_id', $branchId)
                 ->whereNull('delivery_type')
-                ->where('is_active', true)
-                ->first();
+                ->where('is_active', true);
+            
+            Log::info('[PRICING_DEBUG] Priority 2 query attempt', [
+                'priority' => 2,
+                'sql' => $query->toSql(),
+                'bindings' => $query->getBindings(),
+            ]);
+
+            $price = $query->first();
 
             if ($price) {
+                Log::info('[PRICING_DEBUG] Price found at Priority 2', [
+                    'course_price_id' => $price->id,
+                    'price' => $price->price,
+                ]);
                 return $price;
             }
+
+            Log::info('[PRICING_DEBUG] Priority 2 query returned no results');
         }
 
         // Priority 3: course_id + branch_id NULL + delivery_type + is_active=1
         foreach ($deliveryTypeEnums as $deliveryTypeEnum) {
-            $price = CoursePrice::where('course_id', $courseId)
+            $query = CoursePrice::where('course_id', $courseId)
                 ->whereNull('branch_id')
                 ->where('delivery_type', $deliveryTypeEnum)
-                ->where('is_active', true)
-                ->first();
+                ->where('is_active', true);
+            
+            Log::info('[PRICING_DEBUG] Priority 3 query attempt', [
+                'priority' => 3,
+                'delivery_type' => $deliveryTypeEnum->value,
+                'sql' => $query->toSql(),
+                'bindings' => $query->getBindings(),
+            ]);
+
+            $price = $query->first();
 
             if ($price) {
+                Log::info('[PRICING_DEBUG] Price found at Priority 3', [
+                    'course_price_id' => $price->id,
+                    'price' => $price->price,
+                ]);
                 return $price;
             }
+
+            Log::info('[PRICING_DEBUG] Priority 3 query returned no results', [
+                'delivery_type' => $deliveryTypeEnum->value,
+            ]);
         }
 
         // Priority 4: course_id + branch_id NULL + delivery_type NULL + is_active=1 (global fallback)
-        $price = CoursePrice::where('course_id', $courseId)
+        $query = CoursePrice::where('course_id', $courseId)
             ->whereNull('branch_id')
             ->whereNull('delivery_type')
-            ->where('is_active', true)
-            ->first();
+            ->where('is_active', true);
+        
+        Log::info('[PRICING_DEBUG] Priority 4 query attempt', [
+            'priority' => 4,
+            'sql' => $query->toSql(),
+            'bindings' => $query->getBindings(),
+        ]);
+
+        $price = $query->first();
+
+        if ($price) {
+            Log::info('[PRICING_DEBUG] Price found at Priority 4', [
+                'course_price_id' => $price->id,
+                'price' => $price->price,
+            ]);
+            return $price;
+        }
+
+        Log::info('[PRICING_DEBUG] Priority 4 query returned no results - no price found');
+        Log::info('[PRICING_DEBUG] resolveCoursePrice returning null - all priority queries exhausted');
 
         return $price;
     }

@@ -425,7 +425,23 @@ class EnrollmentResource extends Resource
                                 $coursePrice = $pricingService->resolveCoursePrice($courseId, $branchId, $registrationType);
 
                                 if (!$coursePrice) {
-                                    return __('enrollments.no_price_found_helper') ?? 'No active price found for this selection. Please configure pricing.';
+                                    // Map registration_type to delivery_type for display
+                                    $deliveryTypeValues = match ($registrationType) {
+                                        'onsite' => ['onsite'],
+                                        'online' => ['online', 'virtual'],
+                                        default => [],
+                                    };
+                                    $deliveryTypesStr = implode(' or ', $deliveryTypeValues);
+
+                                    $message = sprintf(
+                                        'No active course price found. Searched: course_id=%d, branch_id=%s, registration_type=%s, delivery_type=%s',
+                                        $courseId,
+                                        $branchId ? $branchId : 'null',
+                                        $registrationType,
+                                        $deliveryTypesStr
+                                    );
+
+                                    return $message;
                                 }
 
                                 return null;
@@ -463,7 +479,23 @@ class EnrollmentResource extends Resource
                                 $coursePrice = $pricingService->resolveCoursePrice($courseId, $branchId, $registrationType);
 
                                 if (!$coursePrice) {
-                                    return new \Illuminate\Support\HtmlString('<p class="text-red-600">No active course price found for this course/branch/delivery type combination. Please configure pricing.</p>');
+                                    // Map registration_type to delivery_type for display
+                                    $deliveryTypeValues = match ($registrationType) {
+                                        'onsite' => ['onsite'],
+                                        'online' => ['online', 'virtual'],
+                                        default => [],
+                                    };
+                                    $deliveryTypesStr = implode(' or ', $deliveryTypeValues);
+
+                                    $message = sprintf(
+                                        'No active course price found. Searched: course_id=%d, branch_id=%s, registration_type=%s, delivery_type=%s. Please configure pricing.',
+                                        $courseId,
+                                        $branchId ? $branchId : 'null',
+                                        $registrationType,
+                                        $deliveryTypesStr
+                                    );
+
+                                    return new \Illuminate\Support\HtmlString('<p class="text-red-600">' . htmlspecialchars($message) . '</p>');
                                 }
 
                                 $html = '<div class="space-y-2">';
