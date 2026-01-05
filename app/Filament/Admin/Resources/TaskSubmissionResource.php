@@ -6,6 +6,7 @@ use App\Domain\Enrollment\Models\Student;
 use App\Domain\Training\Models\Task;
 use App\Domain\Training\Models\TaskSubmission;
 use App\Filament\Admin\Resources\TaskSubmissionResource\Pages;
+use App\Support\Helpers\MultilingualHelper;
 use Filament\Forms;
 use Filament\Forms\Form;
 use Filament\Resources\Resource;
@@ -49,7 +50,13 @@ class TaskSubmissionResource extends Resource
             ->schema([
                 Forms\Components\Select::make('task_id')
                     ->relationship('task', 'id', fn (Builder $query) => $query->whereHas('course', fn ($q) => $q->where('branch_id', auth()->user()->branch_id ?? null))->orderBy('id'))
-                    ->getOptionLabelUsing(fn ($record): ?string => is_object($record) ? ($record->title[app()->getLocale()] ?? $record->title['en'] ?? null) : (\App\Domain\Training\Models\Task::find($record)?->title[app()->getLocale()] ?? \App\Domain\Training\Models\Task::find($record)?->title['en'] ?? null))
+                    ->getOptionLabelUsing(function ($record): string {
+                        if (is_object($record)) {
+                            return MultilingualHelper::formatMultilingualField($record->title) ?: 'N/A';
+                        }
+                        $task = Task::find($record);
+                        return $task ? (MultilingualHelper::formatMultilingualField($task->title) ?: 'N/A') : 'N/A';
+                    })
                     ->searchable()
                     ->preload()
                     ->required()

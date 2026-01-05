@@ -7,6 +7,7 @@ use App\Domain\Training\Models\CourseSection;
 use App\Domain\Training\Models\Lesson;
 use App\Filament\Admin\Resources\LessonResource\Pages;
 use App\Filament\Admin\Resources\LessonResource\RelationManagers;
+use App\Support\Helpers\MultilingualHelper;
 use Filament\Forms;
 use Filament\Forms\Form;
 use Filament\Resources\Resource;
@@ -56,7 +57,13 @@ class LessonResource extends Resource
             ->schema([
                 Forms\Components\Select::make('section_id')
                     ->relationship('section', 'id', fn (Builder $query) => $query->whereHas('course', fn ($q) => $q->where('branch_id', auth()->user()->branch_id ?? null))->orderBy('order'))
-                    ->getOptionLabelUsing(fn ($record): ?string => is_object($record) ? ($record->title[app()->getLocale()] ?? $record->title['en'] ?? null) : (CourseSection::find($record)?->title[app()->getLocale()] ?? CourseSection::find($record)?->title['en'] ?? null))
+                    ->getOptionLabelUsing(function ($record): string {
+                        if (is_object($record)) {
+                            return MultilingualHelper::formatMultilingualField($record->title) ?: 'N/A';
+                        }
+                        $section = CourseSection::find($record);
+                        return $section ? (MultilingualHelper::formatMultilingualField($section->title) ?: 'N/A') : 'N/A';
+                    })
                     ->searchable()
                     ->preload()
                     ->required()
@@ -116,11 +123,11 @@ class LessonResource extends Resource
                     ->sortable()
                     ->label(__('Course')),
                 Tables\Columns\TextColumn::make('section.title')
-                    ->formatStateUsing(fn ($state) => $state[app()->getLocale()] ?? $state['ar'] ?? '')
+                    ->formatStateUsing(fn ($state) => MultilingualHelper::formatMultilingualField($state))
                     ->sortable()
                     ->label(__('Section')),
                 Tables\Columns\TextColumn::make('title')
-                    ->formatStateUsing(fn ($state) => $state[app()->getLocale()] ?? $state['ar'] ?? '')
+                    ->formatStateUsing(fn ($state) => MultilingualHelper::formatMultilingualField($state))
                     ->searchable()
                     ->sortable()
                     ->label(__('Title')),
@@ -157,7 +164,13 @@ class LessonResource extends Resource
             ->filters([
                 Tables\Filters\SelectFilter::make('section_id')
                     ->relationship('section', 'title', fn (Builder $query) => $query->whereHas('course', fn ($q) => $q->where('branch_id', auth()->user()->branch_id ?? null)))
-                    ->getOptionLabelUsing(fn ($record): ?string => is_object($record) ? ($record->title[app()->getLocale()] ?? $record->title['en'] ?? null) : (CourseSection::find($record)?->title[app()->getLocale()] ?? CourseSection::find($record)?->title['en'] ?? null))
+                    ->getOptionLabelUsing(function ($record): string {
+                        if (is_object($record)) {
+                            return MultilingualHelper::formatMultilingualField($record->title) ?: 'N/A';
+                        }
+                        $section = CourseSection::find($record);
+                        return $section ? (MultilingualHelper::formatMultilingualField($section->title) ?: 'N/A') : 'N/A';
+                    })
                     ->label(__('Section')),
                 Tables\Filters\SelectFilter::make('lesson_type')
                     ->options([

@@ -5,6 +5,7 @@ namespace App\Filament\Admin\Resources;
 use App\Domain\Training\Models\Course;
 use App\Domain\Training\Models\CourseSection;
 use App\Filament\Admin\Resources\CourseSectionResource\Pages;
+use App\Support\Helpers\MultilingualHelper;
 use Filament\Forms;
 use Filament\Forms\Form;
 use Filament\Resources\Resource;
@@ -90,7 +91,7 @@ class CourseSectionResource extends Resource
                     ->sortable()
                     ->label(__('course_sections.course')),
                 Tables\Columns\TextColumn::make('title')
-                    ->formatStateUsing(fn ($state) => $state[app()->getLocale()] ?? $state['ar'] ?? '')
+                    ->formatStateUsing(fn ($state) => MultilingualHelper::formatMultilingualField($state))
                     ->searchable()
                     ->sortable()
                     ->label(__('course_sections.title')),

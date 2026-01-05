@@ -5,6 +5,7 @@ namespace App\Filament\Admin\Resources;
 use App\Domain\Training\Models\Exam;
 use App\Domain\Training\Models\ExamQuestion;
 use App\Filament\Admin\Resources\ExamQuestionResource\Pages;
+use App\Support\Helpers\MultilingualHelper;
 use Filament\Forms;
 use Filament\Forms\Form;
 use Filament\Resources\Resource;
@@ -48,7 +49,13 @@ class ExamQuestionResource extends Resource
             ->schema([
                 Forms\Components\Select::make('exam_id')
                     ->relationship('exam', 'id', fn (Builder $query) => $query->whereHas('course', fn ($q) => $q->where('branch_id', auth()->user()->branch_id ?? null))->orderBy('id'))
-                    ->getOptionLabelUsing(fn ($record): ?string => is_object($record) ? ($record->title[app()->getLocale()] ?? $record->title['en'] ?? null) : (\App\Domain\Training\Models\Exam::find($record)?->title[app()->getLocale()] ?? \App\Domain\Training\Models\Exam::find($record)?->title['en'] ?? null))
+                    ->getOptionLabelUsing(function ($record): string {
+                        if (is_object($record)) {
+                            return MultilingualHelper::formatMultilingualField($record->title) ?: 'N/A';
+                        }
+                        $exam = Exam::find($record);
+                        return $exam ? (MultilingualHelper::formatMultilingualField($exam->title) ?: 'N/A') : 'N/A';
+                    })
                     ->searchable()
                     ->preload()
                     ->required()

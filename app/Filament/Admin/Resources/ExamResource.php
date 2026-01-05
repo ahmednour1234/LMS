@@ -6,6 +6,7 @@ use App\Domain\Training\Models\Course;
 use App\Domain\Training\Models\Exam;
 use App\Domain\Training\Models\Lesson;
 use App\Filament\Admin\Resources\ExamResource\Pages;
+use App\Support\Helpers\MultilingualHelper;
 use Filament\Forms;
 use Filament\Forms\Form;
 use Filament\Resources\Resource;
@@ -62,7 +63,13 @@ class ExamResource extends Resource
                         }
                         return $query->orderBy('id');
                     })
-                    ->getOptionLabelUsing(fn ($record): ?string => is_object($record) ? ($record->title[app()->getLocale()] ?? $record->title['en'] ?? null) : (\App\Domain\Training\Models\Lesson::find($record)?->title[app()->getLocale()] ?? \App\Domain\Training\Models\Lesson::find($record)?->title['en'] ?? null))
+                    ->getOptionLabelUsing(function ($record): string {
+                        if (is_object($record)) {
+                            return MultilingualHelper::formatMultilingualField($record->title) ?: 'N/A';
+                        }
+                        $lesson = Lesson::find($record);
+                        return $lesson ? (MultilingualHelper::formatMultilingualField($lesson->title) ?: 'N/A') : 'N/A';
+                    })
                     ->searchable()
                     ->preload()
                     ->required()
