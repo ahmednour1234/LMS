@@ -18,9 +18,7 @@ class LessonItemResource extends Resource
     protected static ?string $model = LessonItem::class;
 
     protected static ?string $navigationIcon = 'heroicon-o-document';
-
     protected static ?string $navigationGroup = 'training';
-
     protected static ?int $navigationSort = 5;
 
     public static function getNavigationLabel(): string
@@ -44,22 +42,38 @@ class LessonItemResource extends Resource
     }
 
     /**
-     * Safe helper: resolve translated title stored as JSON array.
+     * Normalize translated JSON field to array مهما كان نوعه:
+     * - array (ممتاز)
+     * - json string
+     * - null
      */
-    protected static function resolveTransTitle(?array $title, string $fallback = 'Untitled'): string
+    protected static function normalizeTrans($value): array
     {
-        if (!is_array($title)) {
-            return $fallback;
+        if (is_array($value)) {
+            return $value;
         }
 
+        if (is_string($value) && $value !== '') {
+            $decoded = json_decode($value, true);
+            if (is_array($decoded)) {
+                return $decoded;
+            }
+        }
+
+        return [];
+    }
+
+    protected static function transValue($value, string $fallback = ''): string
+    {
+        $arr = static::normalizeTrans($value);
         $locale = app()->getLocale();
 
-        $value = $title[$locale]
-            ?? $title['en']
-            ?? $title['ar']
+        $result = $arr[$locale]
+            ?? $arr['en']
+            ?? $arr['ar']
             ?? null;
 
-        return (is_string($value) && trim($value) !== '') ? $value : $fallback;
+        return (is_string($result) && trim($result) !== '') ? $result : $fallback;
     }
 
     public static function form(Form $form): Form
@@ -76,7 +90,6 @@ class LessonItemResource extends Resource
                     modifyQueryUsing: function (Builder $query) {
                         $user = auth()->user();
 
-                        // لو مش super admin: حصر الدروس حسب فرع الكورس
                         if ($user && method_exists($user, 'isSuperAdmin') && !$user->isSuperAdmin()) {
                             $query->whereHas('section.course', fn ($q) => $q->where('branch_id', $user->branch_id));
                         }
@@ -84,18 +97,7 @@ class LessonItemResource extends Resource
                         return $query->orderBy('id');
                     }
                 )
-                // دي اللي بتصلح label بتاع قائمة الـ options نفسها
-                ->getOptionLabelFromRecordUsing(function ($record): string {
-                    /** @var Lesson|null $record */
-                    if (!$record) {
-                        return 'Untitled';
-                    }
-
-                    return static::resolveTransTitle(
-                        is_array($record->title ?? null) ? $record->title : null,
-                        'Untitled'
-                    );
-                }),
+                ->getOptionLabelFromRecordUsing(fn ($record) => static::transValue($record?->title, 'Untitled')),
 
             Forms\Components\Select::make('type')
                 ->label(__('lesson_items.type'))
@@ -106,7 +108,7 @@ class LessonItemResource extends Resource
                     'link'  => __('lesson_items.type_options.link'),
                 ])
                 ->required()
-                ->live(), // بدل reactive
+                ->live(),
 
             Forms\Components\TextInput::make('title.ar')
                 ->label(__('lesson_items.title_ar'))
@@ -122,20 +124,15 @@ class LessonItemResource extends Resource
                 ->label(__('lesson_items.media_file'))
                 ->searchable()
                 ->preload()
-                // مهم جداً: ما تعتمدش على original_filename لأنه ممكن يكون null
-                ->relationship('mediaFile', 'id')
-                // label آمن للقائمة نفسها
+                ->relationship('mediaFile', 'id') // id آمن
                 ->getOptionLabelFromRecordUsing(function ($record): string {
-                    /** @var MediaFile|null $record */
-                    if (!$record) {
-                        return 'Untitled File';
-                    }
+                    if (!$record) return 'Untitled File';
 
-                    $filename = $record->original_filename
+                    $name = $record->original_filename
                         ?? $record->filename
                         ?? null;
 
-                    return (is_string($filename) && trim($filename) !== '') ? $filename : 'Untitled File';
+                    return (is_string($name) && trim($name) !== '') ? $name : 'Untitled File';
                 })
                 ->visible(fn (Forms\Get $get) => in_array($get('type'), ['video', 'pdf', 'file'], true))
                 ->required(fn (Forms\Get $get) => in_array($get('type'), ['video', 'pdf', 'file'], true)),
@@ -163,6 +160,9 @@ class LessonItemResource extends Resource
             ->modifyQueryUsing(function (Builder $query) {
                 $user = auth()->user();
 
+                // ✅ حل مهم: Eager load عشان dot state ميطلعش null
+                $query->with(['lesson', 'mediaFile']);
+
                 if ($user && method_exists($user, 'isSuperAdmin') && !$user->isSuperAdmin()) {
                     $query->whereHas('lesson.section.course', fn ($q) => $q->where('branch_id', $user->branch_id));
                 }
@@ -170,25 +170,31 @@ class LessonItemResource extends Resource
                 return $query;
             })
             ->columns([
-                Tables\Columns\TextColumn::make('lesson.title')
+                // ✅ بدال make('lesson.title') اللي ممكن يرجع null/string
+                Tables\Columns\TextColumn::make('lesson_display')
                     ->label(__('lesson_items.lesson'))
-                    ->formatStateUsing(function ($state): string {
-                        return static::resolveTransTitle(is_array($state) ? $state : null, '');
-                    })
-                    ->sortable(),
+                    ->getStateUsing(fn (LessonItem $record) => static::transValue($record->lesson?->title, ''))
+                    ->sortable(query: function (Builder $query, string $direction) {
+                        // sort by lesson_id كحل بسيط
+                        $query->orderBy('lesson_id', $direction);
+                    }),
 
                 Tables\Columns\TextColumn::make('type')
                     ->label(__('lesson_items.type'))
                     ->badge()
                     ->formatStateUsing(fn ($state) => __('lesson_items.type_options.' . $state)),
 
-                Tables\Columns\TextColumn::make('title')
+                Tables\Columns\TextColumn::make('title_display')
                     ->label(__('lesson_items.title'))
-                    ->formatStateUsing(function ($state): string {
-                        return static::resolveTransTitle(is_array($state) ? $state : null, '');
+                    ->getStateUsing(fn (LessonItem $record) => static::transValue($record->title, ''))
+                    ->searchable(query: function (Builder $query, string $search) {
+                        // بحث داخل JSON (MySQL) لو محتاج:
+                        $query->where('title->en', 'like', "%{$search}%")
+                              ->orWhere('title->ar', 'like', "%{$search}%");
                     })
-                    ->searchable()
-                    ->sortable(),
+                    ->sortable(query: function (Builder $query, string $direction) {
+                        $query->orderBy('id', $direction);
+                    }),
 
                 Tables\Columns\TextColumn::make('order')
                     ->label(__('lesson_items.order'))
@@ -199,7 +205,6 @@ class LessonItemResource extends Resource
                     ->boolean(),
             ])
             ->filters([
-                // مهم: relationship('lesson','title') خطر لأن title JSON
                 Tables\Filters\SelectFilter::make('lesson_id')
                     ->label(__('lesson_items.lesson'))
                     ->options(function () {
@@ -213,10 +218,7 @@ class LessonItemResource extends Resource
 
                         return $q->get()
                             ->mapWithKeys(fn (Lesson $lesson) => [
-                                $lesson->id => static::resolveTransTitle(
-                                    is_array($lesson->title ?? null) ? $lesson->title : null,
-                                    "Lesson #{$lesson->id}"
-                                ),
+                                $lesson->id => static::transValue($lesson->title, "Lesson #{$lesson->id}"),
                             ])
                             ->toArray();
                     }),
