@@ -131,7 +131,13 @@ class PaymentResource extends Resource
                     ->sortable()
                     ->label(__('payments.student')),
                 Tables\Columns\TextColumn::make('enrollment.course.name')
-                    ->formatStateUsing(fn ($state) => is_array($state) ? ($state[app()->getLocale()] ?? $state['ar'] ?? '') : $state)
+                    ->formatStateUsing(function ($state) {
+                        if (empty($state) || !is_array($state)) {
+                            return is_string($state) ? $state : '';
+                        }
+                        $locale = app()->getLocale();
+                        return $state[$locale] ?? $state['ar'] ?? $state['en'] ?? '';
+                    })
                     ->label(__('payments.course')),
                 Tables\Columns\TextColumn::make('amount')
                     ->money('SAR')

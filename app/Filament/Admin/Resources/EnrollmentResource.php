@@ -152,7 +152,13 @@ class EnrollmentResource extends Resource
                     ->sortable()
                     ->label(__('enrollments.student')),
                 Tables\Columns\TextColumn::make('course.name')
-                    ->formatStateUsing(fn ($state) => is_array($state) ? ($state[app()->getLocale()] ?? $state['ar'] ?? '') : $state)
+                    ->formatStateUsing(function ($state) {
+                        if (empty($state) || !is_array($state)) {
+                            return is_string($state) ? $state : '';
+                        }
+                        $locale = app()->getLocale();
+                        return $state[$locale] ?? $state['ar'] ?? $state['en'] ?? '';
+                    })
                     ->searchable()
                     ->sortable()
                     ->label(__('enrollments.course')),

@@ -105,7 +105,13 @@ class CoursePriceResource extends Resource
                     ->sortable()
                     ->label(__('course_prices.course')),
                 Tables\Columns\TextColumn::make('course.name')
-                    ->formatStateUsing(fn ($state) => $state[app()->getLocale()] ?? $state['ar'] ?? '')
+                    ->formatStateUsing(function ($state) {
+                        if (empty($state) || !is_array($state)) {
+                            return '';
+                        }
+                        $locale = app()->getLocale();
+                        return $state[$locale] ?? $state['ar'] ?? $state['en'] ?? '';
+                    })
                     ->label(__('course_prices.course_name')),
                 Tables\Columns\TextColumn::make('branch.name')
                     ->sortable()

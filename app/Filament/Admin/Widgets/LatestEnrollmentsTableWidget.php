@@ -35,6 +35,13 @@ class LatestEnrollmentsTableWidget extends BaseWidget
                     ->default('N/A'),
                 Tables\Columns\TextColumn::make('course.name')
                     ->label('Course')
+                    ->formatStateUsing(function ($state) {
+                        if (empty($state) || !is_array($state)) {
+                            return is_string($state) ? $state : '';
+                        }
+                        $locale = app()->getLocale();
+                        return $state[$locale] ?? $state['ar'] ?? $state['en'] ?? '';
+                    })
                     ->searchable()
                     ->sortable(),
                 Tables\Columns\TextColumn::make('status')

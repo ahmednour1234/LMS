@@ -41,12 +41,24 @@ class LatestCoursesTableWidget extends BaseWidget
                 ->sortable(),
             TextColumn::make('name')
                 ->label(__('courses.name'))
-                ->formatStateUsing(fn ($state) => is_array($state) ? ($state[app()->getLocale()] ?? $state['en'] ?? '') : $state)
+                ->formatStateUsing(function ($state) {
+                    if (empty($state) || !is_array($state)) {
+                        return is_string($state) ? $state : '';
+                    }
+                    $locale = app()->getLocale();
+                    return $state[$locale] ?? $state['ar'] ?? $state['en'] ?? '';
+                })
                 ->searchable()
                 ->sortable(),
             TextColumn::make('program.name')
                 ->label(__('courses.program'))
-                ->formatStateUsing(fn ($state) => is_array($state) ? ($state[app()->getLocale()] ?? $state['en'] ?? 'N/A') : ($state ?? 'N/A'))
+                ->formatStateUsing(function ($state) {
+                    if (empty($state) || !is_array($state)) {
+                        return is_string($state) ? $state : 'N/A';
+                    }
+                    $locale = app()->getLocale();
+                    return $state[$locale] ?? $state['ar'] ?? $state['en'] ?? 'N/A';
+                })
                 ->searchable()
                 ->sortable(),
             TextColumn::make('is_active')
