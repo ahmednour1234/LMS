@@ -17,10 +17,16 @@ class Dashboard extends BaseDashboard
 {
     protected static ?string $navigationIcon = 'heroicon-o-document-chart-bar';
 
-    public function getWidgets(): array
+    protected function getHeaderWidgets(): array
     {
         return [
             StatsOverviewWidget::class,
+        ];
+    }
+
+    protected function getFooterWidgets(): array
+    {
+        return [
             CollectionsChartWidget::class,
             EnrollmentsChartWidget::class,
             LatestPaymentsTableWidget::class,
