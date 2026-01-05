@@ -3,7 +3,6 @@
 namespace App\Filament\Admin\Resources\SettingResource\Pages;
 
 use App\Filament\Admin\Resources\SettingResource;
-use Filament\Actions;
 use Filament\Resources\Pages\ListRecords;
 
 class ListSettings extends ListRecords
@@ -13,7 +12,7 @@ class ListSettings extends ListRecords
     protected function getHeaderActions(): array
     {
         return [
-            Actions\CreateAction::make(),
+            // Creation is disabled - settings can only be created via seeder/service
         ];
     }
 }

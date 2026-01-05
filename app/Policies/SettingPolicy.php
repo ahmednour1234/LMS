@@ -40,20 +40,30 @@ class SettingPolicy
             return false;
         }
 
+        // System settings can only be updated by Super Admin
+        if ($setting->isSystemSetting()) {
+            return $user->isSuperAdmin();
+        }
+
         if ($user->isSuperAdmin()) {
             return true;
         }
 
-        return true; // Authorized users can update settings
+        return true; // Authorized users can update non-system settings
     }
 
     public function delete(User $user, Setting $setting): bool
     {
+        // System settings cannot be deleted
+        if ($setting->isSystemSetting()) {
+            return false;
+        }
+
         if (!$user->hasPermissionTo('settings.delete')) {
             return false;
         }
 
-        return $user->isSuperAdmin(); // Only super admin can delete settings
+        return $user->isSuperAdmin(); // Only super admin can delete non-system settings
     }
 }
 

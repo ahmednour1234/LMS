@@ -2,6 +2,7 @@
 
 namespace App\Providers;
 
+use App\Services\SystemSettingsService;
 use Illuminate\Support\ServiceProvider;
 
 class AppServiceProvider extends ServiceProvider
@@ -49,6 +50,9 @@ class AppServiceProvider extends ServiceProvider
         if (class_exists(\Carbon\Carbon::class)) {
             \Carbon\Carbon::setLocale($locale);
         }
+        
+        // Ensure system settings exist on app boot (fail-safe)
+        app(SystemSettingsService::class)->ensureSystemSettingsExist();
         
         // Helper function to sanitize UTF-8 strings
         if (!function_exists('sanitize_utf8')) {

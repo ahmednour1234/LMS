@@ -9,6 +9,7 @@ use Filament\Forms\Form;
 use Filament\Resources\Resource;
 use Filament\Tables;
 use Filament\Tables\Table;
+use Illuminate\Validation\Rule;
 
 class SettingResource extends Resource
 {
@@ -46,15 +47,54 @@ class SettingResource extends Resource
             ->schema([
                 Forms\Components\TextInput::make('key')
                     ->required()
-                    ->maxLength(255)
-                    ->unique(ignoreRecord: true)
+                    ->disabled()
+                    ->dehydrated(false)
                     ->label(__('settings.key')),
                 Forms\Components\KeyValue::make('value')
-                    ->label(__('settings.value')),
-                Forms\Components\TextInput::make('group')
-                    ->maxLength(255)
-                    ->default('general')
-                    ->label(__('settings.group')),
+                    ->label(__('settings.value'))
+                    ->rules(function (Setting $record) {
+                        if (!$record->exists) {
+                            return [];
+                        }
+
+                        $key = $record->key;
+                        $rules = [];
+
+                        switch ($key) {
+                            case 'tax_rate':
+                                $rules = ['value.rate' => ['required', 'numeric', 'min:0', 'max:1']];
+                                break;
+                            case 'currency':
+                                $rules = ['value' => ['required', 'array'], 'value.code' => ['required', 'string'], 'value.symbol' => ['required', 'string']];
+                                break;
+                            case 'invoice_prefix':
+                            case 'receipt_prefix':
+                                $rules = ['value.prefix' => ['required', 'string', 'max:10']];
+                                break;
+                            case 'app_email':
+                                $rules = ['value.email' => ['required', 'email']];
+                                break;
+                            case 'app_phone':
+                            case 'app_whatsapp':
+                                $rules = ['value.phone' => ['required', 'string', 'regex:/^\+?[1-9]\d{1,14}$/']];
+                                break;
+                            case 'fiscal_year_start':
+                            case 'fiscal_year_end':
+                                $rules = [
+                                    'value.month' => ['required', 'integer', 'min:1', 'max:12'],
+                                    'value.day' => ['required', 'integer', 'min:1', 'max:31'],
+                                ];
+                                break;
+                            case 'tax_registration_number':
+                            case 'commercial_registration_number':
+                                $rules = ['value' => ['required', 'array'], 'value.number' => ['required', 'string']];
+                                break;
+                            default:
+                                $rules = ['value' => ['required']];
+                        }
+
+                        return $rules;
+                    }),
             ]);
     }
 
@@ -70,6 +110,9 @@ class SettingResource extends Resource
                     ->searchable()
                     ->sortable()
                     ->label(__('settings.group')),
+                Tables\Columns\IconColumn::make('is_system')
+                    ->boolean()
+                    ->label(__('settings.is_system')),
                 Tables\Columns\TextColumn::make('value')
                     ->limit(50)
                     ->label(__('settings.value')),
@@ -82,13 +125,17 @@ class SettingResource extends Resource
                 Tables\Filters\SelectFilter::make('group')
                     ->options(fn () => Setting::query()->distinct()->pluck('group', 'group')->toArray())
                     ->label(__('settings.group')),
+                Tables\Filters\TernaryFilter::make('is_system')
+                    ->label(__('settings.is_system')),
             ])
             ->actions([
-                Tables\Actions\EditAction::make(),
+                Tables\Actions\EditAction::make()
+                    ->visible(fn (Setting $record) => !$record->isSystemSetting() || auth()->user()->isSuperAdmin()),
             ])
             ->bulkActions([
                 Tables\Actions\BulkActionGroup::make([
-                    Tables\Actions\DeleteBulkAction::make(),
+                    Tables\Actions\DeleteBulkAction::make()
+                        ->visible(fn () => auth()->user()->isSuperAdmin()),
                 ]),
             ]);
     }
@@ -97,9 +144,7 @@ class SettingResource extends Resource
     {
         return [
             'index' => Pages\ListSettings::route('/'),
-            'create' => Pages\CreateSetting::route('/create'),
             'edit' => Pages\EditSetting::route('/{record}/edit'),
         ];
     }
 }
-

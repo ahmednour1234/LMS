@@ -11,6 +11,7 @@
         @endif
         .header { margin-bottom: 20px; border-bottom: 2px solid #000; padding-bottom: 10px; }
         .header h1 { margin: 0; font-size: 24px; font-weight: bold; }
+        .company-info { margin-bottom: 20px; font-size: 12px; }
         .info-table { width: 100%; border-collapse: collapse; margin-bottom: 20px; }
         .info-table td { padding: 8px; border: 1px solid #ddd; }
         .info-table td:first-child { font-weight: bold; width: 30%; background-color: #f5f5f5; }
@@ -20,7 +21,28 @@
 </head>
 <body>
     <div class="header">
-        <h1>{{ __('ar_invoices.ar_invoice') }} #{{ $invoice->id }}</h1>
+        <h1>{{ isset($settings['app_name']) && isset($settings['app_name'][app()->getLocale()]) ? $settings['app_name'][app()->getLocale()] : 'LMS' }}</h1>
+    </div>
+
+    @if(isset($settings))
+    <div class="company-info">
+        @if(isset($settings['app_phone']['phone']))
+            <p><strong>{{ __('settings.phone') }}:</strong> {{ $settings['app_phone']['phone'] }}</p>
+        @endif
+        @if(isset($settings['app_whatsapp']['phone']))
+            <p><strong>{{ __('settings.whatsapp') }}:</strong> {{ $settings['app_whatsapp']['phone'] }}</p>
+        @endif
+        @if(isset($settings['tax_registration_number']['number']) && !empty($settings['tax_registration_number']['number']))
+            <p><strong>{{ __('settings.tax_registration_number') }}:</strong> {{ $settings['tax_registration_number']['number'] }}</p>
+        @endif
+        @if(isset($settings['commercial_registration_number']['number']) && !empty($settings['commercial_registration_number']['number']))
+            <p><strong>{{ __('settings.commercial_registration_number') }}:</strong> {{ $settings['commercial_registration_number']['number'] }}</p>
+        @endif
+    </div>
+    @endif
+
+    <div class="header">
+        <h2>{{ __('ar_invoices.ar_invoice') }} #{{ $invoice->id }}</h2>
     </div>
 
     <table class="info-table">
