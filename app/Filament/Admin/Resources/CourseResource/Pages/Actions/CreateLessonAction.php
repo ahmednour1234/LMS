@@ -27,12 +27,17 @@ class CreateLessonAction extends Action
                     ->label(__('Section'))
                     ->options(function ($livewire) {
                         $course = $livewire->getRecord();
-                        $sectionId = $livewire->mountedActionData['sectionId'] ?? null;
                         return CourseSection::where('course_id', $course->id)
                             ->get()
-                            ->mapWithKeys(fn ($section) => [
-                                $section->id => ($section->title[app()->getLocale()] ?? $section->title['en'] ?? 'Untitled')
-                            ]);
+                            ->mapWithKeys(function ($section) {
+                                $title = $section->title[app()->getLocale()] 
+                                    ?? $section->title['en'] 
+                                    ?? $section->title['ar'] 
+                                    ?? 'Untitled';
+                                return [
+                                    $section->id => (string) $title
+                                ];
+                            });
                     })
                     ->default(function ($livewire) {
                         return $livewire->mountedActionData['sectionId'] ?? null;
