@@ -11,34 +11,26 @@ return new class extends Migration
         Schema::create('enrollments', function (Blueprint $table) {
             $table->engine = 'InnoDB';
 
-            $table->bigIncrements('id'); // ممكن تخليه increments لو تحب، بس خليها ثابتة عندك
+            $table->id(); // BIGINT UNSIGNED
 
             $table->string('reference', 64)->unique();
 
-            // FK types matching students/courses INT
-            $table->unsignedInteger('student_id');
-            $table->unsignedInteger('course_id');
+            $table->foreignId('student_id')->constrained('students')->cascadeOnDelete();
+            $table->foreignId('course_id')->constrained('courses')->cascadeOnDelete();
 
-            $table->enum('status', ['pending', 'active', 'completed', 'cancelled'])->default('pending');
+            $table->enum('status', ['pending', 'active', 'completed', 'cancelled'])
+                ->default('pending');
 
             $table->timestamp('enrolled_at')->nullable();
             $table->timestamp('registered_at')->nullable();
+
             $table->text('notes')->nullable();
 
-            // لو branches/users INT برضه:
-            $table->unsignedInteger('branch_id')->nullable();
-            $table->unsignedInteger('created_by')->nullable();
-            $table->unsignedInteger('updated_by')->nullable();
+            $table->foreignId('branch_id')->nullable()->constrained('branches')->nullOnDelete();
+            $table->foreignId('created_by')->nullable()->constrained('users')->nullOnDelete();
+            $table->foreignId('updated_by')->nullable()->constrained('users')->nullOnDelete();
 
             $table->timestamps();
-
-            // Constraints
-            $table->foreign('student_id')->references('id')->on('students')->cascadeOnDelete();
-            $table->foreign('course_id')->references('id')->on('courses')->cascadeOnDelete();
-
-            $table->foreign('branch_id')->references('id')->on('branches')->nullOnDelete();
-            $table->foreign('created_by')->references('id')->on('users')->nullOnDelete();
-            $table->foreign('updated_by')->references('id')->on('users')->nullOnDelete();
 
             $table->index(['student_id', 'course_id']);
             $table->index('status');
