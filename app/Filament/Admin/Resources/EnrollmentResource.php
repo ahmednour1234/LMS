@@ -249,31 +249,54 @@ class EnrollmentResource extends Resource
                             ->label(__('payments.gateway_ref')),
                     ])
                     ->action(function (Enrollment $record, array $data) {
-                        DB::transaction(function () use ($record, $data) {
-                            // Load student relationship if needed
-                            $record->loadMissing('student');
+                        \Illuminate\Support\Facades\DB::transaction(function () use ($record, $data) {
+                            // Load relationships
+                            $record->loadMissing(['student', 'user']);
                             
-                            // Determine user_id: use enrollment user_id, or student's user_id, or current user
-                            $userId = $record->user_id 
-                                ?? ($record->student ? $record->student->user_id : null)
-                                ?? auth()->id();
+                            // Determine user_id with explicit checks
+                            $userId = null;
                             
-                            // Ensure we have a valid user_id
-                            if (!$userId) {
-                                throw new \Exception('Unable to determine user for payment. Please set user on enrollment or student.');
+                            // Try enrollment user_id first
+                            if (!empty($record->user_id)) {
+                                $userId = $record->user_id;
+                            }
+                            // Try student's user_id
+                            elseif ($record->student && !empty($record->student->user_id)) {
+                                $userId = $record->student->user_id;
+                            }
+                            // Fallback to current user
+                            else {
+                                $userId = auth()->id();
                             }
                             
-                            $payment = $record->payments()->create([
-                                'user_id' => $userId,
-                                'branch_id' => $record->branch_id ?? auth()->user()->branch_id,
+                            // Final safety check - must have a user_id
+                            if (empty($userId)) {
+                                throw new \Exception('Unable to determine user for payment. Please ensure enrollment has a user or student has a user.');
+                            }
+                            
+                            // Determine branch_id
+                            $branchId = $record->branch_id ?? auth()->user()->branch_id ?? null;
+                            
+                            // Prepare payment data - ensure all required fields are set
+                            $paymentData = [
+                                'enrollment_id' => $record->id,
+                                'user_id' => $userId, // This MUST be set
+                                'branch_id' => $branchId,
                                 'installment_id' => $data['installment_id'] ?? null,
                                 'amount' => $data['amount'],
                                 'method' => $data['method'],
                                 'gateway_ref' => $data['gateway_ref'] ?? null,
-                                'status' => 'paid',
-                                'paid_at' => now(),
+                                'status' => $data['status'] ?? 'paid',
+                                'paid_at' => ($data['status'] ?? 'paid') === 'paid' ? now() : null,
                                 'created_by' => auth()->id(),
-                            ]);
+                            ];
+                            
+                            // Final validation - user_id must be set
+                            if (empty($paymentData['user_id'])) {
+                                throw new \Exception('Payment cannot be created: user_id is required but was not determined.');
+                            }
+                            
+                            $payment = \App\Domain\Accounting\Models\Payment::create($paymentData);
                             
                             event(new \App\Domain\Accounting\Events\PaymentPaid($payment));
                         });
