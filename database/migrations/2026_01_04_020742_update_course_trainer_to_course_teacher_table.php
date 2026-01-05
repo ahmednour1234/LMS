@@ -7,10 +7,38 @@ use Illuminate\Support\Facades\Schema;
 
 return new class extends Migration
 {
-    // ---------- helpers ----------
+    // ---------- low-level helpers (information_schema) ----------
+    private function dbName(): string
+    {
+        return DB::getDatabaseName();
+    }
+
+    private function columnExists(string $table, string $column): bool
+    {
+        $db = $this->dbName();
+
+        $row = DB::selectOne("
+            SELECT 1
+            FROM information_schema.COLUMNS
+            WHERE TABLE_SCHEMA = ?
+              AND TABLE_NAME = ?
+              AND COLUMN_NAME = ?
+            LIMIT 1
+        ", [$db, $table, $column]);
+
+        return (bool) $row;
+    }
+
+    private function dropColumnIfExists(string $table, string $column): void
+    {
+        if ($this->columnExists($table, $column)) {
+            DB::statement("ALTER TABLE `$table` DROP COLUMN `$column`");
+        }
+    }
+
     private function fkNamesForColumn(string $table, string $column): array
     {
-        $db = DB::getDatabaseName();
+        $db = $this->dbName();
 
         $rows = DB::select("
             SELECT CONSTRAINT_NAME as name
@@ -46,7 +74,7 @@ return new class extends Migration
 
     private function indexExists(string $table, string $indexName): bool
     {
-        $db = DB::getDatabaseName();
+        $db = $this->dbName();
 
         $row = DB::selectOne("
             SELECT 1
@@ -71,19 +99,20 @@ return new class extends Migration
         }
     }
 
+    // ---------- migration ----------
     public function up(): void
     {
-        // ---------- determine source ----------
+        // Determine source
         $hasTrainer = Schema::hasTable('course_trainer');
         $hasTeacher = Schema::hasTable('course_teacher');
 
-        // If only old exists -> rename to new
+        // Rename old -> new if needed
         if ($hasTrainer && !$hasTeacher) {
             Schema::rename('course_trainer', 'course_teacher');
             $hasTeacher = true;
         }
 
-        // If still not exists -> create fresh target
+        // If not exists create fresh
         if (!$hasTeacher) {
             Schema::create('course_teacher', function (Blueprint $table) {
                 $table->engine = 'InnoDB';
@@ -106,74 +135,50 @@ return new class extends Migration
             return;
         }
 
-        // ---------- normalize existing course_teacher ----------
-        // Snapshot columns OUTSIDE Schema::table closure (important!)
-        $columns = [];
-        try {
-            $columns = Schema::getColumnListing('course_teacher');
-        } catch (\Throwable $e) {
-            $columns = [];
-        }
-
-        $hasCol = fn (string $c) => in_array($c, $columns, true);
-
-        // 1) Drop any FKs on possible legacy columns
+        // 1) Drop any FKs on legacy columns (only if column exists)
         foreach (['course_id', 'teacher_id', 'trainer_id', 'user_id'] as $col) {
-            if ($hasCol($col)) {
+            if ($this->columnExists('course_teacher', $col)) {
                 $this->dropAllForeignKeysForColumn('course_teacher', $col);
             }
         }
 
-        // 2) Drop PK + common leftover indexes
+        // 2) Drop PK and common indexes
         $this->dropPrimaryIfExists('course_teacher');
 
-        $this->dropIndexIfExists('course_teacher', 'course_teacher_course_id_trainer_id_unique');
-        $this->dropIndexIfExists('course_teacher', 'course_teacher_course_id_user_id_unique');
-        $this->dropIndexIfExists('course_teacher', 'course_trainer_course_id_user_id_unique');
-        $this->dropIndexIfExists('course_teacher', 'course_teacher_teacher_id_index');
-        $this->dropIndexIfExists('course_teacher', 'course_teacher_user_id_index');
-        $this->dropIndexIfExists('course_teacher', 'course_teacher_teacher_idx');
+        foreach ([
+            'course_teacher_course_id_trainer_id_unique',
+            'course_teacher_course_id_user_id_unique',
+            'course_trainer_course_id_user_id_unique',
+            'course_teacher_teacher_id_index',
+            'course_teacher_user_id_index',
+            'course_teacher_teacher_idx',
+        ] as $idx) {
+            $this->dropIndexIfExists('course_teacher', $idx);
+        }
 
-        // 3) Apply column drops/adds safely
-        $dropColumns = [];
-        if ($hasCol('trainer_id')) $dropColumns[] = 'trainer_id';
-        if ($hasCol('user_id'))    $dropColumns[] = 'user_id';
+        // 3) Drop legacy columns safely using information_schema (NO Schema::dropColumn)
+        $this->dropColumnIfExists('course_teacher', 'trainer_id');
+        $this->dropColumnIfExists('course_teacher', 'user_id');
 
-        // timestamps: drop individually if exist
-        $dropTimestamps = [];
-        if ($hasCol('created_at')) $dropTimestamps[] = 'created_at';
-        if ($hasCol('updated_at')) $dropTimestamps[] = 'updated_at';
+        // Drop timestamps safely (each one separately)
+        $this->dropColumnIfExists('course_teacher', 'created_at');
+        $this->dropColumnIfExists('course_teacher', 'updated_at');
 
-        // Add teacher_id if missing
-        if (!$hasCol('teacher_id')) {
+        // 4) Ensure teacher_id exists
+        if (!$this->columnExists('course_teacher', 'teacher_id')) {
             Schema::table('course_teacher', function (Blueprint $table) {
                 $table->unsignedBigInteger('teacher_id')->after('course_id');
             });
-            // refresh columns snapshot
-            $columns = Schema::getColumnListing('course_teacher');
-            $hasCol = fn (string $c) => in_array($c, $columns, true);
         }
 
-        // Execute drops in ONE table call (only if needed)
-        if (!empty($dropColumns) || !empty($dropTimestamps)) {
-            Schema::table('course_teacher', function (Blueprint $table) use ($dropColumns, $dropTimestamps) {
-                foreach ($dropTimestamps as $c) {
-                    try { $table->dropColumn($c); } catch (\Throwable $e) {}
-                }
-                foreach ($dropColumns as $c) {
-                    try { $table->dropColumn($c); } catch (\Throwable $e) {}
-                }
-            });
-        }
-
-        // 4) Ensure index on teacher_id
+        // 5) Ensure index on teacher_id
         if (!$this->indexExists('course_teacher', 'course_teacher_teacher_idx')) {
             Schema::table('course_teacher', function (Blueprint $table) {
                 $table->index('teacher_id', 'course_teacher_teacher_idx');
             });
         }
 
-        // 5) Ensure composite PK (course_id, teacher_id)
+        // 6) Ensure composite PK
         Schema::table('course_teacher', function (Blueprint $table) {
             try {
                 $table->primary(['course_id', 'teacher_id'], 'course_teacher_pk');
@@ -182,8 +187,7 @@ return new class extends Migration
             }
         });
 
-        // 6) Recreate FKs with fixed names (and avoid errno 121 duplicates)
-        // drop any FK currently on these cols (by discovery) then add named constraints
+        // 7) Recreate FKs with fixed names
         $this->dropAllForeignKeysForColumn('course_teacher', 'course_id');
         $this->dropAllForeignKeysForColumn('course_teacher', 'teacher_id');
 
@@ -222,35 +226,34 @@ return new class extends Migration
 
         // drop FKs
         foreach (['course_id', 'teacher_id'] as $col) {
-            if (Schema::hasColumn('course_teacher', $col)) {
+            if ($this->columnExists('course_teacher', $col)) {
                 $this->dropAllForeignKeysForColumn('course_teacher', $col);
             }
         }
 
-        // drop PK
+        // drop PK + index
         $this->dropPrimaryIfExists('course_teacher');
-
-        // drop index
         $this->dropIndexIfExists('course_teacher', 'course_teacher_teacher_idx');
 
-        // rename back if needed
+        // rename back if course_trainer doesn't exist
         if (!Schema::hasTable('course_trainer')) {
             Schema::rename('course_teacher', 'course_trainer');
         }
 
-        // best-effort restore old column (user_id) if missing
+        // best-effort restore old structure
         if (Schema::hasTable('course_trainer')) {
-            $cols = Schema::getColumnListing('course_trainer');
-            $has = fn (string $c) => in_array($c, $cols, true);
-
-            if (!$has('user_id')) {
+            if (!$this->columnExists('course_trainer', 'user_id')) {
                 Schema::table('course_trainer', function (Blueprint $table) {
                     $table->unsignedBigInteger('user_id')->after('course_id');
                 });
             }
 
             Schema::table('course_trainer', function (Blueprint $table) {
-                try { $table->primary(['course_id', 'user_id'], 'course_trainer_pk'); } catch (\Throwable $e) {}
+                try {
+                    $table->primary(['course_id', 'user_id'], 'course_trainer_pk');
+                } catch (\Throwable $e) {
+                    // ignore
+                }
             });
 
             try {
