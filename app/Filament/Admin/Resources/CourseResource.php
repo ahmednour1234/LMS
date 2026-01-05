@@ -192,6 +192,11 @@ class CourseResource extends Resource
                     ->label(__('courses.is_active')),
             ])
             ->actions([
+                Tables\Actions\Action::make('studio')
+                    ->label(__('Course Studio'))
+                    ->icon('heroicon-o-cog-6-tooth')
+                    ->url(fn ($record) => static::getUrl('studio', ['record' => $record]))
+                    ->visible(fn () => auth()->user()->isSuperAdmin() || auth()->user()->hasRole('admin')),
                 Tables\Actions\EditAction::make(),
             ])
             ->bulkActions([

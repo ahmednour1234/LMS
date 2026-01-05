@@ -5,20 +5,13 @@
             <div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-4">
                 <div class="flex items-center justify-between mb-4">
                     <h3 class="text-lg font-semibold">{{ __('Sections & Lessons') }}</h3>
-                    @php
-                        $createSectionAction = collect($this->getCachedActions())->firstWhere('name', 'createSection');
-                    @endphp
-                    @if($createSectionAction)
-                        {{ $createSectionAction }}
-                    @else
-                        <x-filament::button
-                            size="sm"
-                            icon="heroicon-o-plus"
-                            wire:click="mountAction('createSection')"
-                        >
-                            {{ __('Add Section') }}
-                        </x-filament::button>
-                    @endif
+                    <x-filament::button
+                        size="sm"
+                        icon="heroicon-o-plus"
+                        wire:click="mountAction('createSection')"
+                    >
+                        {{ __('Add Section') }}
+                    </x-filament::button>
                 </div>
 
                 <div class="space-y-2">
