@@ -60,8 +60,26 @@ class EnrollmentResource extends Resource
                     ->preload()
                     ->label(__('enrollments.user')),
                 Forms\Components\Select::make('course_id')
-                    ->relationship('course', 'name')
-                    ->searchable()
+                    ->relationship('course', 'code', fn (Builder $query) => {
+                        $user = auth()->user();
+                        $query = $query->where('is_active', true);
+                        if (!$user->isSuperAdmin()) {
+                            $query->where('branch_id', $user->branch_id);
+                        }
+                        return $query;
+                    })
+                    ->getOptionLabelUsing(function ($value) {
+                        $course = \App\Domain\Training\Models\Course::find($value);
+                        if (!$course) return '';
+                        $code = $course->code ?? '';
+                        $name = is_array($course->name) ? ($course->name[app()->getLocale()] ?? $course->name['ar'] ?? '') : $course->name;
+                        return $code . ' - ' . $name;
+                    })
+                    ->searchable(fn ($query, $search) => $query->where(function ($q) use ($search) {
+                        $q->where('code', 'like', "%{$search}%")
+                          ->orWhereJsonContains('name->ar', $search)
+                          ->orWhereJsonContains('name->en', $search);
+                    }))
                     ->preload()
                     ->required()
                     ->label(__('enrollments.course')),
