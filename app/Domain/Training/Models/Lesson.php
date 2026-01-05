@@ -38,7 +38,7 @@ class Lesson extends Model
 
     public function section(): BelongsTo
     {
-        return $this->belongsTo(Section::class);
+        return $this->belongsTo(CourseSection::class);
     }
 
     public function items(): HasMany

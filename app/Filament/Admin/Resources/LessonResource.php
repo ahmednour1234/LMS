@@ -3,8 +3,8 @@
 namespace App\Filament\Admin\Resources;
 
 use App\Domain\Training\Enums\LessonType;
+use App\Domain\Training\Models\CourseSection;
 use App\Domain\Training\Models\Lesson;
-use App\Domain\Training\Models\Section;
 use App\Filament\Admin\Resources\LessonResource\Pages;
 use App\Filament\Admin\Resources\LessonResource\RelationManagers;
 use Filament\Forms;
@@ -55,7 +55,8 @@ class LessonResource extends Resource
         return $form
             ->schema([
                 Forms\Components\Select::make('section_id')
-                    ->relationship('section', 'title', fn (Builder $query) => $query->whereHas('course', fn ($q) => $q->where('branch_id', auth()->user()->branch_id ?? null))->orderBy('sort_order'))
+                    ->relationship('section', 'id', fn (Builder $query) => $query->whereHas('course', fn ($q) => $q->where('branch_id', auth()->user()->branch_id ?? null))->orderBy('order'))
+                    ->getOptionLabelUsing(fn ($record): ?string => is_object($record) ? ($record->title[app()->getLocale()] ?? $record->title['en'] ?? null) : (CourseSection::find($record)?->title[app()->getLocale()] ?? CourseSection::find($record)?->title['en'] ?? null))
                     ->searchable()
                     ->preload()
                     ->required()
@@ -108,6 +109,7 @@ class LessonResource extends Resource
                     ->sortable()
                     ->label(__('Course')),
                 Tables\Columns\TextColumn::make('section.title')
+                    ->formatStateUsing(fn ($state) => $state[app()->getLocale()] ?? $state['ar'] ?? '')
                     ->sortable()
                     ->label(__('Section')),
                 Tables\Columns\TextColumn::make('title')
@@ -146,7 +148,8 @@ class LessonResource extends Resource
             ])
             ->filters([
                 Tables\Filters\SelectFilter::make('section_id')
-                    ->relationship('section', 'title')
+                    ->relationship('section', 'title', fn (Builder $query) => $query->whereHas('course', fn ($q) => $q->where('branch_id', auth()->user()->branch_id ?? null)))
+                    ->getOptionLabelUsing(fn ($record): ?string => is_object($record) ? ($record->title[app()->getLocale()] ?? $record->title['en'] ?? null) : (CourseSection::find($record)?->title[app()->getLocale()] ?? CourseSection::find($record)?->title['en'] ?? null))
                     ->label(__('Section')),
                 Tables\Filters\SelectFilter::make('lesson_type')
                     ->options([
