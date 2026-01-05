@@ -43,95 +43,118 @@ class LessonItemResource extends Resource
         return __('navigation.groups.training');
     }
 
+    /**
+     * Safe helper: resolve translated title stored as JSON array.
+     */
+    protected static function resolveTransTitle(?array $title, string $fallback = 'Untitled'): string
+    {
+        if (!is_array($title)) {
+            return $fallback;
+        }
+
+        $locale = app()->getLocale();
+
+        $value = $title[$locale]
+            ?? $title['en']
+            ?? $title['ar']
+            ?? null;
+
+        return (is_string($value) && trim($value) !== '') ? $value : $fallback;
+    }
+
     public static function form(Form $form): Form
     {
-        return $form
-            ->schema([
-                Forms\Components\Select::make('lesson_id')
-                    ->relationship('lesson', 'id', fn (Builder $query) => $query->whereHas('section.course', fn ($q) => $q->where('branch_id', auth()->user()->branch_id ?? null))->orderBy('id'))
-                    ->getOptionLabelUsing(function ($record): string {
-                        $title = 'Untitled';
-                        
-                        if (is_object($record) && isset($record->title) && is_array($record->title)) {
-                            $locale = app()->getLocale();
-                            $title = $record->title[$locale] 
-                                ?? $record->title['en'] 
-                                ?? $record->title['ar'] 
-                                ?? 'Untitled';
-                        } elseif (!is_object($record)) {
-                            $lesson = \App\Domain\Training\Models\Lesson::find($record);
-                            if ($lesson && isset($lesson->title) && is_array($lesson->title)) {
-                                $locale = app()->getLocale();
-                                $title = $lesson->title[$locale] 
-                                    ?? $lesson->title['en'] 
-                                    ?? $lesson->title['ar'] 
-                                    ?? 'Untitled';
-                            }
+        return $form->schema([
+            Forms\Components\Select::make('lesson_id')
+                ->label(__('lesson_items.lesson'))
+                ->required()
+                ->searchable()
+                ->preload()
+                ->relationship(
+                    name: 'lesson',
+                    titleAttribute: 'id',
+                    modifyQueryUsing: function (Builder $query) {
+                        $user = auth()->user();
+
+                        // لو مش super admin: حصر الدروس حسب فرع الكورس
+                        if ($user && method_exists($user, 'isSuperAdmin') && !$user->isSuperAdmin()) {
+                            $query->whereHas('section.course', fn ($q) => $q->where('branch_id', $user->branch_id));
                         }
-                        
-                        // Ensure we always return a non-empty string
-                        return is_string($title) && $title !== '' ? $title : 'Untitled';
-                    })
-                    ->searchable()
-                    ->preload()
-                    ->required()
-                    ->label(__('lesson_items.lesson')),
-                Forms\Components\Select::make('type')
-                    ->options([
-                        'video' => __('lesson_items.type_options.video'),
-                        'pdf' => __('lesson_items.type_options.pdf'),
-                        'file' => __('lesson_items.type_options.file'),
-                        'link' => __('lesson_items.type_options.link'),
-                    ])
-                    ->required()
-                    ->label(__('lesson_items.type'))
-                    ->reactive(),
-                Forms\Components\TextInput::make('title.ar')
-                    ->label(__('lesson_items.title_ar'))
-                    ->required()
-                    ->maxLength(255),
-                Forms\Components\TextInput::make('title.en')
-                    ->label(__('lesson_items.title_en'))
-                    ->required()
-                    ->maxLength(255),
-                Forms\Components\Select::make('media_file_id')
-                    ->relationship('mediaFile', 'original_filename')
-                    ->getOptionLabelUsing(function ($record): string {
-                        if (is_object($record)) {
-                            $filename = $record->original_filename 
-                                ?? $record->filename 
-                                ?? null;
-                            
-                            return is_string($filename) && $filename !== '' ? $filename : 'Untitled File';
-                        }
-                        
-                        $mediaFile = MediaFile::find($record);
-                        if ($mediaFile) {
-                            $filename = $mediaFile->original_filename 
-                                ?? $mediaFile->filename 
-                                ?? null;
-                            
-                            return is_string($filename) && $filename !== '' ? $filename : 'Untitled File';
-                        }
-                        
+
+                        return $query->orderBy('id');
+                    }
+                )
+                // دي اللي بتصلح label بتاع قائمة الـ options نفسها
+                ->getOptionLabelFromRecordUsing(function ($record): string {
+                    /** @var Lesson|null $record */
+                    if (!$record) {
+                        return 'Untitled';
+                    }
+
+                    return static::resolveTransTitle(
+                        is_array($record->title ?? null) ? $record->title : null,
+                        'Untitled'
+                    );
+                }),
+
+            Forms\Components\Select::make('type')
+                ->label(__('lesson_items.type'))
+                ->options([
+                    'video' => __('lesson_items.type_options.video'),
+                    'pdf'   => __('lesson_items.type_options.pdf'),
+                    'file'  => __('lesson_items.type_options.file'),
+                    'link'  => __('lesson_items.type_options.link'),
+                ])
+                ->required()
+                ->live(), // بدل reactive
+
+            Forms\Components\TextInput::make('title.ar')
+                ->label(__('lesson_items.title_ar'))
+                ->required()
+                ->maxLength(255),
+
+            Forms\Components\TextInput::make('title.en')
+                ->label(__('lesson_items.title_en'))
+                ->required()
+                ->maxLength(255),
+
+            Forms\Components\Select::make('media_file_id')
+                ->label(__('lesson_items.media_file'))
+                ->searchable()
+                ->preload()
+                // مهم جداً: ما تعتمدش على original_filename لأنه ممكن يكون null
+                ->relationship('mediaFile', 'id')
+                // label آمن للقائمة نفسها
+                ->getOptionLabelFromRecordUsing(function ($record): string {
+                    /** @var MediaFile|null $record */
+                    if (!$record) {
                         return 'Untitled File';
-                    })
-                    ->searchable()
-                    ->preload()
-                    ->label(__('lesson_items.media_file'))
-                    ->visible(fn ($get) => in_array($get('type'), ['video', 'pdf', 'file'])),
-                Forms\Components\TextInput::make('external_url')
-                    ->url()
-                    ->label(__('lesson_items.external_url'))
-                    ->visible(fn ($get) => $get('type') === 'link'),
-                Forms\Components\TextInput::make('order')
-                    ->numeric()
-                    ->default(0)
-                    ->label(__('lesson_items.order')),
-                Forms\Components\Toggle::make('is_active')
-                    ->label(__('lesson_items.is_active'))
-                    ->default(true),
-            ]);
+                    }
+
+                    $filename = $record->original_filename
+                        ?? $record->filename
+                        ?? null;
+
+                    return (is_string($filename) && trim($filename) !== '') ? $filename : 'Untitled File';
+                })
+                ->visible(fn (Forms\Get $get) => in_array($get('type'), ['video', 'pdf', 'file'], true))
+                ->required(fn (Forms\Get $get) => in_array($get('type'), ['video', 'pdf', 'file'], true)),
+
+            Forms\Components\TextInput::make('external_url')
+                ->label(__('lesson_items.external_url'))
+                ->url()
+                ->visible(fn (Forms\Get $get) => $get('type') === 'link')
+                ->required(fn (Forms\Get $get) => $get('type') === 'link'),
+
+            Forms\Components\TextInput::make('order')
+                ->label(__('lesson_items.order'))
+                ->numeric()
+                ->default(0),
+
+            Forms\Components\Toggle::make('is_active')
+                ->label(__('lesson_items.is_active'))
+                ->default(true),
+        ]);
     }
 
     public static function table(Table $table): Table
@@ -139,43 +162,74 @@ class LessonItemResource extends Resource
         return $table
             ->modifyQueryUsing(function (Builder $query) {
                 $user = auth()->user();
-                if (!$user->isSuperAdmin()) {
+
+                if ($user && method_exists($user, 'isSuperAdmin') && !$user->isSuperAdmin()) {
                     $query->whereHas('lesson.section.course', fn ($q) => $q->where('branch_id', $user->branch_id));
                 }
+
+                return $query;
             })
             ->columns([
                 Tables\Columns\TextColumn::make('lesson.title')
-                    ->formatStateUsing(fn ($state) => $state[app()->getLocale()] ?? $state['ar'] ?? '')
-                    ->sortable()
-                    ->label(__('lesson_items.lesson')),
+                    ->label(__('lesson_items.lesson'))
+                    ->formatStateUsing(function ($state): string {
+                        return static::resolveTransTitle(is_array($state) ? $state : null, '');
+                    })
+                    ->sortable(),
+
                 Tables\Columns\TextColumn::make('type')
+                    ->label(__('lesson_items.type'))
                     ->badge()
-                    ->formatStateUsing(fn ($state) => __('lesson_items.type_options.' . $state))
-                    ->label(__('lesson_items.type')),
+                    ->formatStateUsing(fn ($state) => __('lesson_items.type_options.' . $state)),
+
                 Tables\Columns\TextColumn::make('title')
-                    ->formatStateUsing(fn ($state) => $state[app()->getLocale()] ?? $state['ar'] ?? '')
+                    ->label(__('lesson_items.title'))
+                    ->formatStateUsing(function ($state): string {
+                        return static::resolveTransTitle(is_array($state) ? $state : null, '');
+                    })
                     ->searchable()
-                    ->sortable()
-                    ->label(__('lesson_items.title')),
+                    ->sortable(),
+
                 Tables\Columns\TextColumn::make('order')
-                    ->sortable()
-                    ->label(__('lesson_items.order')),
+                    ->label(__('lesson_items.order'))
+                    ->sortable(),
+
                 Tables\Columns\IconColumn::make('is_active')
-                    ->boolean()
-                    ->label(__('lesson_items.is_active')),
+                    ->label(__('lesson_items.is_active'))
+                    ->boolean(),
             ])
             ->filters([
+                // مهم: relationship('lesson','title') خطر لأن title JSON
                 Tables\Filters\SelectFilter::make('lesson_id')
-                    ->relationship('lesson', 'title')
-                    ->label(__('lesson_items.lesson')),
+                    ->label(__('lesson_items.lesson'))
+                    ->options(function () {
+                        $user = auth()->user();
+
+                        $q = Lesson::query()->orderBy('id');
+
+                        if ($user && method_exists($user, 'isSuperAdmin') && !$user->isSuperAdmin()) {
+                            $q->whereHas('section.course', fn ($x) => $x->where('branch_id', $user->branch_id));
+                        }
+
+                        return $q->get()
+                            ->mapWithKeys(fn (Lesson $lesson) => [
+                                $lesson->id => static::resolveTransTitle(
+                                    is_array($lesson->title ?? null) ? $lesson->title : null,
+                                    "Lesson #{$lesson->id}"
+                                ),
+                            ])
+                            ->toArray();
+                    }),
+
                 Tables\Filters\SelectFilter::make('type')
+                    ->label(__('lesson_items.type'))
                     ->options([
                         'video' => __('lesson_items.type_options.video'),
-                        'pdf' => __('lesson_items.type_options.pdf'),
-                        'file' => __('lesson_items.type_options.file'),
-                        'link' => __('lesson_items.type_options.link'),
-                    ])
-                    ->label(__('lesson_items.type')),
+                        'pdf'   => __('lesson_items.type_options.pdf'),
+                        'file'  => __('lesson_items.type_options.file'),
+                        'link'  => __('lesson_items.type_options.link'),
+                    ]),
+
                 Tables\Filters\TernaryFilter::make('is_active')
                     ->label(__('lesson_items.is_active')),
             ])
@@ -193,10 +247,10 @@ class LessonItemResource extends Resource
     public static function getPages(): array
     {
         return [
-            'index' => Pages\ListLessonItems::route('/'),
+            'index'  => Pages\ListLessonItems::route('/'),
             'create' => Pages\CreateLessonItem::route('/create'),
-            'view' => Pages\ViewLessonItem::route('/{record}'),
-            'edit' => Pages\EditLessonItem::route('/{record}/edit'),
+            'view'   => Pages\ViewLessonItem::route('/{record}'),
+            'edit'   => Pages\EditLessonItem::route('/{record}/edit'),
         ];
     }
 }
