@@ -9,6 +9,7 @@ use App\Filament\Admin\Resources\CourseResource\Pages\Actions\CreateLessonAction
 use App\Filament\Admin\Resources\CourseResource\Pages\Actions\CreateSectionAction;
 use App\Filament\Admin\Resources\CourseResource\Pages\Actions\EditLessonAction;
 use App\Filament\Admin\Resources\CourseResource\Pages\Actions\EditSectionAction;
+use App\Domain\Training\Models\Course;
 use Filament\Actions;
 use Filament\Notifications\Notification;
 use Filament\Resources\Pages\Page;
@@ -24,18 +25,21 @@ class ManageCourseStudio extends Page
 
     public ?int $selectedLessonId = null;
 
+    public Course $record;
+
     public function mount(int | string $record): void
     {
-        $this->record = $this->resolveRecord($record);
-        
-        // Check authorization
+        // Check authorization first
         $user = auth()->user();
         if (!$user->isSuperAdmin() && !$user->hasRole('admin')) {
             abort(403);
         }
+
+        // Resolve the record
+        $this->record = Course::findOrFail($record);
     }
 
-    public function getRecord(): \App\Domain\Training\Models\Course
+    public function getRecord(): Course
     {
         return $this->record;
     }
