@@ -3,6 +3,7 @@
 namespace App\Filament\Admin\Widgets;
 
 use App\Domain\Training\Models\Course;
+use App\Support\Helpers\MultilingualHelper;
 use Filament\Tables\Table;
 use Filament\Widgets\TableWidget as BaseWidget;
 use Filament\Tables\Columns\TextColumn;
@@ -41,24 +42,12 @@ class LatestCoursesTableWidget extends BaseWidget
                 ->sortable(),
             TextColumn::make('name')
                 ->label(__('courses.name'))
-                ->formatStateUsing(function ($state) {
-                    if (empty($state) || !is_array($state)) {
-                        return is_string($state) ? $state : '';
-                    }
-                    $locale = app()->getLocale();
-                    return $state[$locale] ?? $state['ar'] ?? $state['en'] ?? '';
-                })
+                ->formatStateUsing(fn ($state) => MultilingualHelper::formatMultilingualField($state))
                 ->searchable()
                 ->sortable(),
             TextColumn::make('program.name')
                 ->label(__('courses.program'))
-                ->formatStateUsing(function ($state) {
-                    if (empty($state) || !is_array($state)) {
-                        return is_string($state) ? $state : 'N/A';
-                    }
-                    $locale = app()->getLocale();
-                    return $state[$locale] ?? $state['ar'] ?? $state['en'] ?? 'N/A';
-                })
+                ->formatStateUsing(fn ($state) => MultilingualHelper::formatMultilingualField($state) ?: 'N/A')
                 ->searchable()
                 ->sortable(),
             TextColumn::make('is_active')

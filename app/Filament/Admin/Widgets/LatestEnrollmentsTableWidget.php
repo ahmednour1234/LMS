@@ -3,6 +3,7 @@
 namespace App\Filament\Admin\Widgets;
 
 use App\Domain\Enrollment\Models\Enrollment;
+use App\Support\Helpers\MultilingualHelper;
 use Filament\Tables;
 use Filament\Tables\Table;
 use Filament\Widgets\TableWidget as BaseWidget;
@@ -35,13 +36,7 @@ class LatestEnrollmentsTableWidget extends BaseWidget
                     ->default('N/A'),
                 Tables\Columns\TextColumn::make('course.name')
                     ->label('Course')
-                    ->formatStateUsing(function ($state) {
-                        if (empty($state) || !is_array($state)) {
-                            return is_string($state) ? $state : '';
-                        }
-                        $locale = app()->getLocale();
-                        return $state[$locale] ?? $state['ar'] ?? $state['en'] ?? '';
-                    })
+                    ->formatStateUsing(fn ($state) => MultilingualHelper::formatMultilingualField($state))
                     ->searchable()
                     ->sortable(),
                 Tables\Columns\TextColumn::make('status')

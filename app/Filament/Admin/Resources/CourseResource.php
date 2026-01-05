@@ -6,6 +6,7 @@ use App\Domain\Training\Enums\DeliveryType;
 use App\Domain\Training\Models\Course;
 use App\Domain\Training\Models\Teacher;
 use App\Filament\Admin\Resources\CourseResource\Pages;
+use App\Support\Helpers\MultilingualHelper;
 use Filament\Forms;
 use Filament\Forms\Form;
 use Filament\Resources\Resource;
@@ -133,13 +134,7 @@ class CourseResource extends Resource
                     ->sortable()
                     ->label(__('courses.code')),
                 Tables\Columns\TextColumn::make('name')
-                    ->formatStateUsing(function ($state) {
-                        if (empty($state) || !is_array($state)) {
-                            return '';
-                        }
-                        $locale = app()->getLocale();
-                        return $state[$locale] ?? $state['ar'] ?? $state['en'] ?? '';
-                    })
+                    ->formatStateUsing(fn ($state) => MultilingualHelper::formatMultilingualField($state))
                     ->searchable()
                     ->sortable()
                     ->label(__('courses.name')),

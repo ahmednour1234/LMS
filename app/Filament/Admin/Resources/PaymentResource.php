@@ -5,6 +5,7 @@ namespace App\Filament\Admin\Resources;
 use App\Domain\Accounting\Models\Payment;
 use App\Filament\Admin\Resources\PaymentResource\Pages;
 use App\Filament\Concerns\HasTableExports;
+use App\Support\Helpers\MultilingualHelper;
 use Filament\Forms;
 use Filament\Forms\Form;
 use Filament\Resources\Resource;
@@ -131,13 +132,7 @@ class PaymentResource extends Resource
                     ->sortable()
                     ->label(__('payments.student')),
                 Tables\Columns\TextColumn::make('enrollment.course.name')
-                    ->formatStateUsing(function ($state) {
-                        if (empty($state) || !is_array($state)) {
-                            return is_string($state) ? $state : '';
-                        }
-                        $locale = app()->getLocale();
-                        return $state[$locale] ?? $state['ar'] ?? $state['en'] ?? '';
-                    })
+                    ->formatStateUsing(fn ($state) => MultilingualHelper::formatMultilingualField($state))
                     ->label(__('payments.course')),
                 Tables\Columns\TextColumn::make('amount')
                     ->money('SAR')

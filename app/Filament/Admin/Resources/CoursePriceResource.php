@@ -5,6 +5,7 @@ namespace App\Filament\Admin\Resources;
 use App\Domain\Training\Enums\DeliveryType;
 use App\Domain\Training\Models\CoursePrice;
 use App\Filament\Admin\Resources\CoursePriceResource\Pages;
+use App\Support\Helpers\MultilingualHelper;
 use Filament\Forms;
 use Filament\Forms\Form;
 use Filament\Resources\Resource;
@@ -105,13 +106,7 @@ class CoursePriceResource extends Resource
                     ->sortable()
                     ->label(__('course_prices.course')),
                 Tables\Columns\TextColumn::make('course.name')
-                    ->formatStateUsing(function ($state) {
-                        if (empty($state) || !is_array($state)) {
-                            return '';
-                        }
-                        $locale = app()->getLocale();
-                        return $state[$locale] ?? $state['ar'] ?? $state['en'] ?? '';
-                    })
+                    ->formatStateUsing(fn ($state) => MultilingualHelper::formatMultilingualField($state))
                     ->label(__('course_prices.course_name')),
                 Tables\Columns\TextColumn::make('branch.name')
                     ->sortable()

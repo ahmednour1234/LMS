@@ -4,6 +4,7 @@ namespace App\Filament\Admin\Resources;
 
 use App\Domain\Training\Models\Program;
 use App\Filament\Admin\Resources\ProgramResource\Pages;
+use App\Support\Helpers\MultilingualHelper;
 use Filament\Forms;
 use Filament\Forms\Form;
 use Filament\Resources\Resource;
@@ -101,13 +102,7 @@ class ProgramResource extends Resource
                     ->sortable()
                     ->label(__('programs.code')),
                 Tables\Columns\TextColumn::make('name')
-                    ->formatStateUsing(function ($state) {
-                        if (empty($state) || !is_array($state)) {
-                            return '';
-                        }
-                        $locale = app()->getLocale();
-                        return $state[$locale] ?? $state['ar'] ?? $state['en'] ?? '';
-                    })
+                    ->formatStateUsing(fn ($state) => MultilingualHelper::formatMultilingualField($state))
                     ->searchable()
                     ->sortable()
                     ->label(__('programs.name')),

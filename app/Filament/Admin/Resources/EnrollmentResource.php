@@ -7,6 +7,7 @@ use App\Enums\EnrollmentStatus;
 use App\Filament\Admin\Resources\EnrollmentResource\Pages;
 use App\Filament\Admin\Resources\EnrollmentResource\RelationManagers;
 use App\Filament\Concerns\HasTableExports;
+use App\Support\Helpers\MultilingualHelper;
 use Filament\Forms;
 use Filament\Forms\Form;
 use Filament\Resources\Resource;
@@ -152,13 +153,7 @@ class EnrollmentResource extends Resource
                     ->sortable()
                     ->label(__('enrollments.student')),
                 Tables\Columns\TextColumn::make('course.name')
-                    ->formatStateUsing(function ($state) {
-                        if (empty($state) || !is_array($state)) {
-                            return is_string($state) ? $state : '';
-                        }
-                        $locale = app()->getLocale();
-                        return $state[$locale] ?? $state['ar'] ?? $state['en'] ?? '';
-                    })
+                    ->formatStateUsing(fn ($state) => MultilingualHelper::formatMultilingualField($state))
                     ->searchable()
                     ->sortable()
                     ->label(__('enrollments.course')),
