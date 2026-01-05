@@ -60,7 +60,7 @@ class EnrollmentResource extends Resource
                     ->preload()
                     ->label(__('enrollments.user')),
                 Forms\Components\Select::make('course_id')
-                    ->relationship('course', 'code', fn (Builder $query) => {
+                    ->relationship('course', 'code', function (Builder $query) {
                         $user = auth()->user();
                         $query = $query->where('is_active', true);
                         if (!$user->isSuperAdmin()) {
@@ -75,11 +75,13 @@ class EnrollmentResource extends Resource
                         $name = is_array($course->name) ? ($course->name[app()->getLocale()] ?? $course->name['ar'] ?? '') : $course->name;
                         return $code . ' - ' . $name;
                     })
-                    ->searchable(fn ($query, $search) => $query->where(function ($q) use ($search) {
-                        $q->where('code', 'like', "%{$search}%")
-                          ->orWhereJsonContains('name->ar', $search)
-                          ->orWhereJsonContains('name->en', $search);
-                    }))
+                    ->searchable(function ($query, $search) {
+                        return $query->where(function ($q) use ($search) {
+                            $q->where('code', 'like', "%{$search}%")
+                              ->orWhereJsonContains('name->ar', $search)
+                              ->orWhereJsonContains('name->en', $search);
+                        });
+                    })
                     ->preload()
                     ->required()
                     ->label(__('enrollments.course')),
