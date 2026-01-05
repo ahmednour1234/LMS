@@ -208,6 +208,7 @@ class CourseResource extends Resource
             'create' => Pages\CreateCourse::route('/create'),
             'view' => Pages\ViewCourse::route('/{record}'),
             'edit' => Pages\EditCourse::route('/{record}/edit'),
+            'studio' => Pages\ManageCourseStudio::route('/{record}/studio'),
         ];
     }
 }
