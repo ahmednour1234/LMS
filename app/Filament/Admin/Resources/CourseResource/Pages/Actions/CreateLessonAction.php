@@ -30,10 +30,22 @@ class CreateLessonAction extends Action
                         return CourseSection::where('course_id', $course->id)
                             ->get()
                             ->mapWithKeys(function ($section) {
-                                $title = $section->title[app()->getLocale()] 
-                                    ?? $section->title['en'] 
-                                    ?? $section->title['ar'] 
-                                    ?? 'Untitled';
+                                $title = 'Untitled';
+                                if (is_array($section->title)) {
+                                    $locale = app()->getLocale();
+                                    $title = $section->title[$locale] 
+                                        ?? $section->title['en'] 
+                                        ?? $section->title['ar'] 
+                                        ?? null;
+                                    
+                                    // Ensure title is a non-empty string
+                                    if (empty($title) || !is_string($title)) {
+                                        $title = 'Untitled';
+                                    }
+                                } elseif ($section->title !== null && is_string($section->title)) {
+                                    $title = $section->title;
+                                }
+                                
                                 return [
                                     $section->id => (string) $title
                                 ];
