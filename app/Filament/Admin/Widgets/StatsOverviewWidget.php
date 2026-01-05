@@ -7,6 +7,9 @@ use App\Domain\Accounting\Models\ArInvoice;
 use App\Domain\Accounting\Models\Payment;
 use App\Domain\Accounting\Models\RevenueRecognition;
 use App\Domain\Enrollment\Models\Enrollment;
+use App\Domain\Enrollment\Models\Student;
+use App\Domain\Training\Models\Course;
+use App\Domain\Training\Models\Teacher;
 use Filament\Widgets\StatsOverviewWidget as BaseWidget;
 use Filament\Widgets\StatsOverviewWidget\Stat;
 use Illuminate\Support\Carbon;
@@ -25,6 +28,9 @@ class StatsOverviewWidget extends BaseWidget
             $this->getOverdueInstallmentsStat($branchId),
             $this->getArOpenAmountStat($branchId),
             $this->getRecognizedRevenueThisMonthStat($branchId),
+            $this->getTotalCoursesStat($branchId),
+            $this->getTotalStudentsStat($branchId),
+            $this->getTotalTeachersStat($branchId),
         ];
     }
 
@@ -116,6 +122,41 @@ class StatsOverviewWidget extends BaseWidget
             ->description('Revenue recognized this month')
             ->descriptionIcon('heroicon-m-chart-bar')
             ->color('success');
+    }
+
+    protected function getTotalCoursesStat(?int $branchId): Stat
+    {
+        $count = Course::where('is_active', true)
+            ->when($branchId, fn($query) => $query->where('branch_id', $branchId))
+            ->count();
+
+        return Stat::make(__('dashboard.stats.total_courses'), $count)
+            ->description(__('dashboard.stats.active_courses'))
+            ->descriptionIcon('heroicon-m-academic-cap')
+            ->color('primary');
+    }
+
+    protected function getTotalStudentsStat(?int $branchId): Stat
+    {
+        $count = Student::where('active', true)
+            ->when($branchId, fn($query) => $query->where('branch_id', $branchId))
+            ->count();
+
+        return Stat::make(__('dashboard.stats.total_students'), $count)
+            ->description(__('dashboard.stats.active_students'))
+            ->descriptionIcon('heroicon-m-user-group')
+            ->color('info');
+    }
+
+    protected function getTotalTeachersStat(?int $branchId): Stat
+    {
+        $count = Teacher::where('active', true)
+            ->count();
+
+        return Stat::make(__('dashboard.stats.total_teachers'), $count)
+            ->description(__('dashboard.stats.active_teachers'))
+            ->descriptionIcon('heroicon-m-user-circle')
+            ->color('warning');
     }
 }
 
