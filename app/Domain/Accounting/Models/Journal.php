@@ -29,6 +29,10 @@ class Journal extends Model
         'updated_by',
     ];
 
+    protected $attributes = [
+        'original_status' => null,
+    ];
+
     protected function casts(): array
     {
         return [
@@ -36,6 +40,58 @@ class Journal extends Model
             'status' => JournalStatus::class,
             'posted_at' => 'datetime',
         ];
+    }
+
+    protected static function boot()
+    {
+        parent::boot();
+
+        // Store original status when model is retrieved
+        static::retrieved(function ($journal) {
+            $journal->attributes['original_status'] = $journal->status;
+        });
+
+        // Prevent updating if originally posted
+        static::updating(function ($journal) {
+            $originalStatus = $journal->attributes['original_status'] ?? $journal->getOriginal('status');
+            
+            // Normalize status value for comparison
+            $originalValue = $originalStatus instanceof JournalStatus ? $originalStatus : JournalStatus::tryFrom($originalStatus ?? '');
+            $currentOriginal = $journal->getOriginal('status');
+            $currentOriginalValue = $currentOriginal instanceof JournalStatus ? $currentOriginal : JournalStatus::tryFrom($currentOriginal ?? '');
+            
+            // Check if it was posted when retrieved or in database
+            if ($originalValue === JournalStatus::POSTED || $currentOriginalValue === JournalStatus::POSTED) {
+                throw new \RuntimeException(
+                    'Cannot update a posted journal. Posted journals are immutable.'
+                );
+            }
+        });
+
+        // Prevent deleting if posted
+        static::deleting(function ($journal) {
+            $originalStatus = $journal->attributes['original_status'] ?? $journal->getOriginal('status');
+            $currentStatus = $journal->status;
+            
+            // Normalize status values for comparison
+            $originalValue = $originalStatus instanceof JournalStatus ? $originalStatus : JournalStatus::tryFrom($originalStatus ?? '');
+            $currentValue = $currentStatus instanceof JournalStatus ? $currentStatus : JournalStatus::tryFrom($currentStatus ?? '');
+            
+            // Check if it was posted when retrieved, in database, or currently
+            if ($originalValue === JournalStatus::POSTED || $currentValue === JournalStatus::POSTED) {
+                throw new \RuntimeException(
+                    'Cannot delete a posted journal. Posted journals are immutable.'
+                );
+            }
+        });
+    }
+
+    /**
+     * Get the original status when the model was retrieved
+     */
+    public function getOriginalStatusAttribute()
+    {
+        return $this->attributes['original_status'] ?? $this->getOriginal('status');
     }
 
     public function branch(): BelongsTo

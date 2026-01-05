@@ -2,6 +2,7 @@
 
 namespace App\Filament\Admin\Resources\JournalResource\Actions;
 
+use App\Domain\Accounting\Events\JournalPosted;
 use App\Domain\Accounting\Models\Journal;
 use App\Enums\JournalStatus;
 use Filament\Notifications\Notification;
@@ -70,6 +71,9 @@ class PostAction extends Action
                     'posted_by' => auth()->id(),
                     'posted_at' => now(),
                 ]);
+
+                // Fire event for audit logging
+                event(new JournalPosted($record));
             });
 
             Notification::make()

@@ -2,6 +2,7 @@
 
 namespace App\Domain\Accounting\Listeners;
 
+use App\Domain\Accounting\Events\InvoiceGenerated;
 use App\Domain\Accounting\Models\ArInvoice;
 use App\Domain\Enrollment\Events\EnrollmentCreated;
 use Illuminate\Contracts\Queue\ShouldQueue;
@@ -51,6 +52,9 @@ class CreateArInvoice implements ShouldQueue
         // Set initial due_amount in database (accessor will compute it when reading)
         $invoice->setAttribute('due_amount', $enrollment->total_amount);
         $invoice->save();
+
+        // Fire event for audit logging
+        event(new InvoiceGenerated($invoice));
 
         Log::info('AR invoice created for enrollment', [
             'enrollment_id' => $enrollment->id,

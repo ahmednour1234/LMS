@@ -221,12 +221,35 @@ class JournalResource extends Resource
                 VoidAction::make(),
                 PrintAction::make(),
                 Tables\Actions\EditAction::make()
-                    ->visible(fn (Journal $record) => $record->canBeEdited()),
+                    ->visible(fn (Journal $record) => $record->canBeEdited() && !$record->isPosted()),
             ])
             ->headerActions(static::getExportActions())
             ->bulkActions([
                 Tables\Actions\BulkActionGroup::make([
-                    Tables\Actions\DeleteBulkAction::make(),
+                    Tables\Actions\DeleteBulkAction::make()
+                        ->visible(fn () => true)
+                        ->requiresConfirmation()
+                        ->action(function ($records) {
+                            // Filter out posted journals
+                            $deletableRecords = $records->filter(fn (Journal $record) => !$record->isPosted());
+                            
+                            if ($deletableRecords->isEmpty()) {
+                                \Filament\Notifications\Notification::make()
+                                    ->warning()
+                                    ->title(__('journals.errors.cannot_delete_posted'))
+                                    ->send();
+                                return;
+                            }
+
+                            foreach ($deletableRecords as $record) {
+                                $record->delete();
+                            }
+
+                            \Filament\Notifications\Notification::make()
+                                ->success()
+                                ->title(__('journals.actions.deleted_success', ['count' => $deletableRecords->count()]))
+                                ->send();
+                        }),
                 ]),
             ]);
     }

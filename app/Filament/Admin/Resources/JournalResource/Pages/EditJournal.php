@@ -23,7 +23,7 @@ class EditJournal extends EditRecord
             VoidAction::make(),
             PrintAction::make(),
             Actions\DeleteAction::make()
-                ->visible(fn () => $this->record->canBeEdited()),
+                ->visible(fn () => $this->record->canBeEdited() && !$this->record->isPosted()),
         ];
     }
 
