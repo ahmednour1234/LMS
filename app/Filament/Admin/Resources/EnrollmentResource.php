@@ -51,7 +51,7 @@ class EnrollmentResource extends Resource
 
     /**
      * Resolve CoursePrice and update form fields
-     * 
+     *
      * @param Forms\Set $set
      * @param Forms\Get $get
      * @return void
@@ -70,6 +70,16 @@ class EnrollmentResource extends Resource
             return;
         }
 
+        // For onsite courses, branch_id is required before resolving price
+        if ($registrationType === 'onsite' && !$branchId) {
+            // Don't resolve price yet - wait for branch selection
+            $set('total_amount', 0);
+            $set('_allow_installments', false);
+            $set('_min_down_payment', null);
+            $set('_max_installments', null);
+            return;
+        }
+
         $pricingService = app(\App\Services\PricingService::class);
         $coursePrice = $pricingService->resolveCoursePrice($courseId, $branchId, $registrationType);
 
@@ -79,7 +89,7 @@ class EnrollmentResource extends Resource
             $set('_allow_installments', $allowInstallments);
             $set('_min_down_payment', $coursePrice->min_down_payment ? (float) $coursePrice->min_down_payment : null);
             $set('_max_installments', $coursePrice->max_installments);
-            
+
             // Reset pricing_type to 'full' if installment is selected but not allowed
             if ($get('pricing_type') === 'installment' && !$allowInstallments) {
                 $set('pricing_type', 'full');
@@ -143,10 +153,11 @@ class EnrollmentResource extends Resource
                             ->required()
                             ->reactive()
                             ->afterStateUpdated(function (Forms\Set $set, $state, Forms\Get $get) {
-                                // When course changes, set registration_type based on course delivery_type
+                                // When course changes, reset related fields and set registration_type
                                 if ($state) {
                                     $course = \App\Domain\Training\Models\Course::find($state);
                                     if ($course) {
+                                        // Set registration_type based on course delivery_type
                                         $registrationType = match ($course->delivery_type) {
                                             \App\Domain\Training\Enums\DeliveryType::Onsite => 'onsite',
                                             \App\Domain\Training\Enums\DeliveryType::Online => 'online',
@@ -155,10 +166,25 @@ class EnrollmentResource extends Resource
                                             default => 'online',
                                         };
                                         $set('registration_type', $registrationType);
-                                        // Resolve price - registration_type's afterStateUpdated will also trigger
-                                        self::resolveAndUpdatePrice($set, $get);
+
+                                        // Clear branch_id if switching from onsite to online
+                                        if ($registrationType === 'online') {
+                                            $set('branch_id', null);
+                                            // For online courses, resolve price immediately
+                                            self::resolveAndUpdatePrice($set, $get);
+                                        } else {
+                                            // For onsite courses, clear branch and pricing fields
+                                            // Price will be resolved when branch is selected
+                                            $set('branch_id', null);
+                                            $set('total_amount', 0);
+                                            $set('_allow_installments', false);
+                                            $set('_min_down_payment', null);
+                                            $set('_max_installments', null);
+                                        }
                                     }
                                 } else {
+                                    $set('registration_type', null);
+                                    $set('branch_id', null);
                                     $set('total_amount', 0);
                                     $set('_allow_installments', false);
                                     $set('_min_down_payment', null);
@@ -166,29 +192,9 @@ class EnrollmentResource extends Resource
                                 }
                             })
                             ->label(__('enrollments.course')),
-                        Forms\Components\Select::make('branch_id')
-                            ->relationship('branch', 'name')
-                            ->searchable()
-                            ->preload()
-                            ->reactive()
-                            ->required(function (Forms\Get $get) {
-                                // Required when registration_type is 'onsite'
-                                return $get('registration_type') === 'onsite';
-                            })
-                            ->afterStateUpdated(function (Forms\Set $set, Forms\Get $get) {
-                                // Resolve price when branch changes
-                                self::resolveAndUpdatePrice($set, $get);
-                            })
-                            ->visible(function (Forms\Get $get) {
-                                // Visible for super admin OR when registration_type is 'onsite'
-                                $isOnsite = $get('registration_type') === 'onsite';
-                                $isSuperAdmin = auth()->user()->isSuperAdmin();
-                                return $isSuperAdmin || $isOnsite;
-                            })
-                            ->label(__('enrollments.branch')),
                     ])
                     ->columns(2),
-                
+
                 Forms\Components\Section::make(__('enrollments.pricing_registration') ?? 'Pricing & Registration')
                     ->schema([
                         Forms\Components\Select::make('registration_type')
@@ -208,14 +214,124 @@ class EnrollmentResource extends Resource
                                 if (!$course) {
                                     return false;
                                 }
-                                // Only visible for hybrid courses (for non-hybrid, it's auto-set and hidden)
+                                // Show for hybrid courses (can choose), hide for others (auto-set)
                                 return $course->delivery_type === \App\Domain\Training\Enums\DeliveryType::Hybrid;
                             })
                             ->afterStateUpdated(function (Forms\Set $set, Forms\Get $get) {
+                                $registrationType = $get('registration_type');
+
+                                // Clear branch_id when switching to online
+                                if ($registrationType === 'online') {
+                                    $set('branch_id', null);
+                                }
+
                                 // Resolve price when registration_type changes
                                 self::resolveAndUpdatePrice($set, $get);
                             })
-                            ->label(__('enrollments.registration_type') ?? 'Registration Type'),
+                            ->label(__('enrollments.registration_type') ?? 'Registration Type')
+                            ->helperText(function (Forms\Get $get) {
+                                $courseId = $get('course_id');
+                                if (!$courseId) {
+                                    return null;
+                                }
+                                $course = \App\Domain\Training\Models\Course::find($courseId);
+                                if (!$course) {
+                                    return null;
+                                }
+
+                                // Show helper text for non-hybrid courses
+                                if ($course->delivery_type !== \App\Domain\Training\Enums\DeliveryType::Hybrid) {
+                                    $type = match($course->delivery_type) {
+                                        \App\Domain\Training\Enums\DeliveryType::Onsite => __('enrollments.registration_type_options.onsite') ?? 'Onsite',
+                                        \App\Domain\Training\Enums\DeliveryType::Online,
+                                        \App\Domain\Training\Enums\DeliveryType::Virtual => __('enrollments.registration_type_options.online') ?? 'Online',
+                                        default => 'Online',
+                                    };
+                                    return __('enrollments.auto_set_registration_type') ?? "Auto-set to: {$type}";
+                                }
+
+                                return null;
+                            }),
+                        Forms\Components\Select::make('branch_id')
+                            ->relationship(
+                                name: 'branch',
+                                titleAttribute: 'name',
+                                modifyQueryUsing: function (Builder $query, Forms\Get $get) {
+                                    $courseId = $get('course_id');
+                                    $registrationType = $get('registration_type') ?? 'online';
+
+                                    // If onsite is selected, filter branches by available course prices
+                                    if ($courseId && $registrationType === 'onsite') {
+                                        // Get branches that have prices for this course (onsite)
+                                        $availableBranchIds = \App\Domain\Training\Models\CoursePrice::where('course_id', $courseId)
+                                            ->where('delivery_type', \App\Domain\Training\Enums\DeliveryType::Onsite)
+                                            ->where('is_active', true)
+                                            ->whereNotNull('branch_id')
+                                            ->pluck('branch_id')
+                                            ->unique()
+                                            ->toArray();
+
+                                        if (!empty($availableBranchIds)) {
+                                            $query->whereIn('id', $availableBranchIds);
+                                        } else {
+                                            // No prices found, show all branches (validation will catch this)
+                                            $query->whereRaw('1 = 0'); // Empty result
+                                        }
+                                    }
+
+                                    // Apply user branch restriction if not super admin
+                                    $user = auth()->user();
+                                    if (!$user->isSuperAdmin()) {
+                                        $query->where('id', $user->branch_id);
+                                    }
+
+                                    return $query;
+                                }
+                            )
+                            ->searchable()
+                            ->preload()
+                            ->reactive()
+                            ->required(function (Forms\Get $get) {
+                                // Required when registration_type is 'onsite'
+                                return $get('registration_type') === 'onsite';
+                            })
+                            ->afterStateUpdated(function (Forms\Set $set, Forms\Get $get) {
+                                // For onsite courses, resolve price when branch is selected
+                                // For online courses, resolve price (branch is optional)
+                                self::resolveAndUpdatePrice($set, $get);
+                            })
+                            ->visible(function (Forms\Get $get) {
+                                $courseId = $get('course_id');
+                                $registrationType = $get('registration_type') ?? 'online';
+
+                                if (!$courseId) {
+                                    return false;
+                                }
+
+                                // Visible for super admin OR when registration_type is 'onsite'
+                                $isOnsite = $registrationType === 'onsite';
+                                $isSuperAdmin = auth()->user()->isSuperAdmin();
+
+                                return $isSuperAdmin || $isOnsite;
+                            })
+                            ->label(__('enrollments.branch'))
+                            ->helperText(function (Forms\Get $get) {
+                                $courseId = $get('course_id');
+                                $registrationType = $get('registration_type') ?? 'online';
+
+                                if ($courseId && $registrationType === 'onsite') {
+                                    return __('enrollments.branch_required_onsite') ?? 'Branch selection is required for onsite enrollment. Only branches with available pricing are shown.';
+                                }
+
+                                return null;
+                            })
+                            ->placeholder(function (Forms\Get $get) {
+                                $registrationType = $get('registration_type') ?? 'online';
+                                if ($registrationType === 'onsite') {
+                                    return __('enrollments.select_branch_for_pricing') ?? 'Select branch to see pricing';
+                                }
+                                return null;
+                            }),
                         Forms\Components\Select::make('pricing_type')
                             ->options([
                                 'full' => __('enrollments.pricing_type_options.full'),
@@ -240,18 +356,18 @@ class EnrollmentResource extends Resource
                                 $courseId = $get('course_id');
                                 $branchId = $get('branch_id');
                                 $registrationType = $get('registration_type') ?? 'online';
-                                
+
                                 if (!$courseId) {
                                     return null;
                                 }
-                                
+
                                 $pricingService = app(\App\Services\PricingService::class);
                                 $coursePrice = $pricingService->resolveCoursePrice($courseId, $branchId, $registrationType);
-                                
+
                                 if (!$coursePrice) {
                                     return __('enrollments.no_price_found_helper') ?? 'No active price found for this selection. Please configure pricing.';
                                 }
-                                
+
                                 return null;
                             }),
                         Forms\Components\Hidden::make('_allow_installments')
@@ -282,7 +398,7 @@ class EnrollmentResource extends Resource
                     ])
                     ->columns(2)
                     ->collapsible(),
-                
+
                 Forms\Components\Section::make(__('enrollments.enrollment_details') ?? 'Enrollment Details')
                     ->schema([
                         Forms\Components\Select::make('status')
@@ -418,7 +534,7 @@ class EnrollmentResource extends Resource
                         $publicUrl = route('public.enrollment.show', ['reference' => $record->reference]);
                         $qrCodeService = app(\App\Services\QrCodeService::class);
                         $qrCodeSvg = $qrCodeService->generateSvg($publicUrl);
-                        
+
                         return new \Illuminate\Support\HtmlString('
                             <div class="p-4">
                                 <div class="flex flex-col items-center space-y-4">
@@ -428,12 +544,12 @@ class EnrollmentResource extends Resource
                                     <div class="text-center w-full">
                                         <p class="text-sm font-medium mb-2">' . __('enrollments.public_link') . '</p>
                                         <div class="flex items-center space-x-2">
-                                            <input type="text" 
-                                                   value="' . htmlspecialchars($publicUrl) . '" 
-                                                   readonly 
+                                            <input type="text"
+                                                   value="' . htmlspecialchars($publicUrl) . '"
+                                                   readonly
                                                    class="flex-1 px-3 py-2 border rounded-md text-sm"
                                                    id="public-url-' . $record->reference . '">
-                                            <button onclick="navigator.clipboard.writeText(\'' . htmlspecialchars($publicUrl, ENT_QUOTES) . '\').then(() => alert(\'' . htmlspecialchars(__('enrollments.copied'), ENT_QUOTES) . '\'))" 
+                                            <button onclick="navigator.clipboard.writeText(\'' . htmlspecialchars($publicUrl, ENT_QUOTES) . '\').then(() => alert(\'' . htmlspecialchars(__('enrollments.copied'), ENT_QUOTES) . '\'))"
                                                     class="px-4 py-2 bg-primary-600 text-white rounded-md hover:bg-primary-700 text-sm">
                                                 ' . __('enrollments.copy') . '
                                             </button>
@@ -485,10 +601,10 @@ class EnrollmentResource extends Resource
                         \Illuminate\Support\Facades\DB::transaction(function () use ($record, $data) {
                             // Load relationships
                             $record->loadMissing(['student', 'user']);
-                            
+
                             // Determine user_id with explicit checks
                             $userId = null;
-                            
+
                             // Try enrollment user_id first
                             if (!empty($record->user_id)) {
                                 $userId = $record->user_id;
@@ -501,15 +617,15 @@ class EnrollmentResource extends Resource
                             else {
                                 $userId = auth()->id();
                             }
-                            
+
                             // Final safety check - must have a user_id
                             if (empty($userId)) {
                                 throw new \Exception('Unable to determine user for payment. Please ensure enrollment has a user or student has a user.');
                             }
-                            
+
                             // Determine branch_id
                             $branchId = $record->branch_id ?? auth()->user()->branch_id ?? null;
-                            
+
                             // Prepare payment data - ensure all required fields are set
                             $paymentData = [
                                 'enrollment_id' => $record->id,
@@ -523,14 +639,14 @@ class EnrollmentResource extends Resource
                                 'paid_at' => ($data['status'] ?? 'paid') === 'paid' ? now() : null,
                                 'created_by' => auth()->id(),
                             ];
-                            
+
                             // Final validation - user_id must be set
                             if (empty($paymentData['user_id'])) {
                                 throw new \Exception('Payment cannot be created: user_id is required but was not determined.');
                             }
-                            
+
                             $payment = \App\Domain\Accounting\Models\Payment::create($paymentData);
-                            
+
                             event(new \App\Domain\Accounting\Events\PaymentPaid($payment));
                         });
                     }),
@@ -546,7 +662,7 @@ class EnrollmentResource extends Resource
                                 'completed_at' => now(),
                                 'progress_percent' => 100,
                             ]);
-                            
+
                             event(new \App\Domain\Enrollment\Events\EnrollmentCompleted($record));
                         });
                     })
