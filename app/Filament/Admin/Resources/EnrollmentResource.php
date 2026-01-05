@@ -100,198 +100,214 @@ class EnrollmentResource extends Resource
     {
         return $form
             ->schema([
-                Forms\Components\TextInput::make('reference')
-                    ->disabled()
-                    ->dehydrated()
-                    ->label(__('enrollments.reference'))
-                    ->visible(fn ($record) => $record !== null),
-                Forms\Components\Select::make('student_id')
-                    ->relationship('student', 'name')
-                    ->searchable()
-                    ->preload()
-                    ->required()
-                    ->label(__('enrollments.student')),
-                Forms\Components\Select::make('user_id')
-                    ->relationship('user', 'name')
-                    ->searchable()
-                    ->preload()
-                    ->label(__('enrollments.user')),
-                Forms\Components\Select::make('course_id')
-                    ->relationship(
-                        name: 'course',
-                        titleAttribute: 'code',
-                        modifyQueryUsing: function (Builder $query) {
-                            $user = auth()->user();
-                            $query = $query->where('is_active', true);
-                            if (!$user->isSuperAdmin()) {
-                                $query->where('branch_id', $user->branch_id);
-                            }
-                            return $query;
-                        },
-                    )
-                    ->getOptionLabelUsing(function ($value) {
-                        $course = \App\Domain\Training\Models\Course::find($value);
-                        if (!$course) return '';
-                        $code = $course->code ?? '';
-                        $name = is_array($course->name) ? ($course->name[app()->getLocale()] ?? $course->name['ar'] ?? '') : $course->name;
-                        return $code . ' - ' . $name;
-                    })
-                    ->searchable()
-                    ->preload()
-                    ->required()
-                    ->reactive()
-                    ->afterStateUpdated(function (Forms\Set $set, $state, Forms\Get $get) {
-                        // When course changes, set registration_type based on course delivery_type
-                        if ($state) {
-                            $course = \App\Domain\Training\Models\Course::find($state);
-                            if ($course) {
-                                $registrationType = match ($course->delivery_type) {
-                                    \App\Domain\Training\Enums\DeliveryType::Onsite => 'onsite',
-                                    \App\Domain\Training\Enums\DeliveryType::Online => 'online',
-                                    \App\Domain\Training\Enums\DeliveryType::Virtual => 'online',
-                                    \App\Domain\Training\Enums\DeliveryType::Hybrid => 'online', // Default, can be changed
-                                    default => 'online',
-                                };
-                                $set('registration_type', $registrationType);
-                                // Resolve price - registration_type's afterStateUpdated will also trigger
+                Forms\Components\Section::make(__('enrollments.basic_information') ?? 'Basic Information')
+                    ->schema([
+                        Forms\Components\TextInput::make('reference')
+                            ->disabled()
+                            ->dehydrated()
+                            ->label(__('enrollments.reference'))
+                            ->visible(fn ($record) => $record !== null),
+                        Forms\Components\Select::make('student_id')
+                            ->relationship('student', 'name')
+                            ->searchable()
+                            ->preload()
+                            ->required()
+                            ->label(__('enrollments.student')),
+                        Forms\Components\Select::make('user_id')
+                            ->relationship('user', 'name')
+                            ->searchable()
+                            ->preload()
+                            ->label(__('enrollments.user')),
+                        Forms\Components\Select::make('course_id')
+                            ->relationship(
+                                name: 'course',
+                                titleAttribute: 'code',
+                                modifyQueryUsing: function (Builder $query) {
+                                    $user = auth()->user();
+                                    $query = $query->where('is_active', true);
+                                    if (!$user->isSuperAdmin()) {
+                                        $query->where('branch_id', $user->branch_id);
+                                    }
+                                    return $query;
+                                },
+                            )
+                            ->getOptionLabelUsing(function ($value) {
+                                $course = \App\Domain\Training\Models\Course::find($value);
+                                if (!$course) return '';
+                                $code = $course->code ?? '';
+                                $name = is_array($course->name) ? ($course->name[app()->getLocale()] ?? $course->name['ar'] ?? '') : $course->name;
+                                return $code . ' - ' . $name;
+                            })
+                            ->searchable()
+                            ->preload()
+                            ->required()
+                            ->reactive()
+                            ->afterStateUpdated(function (Forms\Set $set, $state, Forms\Get $get) {
+                                // When course changes, set registration_type based on course delivery_type
+                                if ($state) {
+                                    $course = \App\Domain\Training\Models\Course::find($state);
+                                    if ($course) {
+                                        $registrationType = match ($course->delivery_type) {
+                                            \App\Domain\Training\Enums\DeliveryType::Onsite => 'onsite',
+                                            \App\Domain\Training\Enums\DeliveryType::Online => 'online',
+                                            \App\Domain\Training\Enums\DeliveryType::Virtual => 'online',
+                                            \App\Domain\Training\Enums\DeliveryType::Hybrid => 'online', // Default, can be changed
+                                            default => 'online',
+                                        };
+                                        $set('registration_type', $registrationType);
+                                        // Resolve price - registration_type's afterStateUpdated will also trigger
+                                        self::resolveAndUpdatePrice($set, $get);
+                                    }
+                                } else {
+                                    $set('total_amount', 0);
+                                    $set('_allow_installments', false);
+                                    $set('_min_down_payment', null);
+                                    $set('_max_installments', null);
+                                }
+                            })
+                            ->label(__('enrollments.course')),
+                        Forms\Components\Select::make('branch_id')
+                            ->relationship('branch', 'name')
+                            ->searchable()
+                            ->preload()
+                            ->reactive()
+                            ->required(function (Forms\Get $get) {
+                                // Required when registration_type is 'onsite'
+                                return $get('registration_type') === 'onsite';
+                            })
+                            ->afterStateUpdated(function (Forms\Set $set, Forms\Get $get) {
+                                // Resolve price when branch changes
                                 self::resolveAndUpdatePrice($set, $get);
-                            }
-                        } else {
-                            $set('total_amount', 0);
-                            $set('_allow_installments', false);
-                            $set('_min_down_payment', null);
-                            $set('_max_installments', null);
-                        }
-                    })
-                    ->label(__('enrollments.course')),
-                Forms\Components\Select::make('pricing_type')
-                    ->options([
-                        'full' => __('enrollments.pricing_type_options.full'),
-                        'installment' => __('enrollments.pricing_type_options.installment'),
+                            })
+                            ->visible(function (Forms\Get $get) {
+                                // Visible for super admin OR when registration_type is 'onsite'
+                                $isOnsite = $get('registration_type') === 'onsite';
+                                $isSuperAdmin = auth()->user()->isSuperAdmin();
+                                return $isSuperAdmin || $isOnsite;
+                            })
+                            ->label(__('enrollments.branch')),
                     ])
-                    ->default('full')
-                    ->required()
-                    ->reactive()
-                    ->disabled(function (Forms\Get $get) {
-                        // Disable installment option if not allowed
-                        return $get('_allow_installments') === false;
-                    })
-                    ->label(__('enrollments.pricing_type')),
-                Forms\Components\Select::make('registration_type')
-                    ->options([
-                        'onsite' => __('enrollments.registration_type_options.onsite') ?? 'Onsite',
-                        'online' => __('enrollments.registration_type_options.online') ?? 'Online',
+                    ->columns(2),
+                
+                Forms\Components\Section::make(__('enrollments.pricing_registration') ?? 'Pricing & Registration')
+                    ->schema([
+                        Forms\Components\Select::make('registration_type')
+                            ->options([
+                                'onsite' => __('enrollments.registration_type_options.onsite') ?? 'Onsite',
+                                'online' => __('enrollments.registration_type_options.online') ?? 'Online',
+                            ])
+                            ->default('online')
+                            ->required()
+                            ->reactive()
+                            ->visible(function (Forms\Get $get) {
+                                $courseId = $get('course_id');
+                                if (!$courseId) {
+                                    return false;
+                                }
+                                $course = \App\Domain\Training\Models\Course::find($courseId);
+                                if (!$course) {
+                                    return false;
+                                }
+                                // Only visible for hybrid courses (for non-hybrid, it's auto-set and hidden)
+                                return $course->delivery_type === \App\Domain\Training\Enums\DeliveryType::Hybrid;
+                            })
+                            ->afterStateUpdated(function (Forms\Set $set, Forms\Get $get) {
+                                // Resolve price when registration_type changes
+                                self::resolveAndUpdatePrice($set, $get);
+                            })
+                            ->label(__('enrollments.registration_type') ?? 'Registration Type'),
+                        Forms\Components\Select::make('pricing_type')
+                            ->options([
+                                'full' => __('enrollments.pricing_type_options.full'),
+                                'installment' => __('enrollments.pricing_type_options.installment'),
+                            ])
+                            ->default('full')
+                            ->required()
+                            ->reactive()
+                            ->disabled(function (Forms\Get $get) {
+                                // Disable installment option if not allowed
+                                return $get('_allow_installments') === false;
+                            })
+                            ->label(__('enrollments.pricing_type')),
+                        Forms\Components\TextInput::make('total_amount')
+                            ->numeric()
+                            ->required()
+                            ->default(0)
+                            ->disabled()
+                            ->dehydrated()
+                            ->label(__('enrollments.total_amount'))
+                            ->helperText(function (Forms\Get $get) {
+                                $courseId = $get('course_id');
+                                $branchId = $get('branch_id');
+                                $registrationType = $get('registration_type') ?? 'online';
+                                
+                                if (!$courseId) {
+                                    return null;
+                                }
+                                
+                                $pricingService = app(\App\Services\PricingService::class);
+                                $coursePrice = $pricingService->resolveCoursePrice($courseId, $branchId, $registrationType);
+                                
+                                if (!$coursePrice) {
+                                    return __('enrollments.no_price_found_helper') ?? 'No active price found for this selection. Please configure pricing.';
+                                }
+                                
+                                return null;
+                            }),
+                        Forms\Components\Hidden::make('_allow_installments')
+                            ->default(false)
+                            ->dehydrated(false),
+                        Forms\Components\TextInput::make('_allow_installments_display')
+                            ->label(__('enrollments.allow_installments') ?? 'Allow Installments')
+                            ->disabled()
+                            ->dehydrated(false)
+                            ->formatStateUsing(fn ($state, Forms\Get $get) => $get('_allow_installments') ? __('Yes') : __('No'))
+                            ->visible(fn (Forms\Get $get) => $get('course_id') && $get('total_amount') > 0),
+                        Forms\Components\Hidden::make('_min_down_payment')
+                            ->dehydrated(false),
+                        Forms\Components\TextInput::make('_min_down_payment_display')
+                            ->label(__('enrollments.min_down_payment') ?? 'Min Down Payment')
+                            ->disabled()
+                            ->dehydrated(false)
+                            ->formatStateUsing(fn ($state, Forms\Get $get) => $get('_min_down_payment') ? number_format((float) $get('_min_down_payment'), 2) . ' SAR' : '-')
+                            ->visible(fn (Forms\Get $get) => $get('course_id') && $get('total_amount') > 0 && $get('_allow_installments')),
+                        Forms\Components\Hidden::make('_max_installments')
+                            ->dehydrated(false),
+                        Forms\Components\TextInput::make('_max_installments_display')
+                            ->label(__('enrollments.max_installments') ?? 'Max Installments')
+                            ->disabled()
+                            ->dehydrated(false)
+                            ->formatStateUsing(fn ($state, Forms\Get $get) => $get('_max_installments') ?? '-')
+                            ->visible(fn (Forms\Get $get) => $get('course_id') && $get('total_amount') > 0 && $get('_allow_installments')),
                     ])
-                    ->default('online')
-                    ->required()
-                    ->reactive()
-                    ->visible(function (Forms\Get $get) {
-                        $courseId = $get('course_id');
-                        if (!$courseId) {
-                            return false;
-                        }
-                        $course = \App\Domain\Training\Models\Course::find($courseId);
-                        if (!$course) {
-                            return false;
-                        }
-                        // Only visible for hybrid courses (for non-hybrid, it's auto-set and hidden)
-                        return $course->delivery_type === \App\Domain\Training\Enums\DeliveryType::Hybrid;
-                    })
-                    ->afterStateUpdated(function (Forms\Set $set, Forms\Get $get) {
-                        // Resolve price when registration_type changes
-                        self::resolveAndUpdatePrice($set, $get);
-                    })
-                    ->label(__('enrollments.registration_type') ?? 'Registration Type'),
-                Forms\Components\TextInput::make('total_amount')
-                    ->numeric()
-                    ->required()
-                    ->default(0)
-                    ->disabled()
-                    ->dehydrated()
-                    ->label(__('enrollments.total_amount'))
-                    ->helperText(function (Forms\Get $get) {
-                        $courseId = $get('course_id');
-                        $branchId = $get('branch_id');
-                        $registrationType = $get('registration_type') ?? 'online';
-                        
-                        if (!$courseId) {
-                            return null;
-                        }
-                        
-                        $pricingService = app(\App\Services\PricingService::class);
-                        $coursePrice = $pricingService->resolveCoursePrice($courseId, $branchId, $registrationType);
-                        
-                        if (!$coursePrice) {
-                            return __('enrollments.no_price_found_helper') ?? 'No active price found for this selection. Please configure pricing.';
-                        }
-                        
-                        return null;
-                    }),
-                Forms\Components\Hidden::make('_allow_installments')
-                    ->default(false)
-                    ->dehydrated(false),
-                Forms\Components\TextInput::make('_allow_installments_display')
-                    ->label(__('enrollments.allow_installments') ?? 'Allow Installments')
-                    ->disabled()
-                    ->dehydrated(false)
-                    ->formatStateUsing(fn ($state, Forms\Get $get) => $get('_allow_installments') ? __('Yes') : __('No'))
-                    ->visible(fn (Forms\Get $get) => $get('course_id') && $get('total_amount') > 0),
-                Forms\Components\TextInput::make('_min_down_payment_display')
-                    ->label(__('enrollments.min_down_payment') ?? 'Min Down Payment')
-                    ->disabled()
-                    ->dehydrated(false)
-                    ->formatStateUsing(fn ($state, Forms\Get $get) => $get('_min_down_payment') ? number_format((float) $get('_min_down_payment'), 2) . ' SAR' : '-')
-                    ->visible(fn (Forms\Get $get) => $get('course_id') && $get('total_amount') > 0 && $get('_allow_installments')),
-                Forms\Components\Hidden::make('_min_down_payment')
-                    ->dehydrated(false),
-                Forms\Components\TextInput::make('_max_installments_display')
-                    ->label(__('enrollments.max_installments') ?? 'Max Installments')
-                    ->disabled()
-                    ->dehydrated(false)
-                    ->formatStateUsing(fn ($state, Forms\Get $get) => $get('_max_installments') ?? '-')
-                    ->visible(fn (Forms\Get $get) => $get('course_id') && $get('total_amount') > 0 && $get('_allow_installments')),
-                Forms\Components\Hidden::make('_max_installments')
-                    ->dehydrated(false),
-                Forms\Components\TextInput::make('progress_percent')
-                    ->numeric()
-                    ->default(0)
-                    ->minValue(0)
-                    ->maxValue(100)
-                    ->label(__('enrollments.progress_percent')),
-                Forms\Components\Select::make('status')
-                    ->options([
-                        'pending' => __('enrollments.status_options.pending'),
-                        'active' => __('enrollments.status_options.active'),
-                        'completed' => __('enrollments.status_options.completed'),
-                        'cancelled' => __('enrollments.status_options.cancelled'),
+                    ->columns(2)
+                    ->collapsible(),
+                
+                Forms\Components\Section::make(__('enrollments.enrollment_details') ?? 'Enrollment Details')
+                    ->schema([
+                        Forms\Components\Select::make('status')
+                            ->options([
+                                'pending' => __('enrollments.status_options.pending'),
+                                'active' => __('enrollments.status_options.active'),
+                                'completed' => __('enrollments.status_options.completed'),
+                                'cancelled' => __('enrollments.status_options.cancelled'),
+                            ])
+                            ->default('pending')
+                            ->required()
+                            ->label(__('enrollments.status')),
+                        Forms\Components\TextInput::make('progress_percent')
+                            ->numeric()
+                            ->default(0)
+                            ->minValue(0)
+                            ->maxValue(100)
+                            ->label(__('enrollments.progress_percent')),
+                        Forms\Components\DateTimePicker::make('started_at')
+                            ->label(__('enrollments.started_at')),
+                        Forms\Components\DateTimePicker::make('completed_at')
+                            ->label(__('enrollments.completed_at')),
                     ])
-                    ->default('pending')
-                    ->required()
-                    ->label(__('enrollments.status')),
-                Forms\Components\DateTimePicker::make('started_at')
-                    ->label(__('enrollments.started_at')),
-                Forms\Components\DateTimePicker::make('completed_at')
-                    ->label(__('enrollments.completed_at')),
-                Forms\Components\Select::make('branch_id')
-                    ->relationship('branch', 'name')
-                    ->searchable()
-                    ->preload()
-                    ->reactive()
-                    ->required(function (Forms\Get $get) {
-                        // Required when registration_type is 'onsite'
-                        return $get('registration_type') === 'onsite';
-                    })
-                    ->afterStateUpdated(function (Forms\Set $set, Forms\Get $get) {
-                        // Resolve price when branch changes
-                        self::resolveAndUpdatePrice($set, $get);
-                    })
-                    ->visible(function (Forms\Get $get) {
-                        // Visible for super admin OR when registration_type is 'onsite'
-                        $isOnsite = $get('registration_type') === 'onsite';
-                        $isSuperAdmin = auth()->user()->isSuperAdmin();
-                        return $isSuperAdmin || $isOnsite;
-                    })
-                    ->label(__('enrollments.branch')),
+                    ->columns(2)
+                    ->collapsible(),
             ]);
     }
 
