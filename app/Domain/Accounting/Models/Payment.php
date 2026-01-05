@@ -56,7 +56,7 @@ class Payment extends Model
 
     public function installment(): BelongsTo
     {
-        return $this->belongsTo(ArInstallment::class);
+        return $this->belongsTo(ArInstallment::class, 'installment_id');
     }
 
     public function pdfInvoice(): HasOne
