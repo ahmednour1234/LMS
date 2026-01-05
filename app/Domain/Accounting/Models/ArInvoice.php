@@ -25,10 +25,15 @@ class ArInvoice extends Model
         'updated_by',
     ];
 
+    protected $guarded = [
+        'due_amount', // Computed field - cannot be mass assigned
+    ];
+
     protected function casts(): array
     {
         return [
             'total_amount' => 'decimal:2',
+            // Note: due_amount is computed via accessor, cast kept for backward compatibility but value is ignored
             'due_amount' => 'decimal:2',
             'status' => 'string',
             'issued_at' => 'datetime',
@@ -66,26 +71,68 @@ class ArInvoice extends Model
     }
 
     /**
-     * Calculate paid amount from payments on installments
+     * Calculate paid amount from payments directly by enrollment_id
+     * Formula: SUM(payments.amount WHERE status='paid' AND enrollment_id = ar_invoices.enrollment_id)
      */
     public function getPaidAmountAttribute(): float
     {
-        return $this->arInstallments()
-            ->with('payments')
-            ->get()
-            ->flatMap->payments
+        return (float) \App\Domain\Accounting\Models\Payment::where('enrollment_id', $this->enrollment_id)
             ->where('status', 'paid')
-            ->sum('amount');
+            ->sum('amount') ?? 0;
     }
 
     /**
      * Calculate due amount as total_amount - paid_amount
+     * Formula: total_amount - SUM(payments.amount WHERE status='paid' AND enrollment_id = ar_invoices.enrollment_id)
      * This is always computed and ignores the stored database value
      */
     public function getDueAmountAttribute(): float
     {
         $paidAmount = $this->getPaidAmountAttribute();
         return max(0, $this->total_amount - $paidAmount);
+    }
+
+    /**
+     * Update invoice status based on computed due_amount
+     * Status logic based on computed due_amount:
+     * - due_amount == total_amount -> 'open'
+     * - 0 < due_amount < total_amount -> 'partial'
+     * - due_amount == 0 -> 'paid'
+     */
+    public function updateStatus(): void
+    {
+        $dueAmount = $this->due_amount; // Uses computed accessor
+
+        if ($dueAmount == $this->total_amount) {
+            $status = 'open';
+        } elseif ($dueAmount > 0 && $dueAmount < $this->total_amount) {
+            $status = 'partial';
+        } else { // dueAmount == 0
+            $status = 'paid';
+        }
+
+        if ($this->status !== $status) {
+            $this->status = $status;
+            $this->save();
+        }
+    }
+
+    /**
+     * Boot method to register model events
+     */
+    protected static function boot(): void
+    {
+        parent::boot();
+
+        // Prevent direct updates to due_amount (but allow during creation)
+        static::updating(function ($invoice) {
+            // Check if due_amount is in the dirty attributes
+            if (array_key_exists('due_amount', $invoice->getDirty())) {
+                throw new \Illuminate\Database\Eloquent\MassAssignmentException(
+                    'due_amount is computed and cannot be updated directly. It is calculated as: total_amount - SUM(payments.amount WHERE status=\'paid\' AND enrollment_id matches)'
+                );
+            }
+        });
     }
 }
 

@@ -242,6 +242,7 @@ class ArInvoiceResource extends Resource
         return [
             'index' => Pages\ListArInvoices::route('/'),
             'view' => Pages\ViewArInvoice::route('/{record}'),
+            // Create and Edit pages removed - AR invoices are generated from enrollment only
         ];
     }
 }

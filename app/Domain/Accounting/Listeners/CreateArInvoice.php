@@ -7,6 +7,7 @@ use App\Domain\Accounting\Models\ArInvoice;
 use App\Domain\Enrollment\Events\EnrollmentCreated;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Queue\InteractsWithQueue;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 
 class CreateArInvoice implements ShouldQueue
@@ -38,7 +39,7 @@ class CreateArInvoice implements ShouldQueue
 
         // Create AR invoice
         // Note: due_amount is computed automatically via accessor (total_amount - paid_amount)
-        // We set an initial value in the database, but the accessor will override it when reading
+        // The accessor will always compute it correctly when reading, so we don't need to set it
         $invoice = ArInvoice::create([
             'enrollment_id' => $enrollment->id,
             'user_id' => $enrollment->user_id, // Student user_id
@@ -49,9 +50,11 @@ class CreateArInvoice implements ShouldQueue
             'created_by' => $enrollment->created_by,
         ]);
 
-        // Set initial due_amount in database (accessor will compute it when reading)
-        $invoice->setAttribute('due_amount', $enrollment->total_amount);
-        $invoice->save();
+        // Set initial due_amount in database using raw query (bypasses model accessor)
+        // This is for database consistency, but the accessor will always compute it correctly when reading
+        DB::table('ar_invoices')
+            ->where('id', $invoice->id)
+            ->update(['due_amount' => $enrollment->total_amount]);
 
         // Fire event for audit logging
         event(new InvoiceGenerated($invoice));

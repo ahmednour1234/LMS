@@ -25,19 +25,35 @@ class PostDeferredRevenue implements ShouldQueue
         // Idempotency check: skip if journal already exists
         $existingJournal = Journal::where('reference_type', 'enrollment')
             ->where('reference_id', $enrollment->id)
+            ->whereHas('journalLines', function ($query) {
+                $query->whereHas('account', function ($q) {
+                    $q->where('code', '1130'); // Accounts Receivable
+                })->where('debit', '>', 0);
+            })
             ->first();
 
         if ($existingJournal) {
-            Log::info('Deferred revenue journal already exists for enrollment', [
+            Log::info('Enrollment creation journal already exists', [
                 'enrollment_id' => $enrollment->id,
                 'journal_id' => $existingJournal->id,
             ]);
             return;
         }
 
-        // Note: This listener may not post anything if payment not yet received
-        // Deferred revenue is typically posted when payment is received (PaymentPaid event)
-        // This listener is kept for potential future use or if enrollment includes payment amount
+        // Post journal: Dr AR (1130) / Cr Deferred Revenue (2130)
+        $this->accountingService->postEnrollmentCreated(
+            amount: (float) $enrollment->total_amount,
+            referenceType: 'enrollment',
+            referenceId: $enrollment->id,
+            branchId: $enrollment->branch_id,
+            description: "Enrollment created: {$enrollment->reference}",
+            user: $enrollment->creator
+        );
+
+        Log::info('Enrollment creation journal posted', [
+            'enrollment_id' => $enrollment->id,
+            'amount' => $enrollment->total_amount,
+        ]);
     }
 }
 

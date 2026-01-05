@@ -3,6 +3,7 @@
 namespace App\Domain\Accounting\Services;
 
 use App\Domain\Accounting\Models\Account;
+use App\Domain\Accounting\Models\ArInvoice;
 use App\Domain\Accounting\Models\Journal;
 use App\Domain\Accounting\Models\JournalLine;
 use App\Enums\JournalStatus;
@@ -12,8 +13,7 @@ use Illuminate\Support\Str;
 
 class AccountingService
 {
-    public function postPayment(
-        string $accountCode,
+    public function postEnrollmentCreated(
         float $amount,
         string $referenceType,
         int $referenceId,
@@ -21,10 +21,60 @@ class AccountingService
         ?string $description = null,
         ?User $user = null
     ): Journal {
-        $account = $this->findAccountByCode($accountCode);
+        $arAccount = $this->findAccountByCode('1130');
         $deferredRevenue = $this->findAccountByCode('2130');
 
-        return DB::transaction(function () use ($account, $deferredRevenue, $amount, $referenceType, $referenceId, $branchId, $description, $user) {
+        $this->validateJournalBalance([$amount], [$amount]);
+
+        return DB::transaction(function () use ($arAccount, $deferredRevenue, $amount, $referenceType, $referenceId, $branchId, $description, $user) {
+            $journal = Journal::create([
+                'reference' => $this->generateReference($referenceType, $referenceId),
+                'reference_type' => $referenceType,
+                'reference_id' => $referenceId,
+                'date' => now(),
+                'description' => $description ?? "Enrollment created: AR invoice",
+                'status' => JournalStatus::POSTED,
+                'branch_id' => $branchId,
+                'posted_at' => now(),
+                'created_by' => $user?->id,
+            ]);
+
+            JournalLine::create([
+                'journal_id' => $journal->id,
+                'account_id' => $arAccount->id,
+                'debit' => $amount,
+                'credit' => 0,
+                'description' => "Accounts Receivable",
+            ]);
+
+            JournalLine::create([
+                'journal_id' => $journal->id,
+                'account_id' => $deferredRevenue->id,
+                'debit' => 0,
+                'credit' => $amount,
+                'description' => "Deferred Revenue",
+            ]);
+
+            return $journal;
+        });
+    }
+
+    public function postPayment(
+        string $accountCode,
+        float $amount,
+        string $referenceType,
+        int $referenceId,
+        ?int $branchId = null,
+        ?string $description = null,
+        ?User $user = null,
+        ?int $arInvoiceId = null
+    ): Journal {
+        $account = $this->findAccountByCode($accountCode);
+        $arAccount = $this->findAccountByCode('1130');
+
+        $this->validateJournalBalance([$amount], [$amount]);
+
+        return DB::transaction(function () use ($account, $arAccount, $amount, $referenceType, $referenceId, $branchId, $description, $user, $arInvoiceId) {
             $journal = Journal::create([
                 'reference' => $this->generateReference($referenceType, $referenceId),
                 'reference_type' => $referenceType,
@@ -47,11 +97,16 @@ class AccountingService
 
             JournalLine::create([
                 'journal_id' => $journal->id,
-                'account_id' => $deferredRevenue->id,
+                'account_id' => $arAccount->id,
                 'debit' => 0,
                 'credit' => $amount,
-                'description' => "Deferred revenue",
+                'description' => "Accounts Receivable",
             ]);
+
+            // Update AR invoice status if invoice ID provided
+            if ($arInvoiceId) {
+                $this->updateArInvoiceStatus($arInvoiceId);
+            }
 
             return $journal;
         });
@@ -67,6 +122,8 @@ class AccountingService
     ): Journal {
         $deferredRevenue = $this->findAccountByCode('2130');
         $trainingRevenue = $this->findAccountByCode('4110');
+
+        $this->validateJournalBalance([$amount], [$amount]);
 
         return DB::transaction(function () use ($deferredRevenue, $trainingRevenue, $amount, $referenceType, $referenceId, $branchId, $description, $user) {
             $journal = Journal::create([
@@ -112,6 +169,8 @@ class AccountingService
     ): Journal {
         $account = $this->findAccountByCode($accountCode);
         $deferredRevenue = $this->findAccountByCode('2130');
+
+        $this->validateJournalBalance([$amount], [$amount]);
 
         return DB::transaction(function () use ($account, $deferredRevenue, $amount, $referenceType, $referenceId, $branchId, $description, $user) {
             $journal = Journal::create([
@@ -160,6 +219,8 @@ class AccountingService
         $expenseAccount = $this->findAccountByCode($expenseAccountCode);
         $paymentAccount = $this->findAccountByCode($paymentAccountCode);
 
+        $this->validateJournalBalance([$amount], [$amount]);
+
         return DB::transaction(function () use ($expenseAccount, $paymentAccount, $amount, $referenceType, $referenceId, $branchId, $description, $costCenterId, $user) {
             $journal = Journal::create([
                 'reference' => $this->generateReference($referenceType, $referenceId),
@@ -206,9 +267,10 @@ class AccountingService
         $totalDebit = array_sum(array_column($debits, 'amount'));
         $totalCredit = array_sum(array_column($credits, 'amount'));
 
-        if (abs($totalDebit - $totalCredit) > 0.01) {
-            throw new \InvalidArgumentException('Debit and credit totals must be equal');
-        }
+        $this->validateJournalBalance(
+            array_column($debits, 'amount'),
+            array_column($credits, 'amount')
+        );
 
         return DB::transaction(function () use ($debits, $credits, $referenceType, $referenceId, $branchId, $description, $user) {
             $journal = Journal::create([
@@ -262,6 +324,8 @@ class AccountingService
         $sourceAccount = $this->findAccountByCode($sourceAccountCode);
         $destinationAccount = $this->findAccountByCode($destinationAccountCode);
 
+        $this->validateJournalBalance([$amount], [$amount]);
+
         return DB::transaction(function () use ($sourceAccount, $destinationAccount, $amount, $referenceType, $referenceId, $branchId, $description, $user) {
             $journal = Journal::create([
                 'reference' => $this->generateReference($referenceType, $referenceId),
@@ -310,6 +374,40 @@ class AccountingService
     {
         $prefix = strtoupper(Str::snake($referenceType));
         return "{$prefix}-{$referenceId}-" . now()->format('YmdHis');
+    }
+
+    /**
+     * Validate that journal debits and credits are balanced
+     *
+     * @param array<float> $debits
+     * @param array<float> $credits
+     * @throws \InvalidArgumentException
+     */
+    protected function validateJournalBalance(array $debits, array $credits): void
+    {
+        $totalDebit = array_sum($debits);
+        $totalCredit = array_sum($credits);
+
+        if (abs($totalDebit - $totalCredit) > 0.01) {
+            throw new \InvalidArgumentException(
+                "Journal is not balanced: Debits ({$totalDebit}) must equal Credits ({$totalCredit})"
+            );
+        }
+    }
+
+    /**
+     * Update AR invoice status based on paid amount
+     *
+     * @param int $arInvoiceId
+     */
+    protected function updateArInvoiceStatus(int $arInvoiceId): void
+    {
+        $invoice = ArInvoice::find($arInvoiceId);
+        if (!$invoice) {
+            return;
+        }
+
+        $invoice->updateStatus();
     }
 }
 

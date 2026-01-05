@@ -3,12 +3,14 @@
 namespace App\Providers;
 
 use App\Domain\Accounting\Models\Account;
+use App\Domain\Accounting\Models\ArInvoice;
 use App\Domain\Accounting\Models\Category;
 use App\Domain\Accounting\Models\CostCenter;
 use App\Domain\Accounting\Models\Journal;
 use App\Domain\Accounting\Models\JournalLine;
 use App\Domain\Accounting\Models\PaymentMethod;
 use App\Domain\Accounting\Policies\AccountPolicy;
+use App\Domain\Accounting\Policies\ArInvoicePolicy;
 use App\Domain\Accounting\Policies\CategoryPolicy;
 use App\Domain\Accounting\Policies\CostCenterPolicy;
 use App\Domain\Accounting\Policies\JournalLinePolicy;
@@ -41,6 +43,7 @@ class AuthServiceProvider extends ServiceProvider
         Category::class => CategoryPolicy::class,
         CostCenter::class => CostCenterPolicy::class,
         PaymentMethod::class => PaymentMethodPolicy::class,
+        ArInvoice::class => ArInvoicePolicy::class,
         MediaFile::class => MediaFilePolicy::class,
         Setting::class => SettingPolicy::class,
     ];

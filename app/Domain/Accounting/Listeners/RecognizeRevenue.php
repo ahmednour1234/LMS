@@ -45,14 +45,13 @@ class RecognizeRevenue implements ShouldQueue
             }
         }
 
-        // Get amount from enrollment or related payment
-        // For now, assuming enrollment has amount or we need to fetch from payment
-        // This may need adjustment based on your data model
-        $amount = 0; // TODO: Get amount from enrollment or payment relationship
+        // Get amount from enrollment total_amount
+        $amount = (float) $enrollment->total_amount;
 
         if ($amount <= 0) {
             Log::warning('Cannot recognize revenue: amount is zero or negative', [
                 'enrollment_id' => $enrollment->id,
+                'total_amount' => $amount,
             ]);
             return;
         }
