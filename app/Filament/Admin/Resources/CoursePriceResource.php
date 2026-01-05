@@ -113,7 +113,13 @@ class CoursePriceResource extends Resource
                     ->placeholder(__('course_prices.global'))
                     ->visible(fn () => auth()->user()->isSuperAdmin()),
                 Tables\Columns\TextColumn::make('delivery_type')
-                    ->formatStateUsing(fn ($state) => $state ? __('course_prices.delivery_type_options.' . $state) : __('course_prices.all_delivery_types'))
+                    ->formatStateUsing(function ($state) {
+                        if (!$state) {
+                            return __('course_prices.all_delivery_types');
+                        }
+                        $value = $state instanceof DeliveryType ? $state->value : (string) $state;
+                        return __('course_prices.delivery_type_options.' . $value);
+                    })
                     ->badge()
                     ->label(__('course_prices.delivery_type')),
                 Tables\Columns\TextColumn::make('price')

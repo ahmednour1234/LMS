@@ -29,15 +29,10 @@ class ManageCourseStudio extends Page
         $this->record = $this->resolveRecord($record);
         
         // Check authorization
-        if (!$this->canAccess()) {
+        $user = auth()->user();
+        if (!$user->isSuperAdmin() && !$user->hasRole('admin')) {
             abort(403);
         }
-    }
-
-    public function canAccess(): bool
-    {
-        $user = auth()->user();
-        return $user->isSuperAdmin() || $user->hasRole('admin');
     }
 
     public function getRecord(): \App\Domain\Training\Models\Course
