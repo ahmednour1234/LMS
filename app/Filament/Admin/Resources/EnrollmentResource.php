@@ -177,8 +177,8 @@ class EnrollmentResource extends Resource
                     ->label(__('enrollments.pricing_type')),
                 Forms\Components\Select::make('registration_type')
                     ->options([
-                        'onsite' => __('enrollments.registration_type_options.onsite'),
-                        'online' => __('enrollments.registration_type_options.online'),
+                        'onsite' => __('enrollments.registration_type_options.onsite') ?? 'Onsite',
+                        'online' => __('enrollments.registration_type_options.online') ?? 'Online',
                     ])
                     ->default('online')
                     ->required()
@@ -192,26 +192,14 @@ class EnrollmentResource extends Resource
                         if (!$course) {
                             return false;
                         }
-                        // Only visible for hybrid courses
+                        // Only visible for hybrid courses (for non-hybrid, it's auto-set and hidden)
                         return $course->delivery_type === \App\Domain\Training\Enums\DeliveryType::Hybrid;
-                    })
-                    ->disabled(function (Forms\Get $get) {
-                        $courseId = $get('course_id');
-                        if (!$courseId) {
-                            return false;
-                        }
-                        $course = \App\Domain\Training\Models\Course::find($courseId);
-                        if (!$course) {
-                            return false;
-                        }
-                        // Disabled (read-only) for non-hybrid courses
-                        return $course->delivery_type !== \App\Domain\Training\Enums\DeliveryType::Hybrid;
                     })
                     ->afterStateUpdated(function (Forms\Set $set, Forms\Get $get) {
                         // Recalculate total_amount when registration_type changes
                         $set('total_amount', self::calculateTotalAmount($get));
                     })
-                    ->label(__('enrollments.registration_type')),
+                    ->label(__('enrollments.registration_type') ?? 'Registration Type'),
                 Forms\Components\TextInput::make('total_amount')
                     ->numeric()
                     ->required()
