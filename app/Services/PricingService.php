@@ -71,54 +71,112 @@ class PricingService
     }
 
     /**
-     * Resolve CoursePrice model based on course_id, branch_id, and delivery_type
+     * Resolve CoursePrice model based on course_id, branch_id, and registration_type
+     * Follows priority rules with fallbacks
+     * 
+     * Priority (tried in order):
+     * 1) Exact match: course_id + branch_id + delivery_type + is_active=1
+     * 2) Fallback: course_id + branch_id + delivery_type NULL + is_active=1
+     * 3) Fallback: course_id + branch_id NULL + delivery_type + is_active=1
+     * 4) Fallback: course_id + branch_id NULL + delivery_type NULL + is_active=1
+     * 
+     * Note: For onsite, branch_id is required (validation should enforce this before calling)
      * 
      * @param int $courseId
      * @param int|null $branchId
-     * @param string $deliveryType 'onsite' or 'online' (from registration_type)
+     * @param string $registrationType 'onsite' or 'online'
      * @return CoursePrice|null
      */
     public function resolveCoursePrice(
         int $courseId,
         ?int $branchId,
-        string $deliveryType
+        string $registrationType
     ): ?CoursePrice {
-        // Map registration_type/delivery_type to CoursePrice delivery_type enum values
-        $deliveryTypeEnums = match ($deliveryType) {
+        // Validate registration_type
+        if (!in_array($registrationType, ['onsite', 'online'])) {
+            throw new \InvalidArgumentException("Invalid registration_type: {$registrationType}. Must be 'onsite' or 'online'.");
+        }
+
+        // Map registration_type to delivery_type enum values
+        // 'online' registration_type can match both Online and Virtual delivery types
+        $deliveryTypeEnums = match ($registrationType) {
             'onsite' => [DeliveryType::Onsite],
             'online' => [DeliveryType::Online, DeliveryType::Virtual],
-            default => throw new \InvalidArgumentException("Invalid delivery_type: {$deliveryType}"),
+            default => throw new \InvalidArgumentException("Invalid registration_type: {$registrationType}"),
         };
 
-        // Build query for CoursePrice
-        $query = CoursePrice::where('course_id', $courseId)
-            ->whereIn('delivery_type', $deliveryTypeEnums)
-            ->where('is_active', true);
+        // Priority 1: Exact match - course_id + branch_id + delivery_type + is_active=1
+        if ($branchId) {
+            foreach ($deliveryTypeEnums as $deliveryTypeEnum) {
+                $price = CoursePrice::where('course_id', $courseId)
+                    ->where('branch_id', $branchId)
+                    ->where('delivery_type', $deliveryTypeEnum)
+                    ->where('is_active', true)
+                    ->first();
 
-        // Branch matching logic:
-        // - For onsite: require branch_id, no NULL fallback
-        // - For online: allow NULL branch_id fallback
-        if ($deliveryType === 'onsite') {
-            // Onsite requires branch_id - no fallback to NULL
-            if ($branchId) {
-                $query->where('branch_id', $branchId);
-            } else {
-                // No branch_id for onsite - return null (validation will catch this)
-                return null;
+                if ($price) {
+                    return $price;
+                }
             }
-        } else {
-            // Online allows NULL branch_id fallback
-            if ($branchId) {
-                $query->where(function ($q) use ($branchId) {
-                    $q->where('branch_id', $branchId)
-                      ->orWhereNull('branch_id');
-                })->orderByRaw('CASE WHEN branch_id IS NOT NULL THEN 0 ELSE 1 END'); // Prefer branch-specific
-            } else {
-                $query->whereNull('branch_id');
+
+            // Priority 2: course_id + branch_id + delivery_type NULL + is_active=1
+            $price = CoursePrice::where('course_id', $courseId)
+                ->where('branch_id', $branchId)
+                ->whereNull('delivery_type')
+                ->where('is_active', true)
+                ->first();
+
+            if ($price) {
+                return $price;
             }
         }
 
-        return $query->first();
+        // Priority 3: course_id + branch_id NULL + delivery_type + is_active=1
+        foreach ($deliveryTypeEnums as $deliveryTypeEnum) {
+            $price = CoursePrice::where('course_id', $courseId)
+                ->whereNull('branch_id')
+                ->where('delivery_type', $deliveryTypeEnum)
+                ->where('is_active', true)
+                ->first();
+
+            if ($price) {
+                return $price;
+            }
+        }
+
+        // Priority 4: course_id + branch_id NULL + delivery_type NULL + is_active=1 (global fallback)
+        $price = CoursePrice::where('course_id', $courseId)
+            ->whereNull('branch_id')
+            ->whereNull('delivery_type')
+            ->where('is_active', true)
+            ->first();
+
+        return $price;
+    }
+
+    /**
+     * Get enrollment amount from resolved CoursePrice
+     * 
+     * @param int $courseId
+     * @param int|null $branchId
+     * @param string $registrationType
+     * @return float
+     * @throws \Illuminate\Validation\ValidationException
+     */
+    public function getEnrollmentAmount(
+        int $courseId,
+        ?int $branchId,
+        string $registrationType
+    ): float {
+        $coursePrice = $this->resolveCoursePrice($courseId, $branchId, $registrationType);
+
+        if (!$coursePrice) {
+            throw \Illuminate\Validation\ValidationException::withMessages([
+                'course_id' => 'No active course price found for this course/branch/delivery type combination.',
+            ]);
+        }
+
+        return (float) $coursePrice->price;
     }
 }
 
