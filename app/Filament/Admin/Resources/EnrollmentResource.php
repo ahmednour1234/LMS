@@ -806,6 +806,63 @@ class EnrollmentResource extends Resource
                             event(new \App\Domain\Accounting\Events\PaymentPaid($payment));
                         });
                     }),
+                Tables\Actions\Action::make('generate_ar_invoice')
+                    ->label(__('ar_invoices.generate_invoice') ?? 'Generate AR Invoice')
+                    ->icon('heroicon-o-document-text')
+                    ->color('warning')
+                    ->requiresConfirmation()
+                    ->modalHeading(__('ar_invoices.generate_invoice') ?? 'Generate AR Invoice')
+                    ->modalDescription(__('ar_invoices.generate_invoice_description') ?? 'This will create an AR invoice for this enrollment if one does not exist.')
+                    ->visible(fn (Enrollment $record) => !$record->arInvoice)
+                    ->action(function (Enrollment $record) {
+                        \Illuminate\Support\Facades\DB::transaction(function () use ($record) {
+                            // Check if AR invoice already exists
+                            $existingInvoice = \App\Domain\Accounting\Models\ArInvoice::where('enrollment_id', $record->id)->first();
+                            
+                            if ($existingInvoice) {
+                                \Filament\Notifications\Notification::make()
+                                    ->title(__('ar_invoices.invoice_already_exists') ?? 'AR Invoice already exists')
+                                    ->warning()
+                                    ->send();
+                                return;
+                            }
+
+                            // Ensure enrollment has user_id
+                            if (empty($record->user_id)) {
+                                \Filament\Notifications\Notification::make()
+                                    ->title(__('ar_invoices.missing_user_id') ?? 'Cannot create AR invoice')
+                                    ->body(__('ar_invoices.missing_user_id_description') ?? 'Enrollment is missing user_id. Please update the enrollment with a user.')
+                                    ->danger()
+                                    ->send();
+                                return;
+                            }
+
+                            // Create AR invoice
+                            $invoice = \App\Domain\Accounting\Models\ArInvoice::create([
+                                'enrollment_id' => $record->id,
+                                'user_id' => $record->user_id,
+                                'branch_id' => $record->branch_id,
+                                'total_amount' => $record->total_amount,
+                                'status' => 'open',
+                                'issued_at' => now(),
+                                'created_by' => $record->created_by ?? auth()->id(),
+                            ]);
+
+                            // Set initial due_amount in database
+                            \Illuminate\Support\Facades\DB::table('ar_invoices')
+                                ->where('id', $invoice->id)
+                                ->update(['due_amount' => $record->total_amount]);
+
+                            // Fire event for audit logging
+                            event(new \App\Domain\Accounting\Events\InvoiceGenerated($invoice));
+
+                            \Filament\Notifications\Notification::make()
+                                ->title(__('ar_invoices.invoice_created') ?? 'AR Invoice Created')
+                                ->body(__('ar_invoices.invoice_created_description', ['id' => $invoice->id]) ?? "AR Invoice #{$invoice->id} has been created successfully.")
+                                ->success()
+                                ->send();
+                        });
+                    }),
                 Tables\Actions\Action::make('mark_completed')
                     ->label(__('enrollments.actions.mark_completed'))
                     ->icon('heroicon-o-check-circle')
