@@ -3,6 +3,8 @@
 namespace App\Filament\Admin\Resources;
 
 use App\Domain\Enrollment\Models\Enrollment;
+use App\Domain\Enrollment\Services\EnrollmentPriceCalculator;
+use App\Enums\EnrollmentMode;
 use App\Enums\EnrollmentStatus;
 use App\Filament\Admin\Resources\EnrollmentResource\Pages;
 use App\Filament\Admin\Resources\EnrollmentResource\RelationManagers;
@@ -50,7 +52,7 @@ class EnrollmentResource extends Resource
     }
 
     /**
-     * Resolve CoursePrice and update form fields
+     * Resolve CoursePrice and calculate price using EnrollmentPriceCalculator
      *
      * @param Forms\Set $set
      * @param Forms\Get $get
@@ -60,49 +62,52 @@ class EnrollmentResource extends Resource
     {
         $courseId = $get('course_id');
         $branchId = $get('branch_id');
-        $registrationType = $get('registration_type') ?? 'online';
+        $deliveryType = $get('delivery_type') ?? 'online';
+        $enrollmentMode = $get('enrollment_mode');
+        $sessionsPurchased = $get('sessions_purchased');
 
         if (!$courseId) {
             $set('total_amount', 0);
-            $set('_allow_installments', false);
-            $set('_min_down_payment', null);
-            $set('_max_installments', null);
+            $set('_course_price', null);
+            $set('_allowed_modes', []);
             return;
         }
 
         // For onsite courses, branch_id is required before resolving price
-        if ($registrationType === 'onsite' && !$branchId) {
-            // Don't resolve price yet - wait for branch selection
+        if ($deliveryType === 'onsite' && !$branchId) {
             $set('total_amount', 0);
-            $set('_allow_installments', false);
-            $set('_min_down_payment', null);
-            $set('_max_installments', null);
+            $set('_course_price', null);
+            $set('_allowed_modes', []);
             return;
         }
 
         $pricingService = app(\App\Services\PricingService::class);
-        $coursePrice = $pricingService->resolveCoursePrice($courseId, $branchId, $registrationType);
+        $coursePrice = $pricingService->resolveCoursePrice($courseId, $branchId, $deliveryType);
 
         if ($coursePrice) {
-            $set('total_amount', (float) $coursePrice->price);
-            $allowInstallments = (bool) $coursePrice->allow_installments;
-            $set('_allow_installments', $allowInstallments);
-            $set('_min_down_payment', $coursePrice->min_down_payment ? (float) $coursePrice->min_down_payment : null);
-            $set('_max_installments', $coursePrice->max_installments);
+            $calculator = app(EnrollmentPriceCalculator::class);
+            $allowedModes = $calculator->getAllowedModes($coursePrice);
+            $set('_course_price', $coursePrice->id);
+            $set('_allowed_modes', array_map(fn($mode) => $mode->value, $allowedModes));
+            $set('_sessions_count', $coursePrice->sessions_count);
 
-            // Reset pricing_type to 'full' if installment is selected but not allowed
-            if ($get('pricing_type') === 'installment' && !$allowInstallments) {
-                $set('pricing_type', 'full');
+            // Calculate price if enrollment mode is set
+            if ($enrollmentMode) {
+                try {
+                    $enrollmentModeEnum = EnrollmentMode::from($enrollmentMode);
+                    $result = $calculator->calculate($coursePrice, $enrollmentModeEnum, $sessionsPurchased);
+                    $set('total_amount', $result['total_amount']);
+                    $set('currency_code', $result['currency_code']);
+                } catch (\Exception $e) {
+                    $set('total_amount', 0);
+                }
+            } else {
+                $set('total_amount', 0);
             }
         } else {
             $set('total_amount', 0);
-            $set('_allow_installments', false);
-            $set('_min_down_payment', null);
-            $set('_max_installments', null);
-            // Reset to full if price not found
-            if ($get('pricing_type') === 'installment') {
-                $set('pricing_type', 'full');
-            }
+            $set('_course_price', null);
+            $set('_allowed_modes', []);
         }
     }
 
@@ -153,70 +158,83 @@ class EnrollmentResource extends Resource
                             ->required()
                             ->reactive()
                             ->afterStateUpdated(function (Forms\Set $set, $state, Forms\Get $get) {
-                                // When course changes, reset related fields and set registration_type
+                                // When course changes, reset related fields
                                 if ($state) {
                                     $course = \App\Domain\Training\Models\Course::find($state);
                                     if ($course) {
-                                        // Set registration_type based on course delivery_type
-                                        $registrationType = match ($course->delivery_type) {
+                                        // Set delivery_type based on course delivery_type
+                                        $deliveryType = match ($course->delivery_type) {
                                             \App\Domain\Training\Enums\DeliveryType::Onsite => 'onsite',
                                             \App\Domain\Training\Enums\DeliveryType::Online => 'online',
                                             \App\Domain\Training\Enums\DeliveryType::Virtual => 'online',
                                             \App\Domain\Training\Enums\DeliveryType::Hybrid => 'online', // Default, can be changed
                                             default => 'online',
                                         };
-                                        $set('registration_type', $registrationType);
-
-                                        // Clear branch_id if switching from onsite to online
-                                        if ($registrationType === 'online') {
-                                            $set('branch_id', null);
-                                            // For online courses, resolve price immediately
-                                            self::resolveAndUpdatePrice($set, $get);
-                                        } else {
-                                            // For onsite courses, clear branch and pricing fields
-                                            // Price will be resolved when branch is selected
-                                            $set('branch_id', null);
-                                            $set('total_amount', 0);
-                                            $set('_allow_installments', false);
-                                            $set('_min_down_payment', null);
-                                            $set('_max_installments', null);
-                                        }
+                                        $set('delivery_type', $deliveryType);
+                                        $set('branch_id', null);
+                                        $set('enrollment_mode', null);
+                                        $set('sessions_purchased', null);
+                                        $set('total_amount', 0);
                                     }
                                 } else {
-                                    $set('registration_type', null);
+                                    $set('delivery_type', null);
                                     $set('branch_id', null);
+                                    $set('enrollment_mode', null);
+                                    $set('sessions_purchased', null);
                                     $set('total_amount', 0);
-                                    $set('_allow_installments', false);
-                                    $set('_min_down_payment', null);
-                                    $set('_max_installments', null);
+                                    $set('_course_price', null);
+                                    $set('_allowed_modes', []);
                                 }
                             })
                             ->label(__('enrollments.course')),
                     ])
                     ->columns(2),
 
-                Forms\Components\Section::make(__('enrollments.pricing_registration') ?? 'Pricing & Registration')
+                Forms\Components\Section::make(__('enrollments.enrollment_mode') ?? 'Enrollment Mode')
                     ->schema([
-                        Forms\Components\Select::make('registration_type')
+                        Forms\Components\Select::make('enrollment_mode')
                             ->options([
-                                'onsite' => __('enrollments.registration_type_options.onsite') ?? 'Onsite',
-                                'online' => __('enrollments.registration_type_options.online') ?? 'Online',
+                                'course_full' => __('enrollments.enrollment_mode_options.course_full') ?? 'Full Course',
+                                'per_session' => __('enrollments.enrollment_mode_options.per_session') ?? 'Per Session',
+                                'trial' => __('enrollments.enrollment_mode_options.trial') ?? 'Trial',
+                            ])
+                            ->required()
+                            ->reactive()
+                            ->visible(fn (Forms\Get $get) => !empty($get('course_id')) && !empty($get('_allowed_modes')))
+                            ->options(function (Forms\Get $get) {
+                                $allowedModes = $get('_allowed_modes') ?? [];
+                                $allOptions = [
+                                    'course_full' => __('enrollments.enrollment_mode_options.course_full') ?? 'Full Course',
+                                    'per_session' => __('enrollments.enrollment_mode_options.per_session') ?? 'Per Session',
+                                    'trial' => __('enrollments.enrollment_mode_options.trial') ?? 'Trial',
+                                ];
+                                return array_intersect_key($allOptions, array_flip($allowedModes));
+                            })
+                            ->afterStateUpdated(function (Forms\Set $set, Forms\Get $get, $state) {
+                                if ($state === 'trial') {
+                                    $set('sessions_purchased', 1);
+                                } elseif ($state === 'course_full') {
+                                    $set('sessions_purchased', null);
+                                }
+                                self::resolveAndUpdatePrice($set, $get);
+                            })
+                            ->label(__('enrollments.enrollment_mode') ?? 'Enrollment Mode')
+                            ->helperText(__('enrollments.enrollment_mode_helper') ?? 'Select how the student will enroll in this course.'),
+                    ])
+                    ->visible(fn (Forms\Get $get) => !empty($get('course_id')))
+                    ->collapsible(),
+
+                Forms\Components\Section::make(__('enrollments.delivery_type') ?? 'Delivery Type')
+                    ->schema([
+                        Forms\Components\Select::make('delivery_type')
+                            ->options([
+                                'online' => __('enrollments.delivery_type_options.online') ?? 'Online',
+                                'onsite' => __('enrollments.delivery_type_options.onsite') ?? 'On-site',
                             ])
                             ->default('online')
                             ->required()
                             ->reactive()
-                            ->visible(function (Forms\Get $get) {
-                                $courseId = $get('course_id');
-                                if (!$courseId) {
-                                    return false;
-                                }
-                                $course = \App\Domain\Training\Models\Course::find($courseId);
-                                if (!$course) {
-                                    return false;
-                                }
-                                // Always show registration type field, but it may be auto-set for non-hybrid courses
-                                return true;
-                            })
+                            ->visible(fn (Forms\Get $get) => !empty($get('course_id')))
                             ->disabled(function (Forms\Get $get) {
                                 $courseId = $get('course_id');
                                 if (!$courseId) {
@@ -230,23 +248,15 @@ class EnrollmentResource extends Resource
                                 return $course->delivery_type !== \App\Domain\Training\Enums\DeliveryType::Hybrid;
                             })
                             ->afterStateUpdated(function (Forms\Set $set, Forms\Get $get) {
-                                $registrationType = $get('registration_type');
-
-                                // Clear branch_id and pricing when switching registration type
-                                if ($registrationType === 'online') {
+                                $deliveryType = $get('delivery_type');
+                                if ($deliveryType === 'online') {
                                     $set('branch_id', null);
-                                    // For online, resolve price immediately (branch optional)
-                                    self::resolveAndUpdatePrice($set, $get);
                                 } else {
-                                    // For onsite, clear branch and wait for branch selection
                                     $set('branch_id', null);
-                                    $set('total_amount', 0);
-                                    $set('_allow_installments', false);
-                                    $set('_min_down_payment', null);
-                                    $set('_max_installments', null);
                                 }
+                                self::resolveAndUpdatePrice($set, $get);
                             })
-                            ->label(__('enrollments.registration_type') ?? 'Registration Type')
+                            ->label(__('enrollments.delivery_type') ?? 'Delivery Type')
                             ->helperText(function (Forms\Get $get) {
                                 $courseId = $get('course_id');
                                 if (!$courseId) {
@@ -256,19 +266,16 @@ class EnrollmentResource extends Resource
                                 if (!$course) {
                                     return null;
                                 }
-
-                                // Show helper text for non-hybrid courses
                                 if ($course->delivery_type !== \App\Domain\Training\Enums\DeliveryType::Hybrid) {
                                     $type = match($course->delivery_type) {
-                                        \App\Domain\Training\Enums\DeliveryType::Onsite => __('enrollments.registration_type_options.onsite') ?? 'Onsite',
+                                        \App\Domain\Training\Enums\DeliveryType::Onsite => __('enrollments.delivery_type_options.onsite') ?? 'On-site',
                                         \App\Domain\Training\Enums\DeliveryType::Online,
-                                        \App\Domain\Training\Enums\DeliveryType::Virtual => __('enrollments.registration_type_options.online') ?? 'Online',
+                                        \App\Domain\Training\Enums\DeliveryType::Virtual => __('enrollments.delivery_type_options.online') ?? 'Online',
                                         default => 'Online',
                                     };
-                                    return __('enrollments.auto_set_registration_type') ?? "Auto-set to: {$type} (based on course delivery type)";
+                                    return __('enrollments.auto_set_delivery_type') ?? "Auto-set to: {$type} (based on course delivery type)";
                                 }
-
-                                return __('enrollments.select_registration_type_helper') ?? 'Choose whether this enrollment is for onsite or online delivery.';
+                                return __('enrollments.select_delivery_type_helper') ?? 'Choose whether this enrollment is for onsite or online delivery.';
                             }),
                         Forms\Components\Select::make('branch_id')
                             ->relationship(
@@ -276,18 +283,18 @@ class EnrollmentResource extends Resource
                                 titleAttribute: 'name',
                                 modifyQueryUsing: function (Builder $query, Forms\Get $get) {
                                     $courseId = $get('course_id');
-                                    $registrationType = $get('registration_type') ?? 'online';
+                                    $deliveryType = $get('delivery_type') ?? 'online';
 
-                                    // Filter branches based on course and registration type
+                                    // Filter branches based on course and delivery type
                                     if ($courseId) {
-                                        // Map registration_type to delivery_type for filtering
-                                        $deliveryTypeEnum = match($registrationType) {
+                                        // Map delivery_type to delivery_type enum for filtering
+                                        $deliveryTypeEnum = match($deliveryType) {
                                             'onsite' => \App\Domain\Training\Enums\DeliveryType::Onsite,
                                             'online' => null, // online/virtual - will handle separately
                                             default => null,
                                         };
 
-                                        if ($registrationType === 'onsite' && $deliveryTypeEnum) {
+                                        if ($deliveryType === 'onsite' && $deliveryTypeEnum) {
                                             // For onsite: only show branches that have prices for this course+delivery_type
                                             $availableBranchIds = \App\Domain\Training\Models\CoursePrice::where('course_id', $courseId)
                                                 ->where('delivery_type', $deliveryTypeEnum)
@@ -303,22 +310,6 @@ class EnrollmentResource extends Resource
                                                 // No prices found for onsite - show empty (validation will catch this)
                                                 $query->whereRaw('1 = 0');
                                             }
-                                        } elseif ($registrationType === 'online') {
-                                            // For online: show branches that have prices (branch-specific or global)
-                                            // But we don't restrict here - let user choose, price resolution will handle fallback
-                                            $availableBranchIds = \App\Domain\Training\Models\CoursePrice::where('course_id', $courseId)
-                                                ->whereIn('delivery_type', [
-                                                    \App\Domain\Training\Enums\DeliveryType::Online,
-                                                    \App\Domain\Training\Enums\DeliveryType::Virtual
-                                                ])
-                                                ->where('is_active', true)
-                                                ->whereNotNull('branch_id')
-                                                ->pluck('branch_id')
-                                                ->unique()
-                                                ->toArray();
-
-                                            // For online, we can show all branches, but optionally filter to ones with prices
-                                            // For now, show all branches for online (user can select, price will resolve)
                                         }
                                     }
 
@@ -335,12 +326,10 @@ class EnrollmentResource extends Resource
                             ->preload()
                             ->reactive()
                             ->required(function (Forms\Get $get) {
-                                // Required when registration_type is 'onsite'
-                                return $get('registration_type') === 'onsite';
+                                // Required when delivery_type is 'onsite'
+                                return $get('delivery_type') === 'onsite';
                             })
                             ->afterStateUpdated(function (Forms\Set $set, Forms\Get $get) {
-                                // For onsite courses, resolve price when branch is selected
-                                // For online courses, resolve price (branch is optional)
                                 self::resolveAndUpdatePrice($set, $get);
                             })
                             ->visible(function (Forms\Get $get) {
@@ -348,50 +337,66 @@ class EnrollmentResource extends Resource
                                 if (!$courseId) {
                                     return false;
                                 }
-
-                                $registrationType = $get('registration_type') ?? 'online';
-                                $isSuperAdmin = auth()->user()->isSuperAdmin();
-
-                                // Always visible for super admin
-                                // For onsite: always visible and required
-                                // For online: visible for super admin, or if course has branch-specific prices
-                                if ($isSuperAdmin) {
-                                    return true;
-                                }
-
-                                if ($registrationType === 'onsite') {
-                                    return true; // Required for onsite
-                                }
-
-                                // For online: show if user has a branch (non-super admin)
-                                return true; // Show for all cases, but make it optional for online
+                                $deliveryType = $get('delivery_type') ?? 'online';
+                                // Always visible, but required only for onsite
+                                return true;
                             })
                             ->label(__('enrollments.branch'))
                             ->helperText(function (Forms\Get $get) {
-                                $courseId = $get('course_id');
-                                $registrationType = $get('registration_type') ?? 'online';
-
-                                if (!$courseId) {
-                                    return null;
+                                $deliveryType = $get('delivery_type') ?? 'online';
+                                if ($deliveryType === 'onsite') {
+                                    return __('enrollments.branch_required_onsite') ?? 'Branch selection is required for onsite enrollment.';
                                 }
+                                return __('enrollments.branch_optional_online') ?? 'Branch selection is optional for online enrollment.';
+                            }),
+                    ])
+                    ->visible(fn (Forms\Get $get) => !empty($get('course_id')))
+                    ->collapsible(),
 
-                                if ($registrationType === 'onsite') {
-                                    return __('enrollments.branch_required_onsite') ?? 'Branch selection is required for onsite enrollment. Only branches with available pricing for this course are shown.';
+                Forms\Components\Section::make(__('enrollments.sessions') ?? 'Sessions')
+                    ->schema([
+                        Forms\Components\TextInput::make('sessions_purchased')
+                            ->numeric()
+                            ->required()
+                            ->minValue(1)
+                            ->reactive()
+                            ->visible(function (Forms\Get $get) {
+                                $mode = $get('enrollment_mode');
+                                return in_array($mode, ['per_session', 'trial']);
+                            })
+                            ->disabled(function (Forms\Get $get) {
+                                return $get('enrollment_mode') === 'trial';
+                            })
+                            ->maxValue(function (Forms\Get $get) {
+                                return $get('_sessions_count') ?? 1;
+                            })
+                            ->default(function (Forms\Get $get) {
+                                if ($get('enrollment_mode') === 'trial') {
+                                    return 1;
                                 }
-
-                                if ($registrationType === 'online') {
-                                    return __('enrollments.branch_optional_online') ?? 'Branch selection is optional for online enrollment. If not selected, global pricing will be used.';
-                                }
-
                                 return null;
                             })
-                            ->placeholder(function (Forms\Get $get) {
-                                $registrationType = $get('registration_type') ?? 'online';
-                                if ($registrationType === 'onsite') {
-                                    return __('enrollments.select_branch_for_pricing') ?? 'Select branch to see pricing';
+                            ->afterStateUpdated(function (Forms\Set $set, Forms\Get $get) {
+                                self::resolveAndUpdatePrice($set, $get);
+                            })
+                            ->label(__('enrollments.sessions_purchased') ?? 'Sessions Purchased')
+                            ->helperText(function (Forms\Get $get) {
+                                $mode = $get('enrollment_mode');
+                                $sessionsCount = $get('_sessions_count') ?? 1;
+                                if ($mode === 'trial') {
+                                    return __('enrollments.trial_sessions_helper') ?? 'Trial enrollment is locked to 1 session.';
                                 }
-                                return __('enrollments.select_branch_optional') ?? 'Select branch (optional)';
+                                return __('enrollments.per_session_helper') ?? "Select number of sessions (1 to {$sessionsCount}).";
                             }),
+                    ])
+                    ->visible(function (Forms\Get $get) {
+                        $mode = $get('enrollment_mode');
+                        return in_array($mode, ['per_session', 'trial']);
+                    })
+                    ->collapsible(),
+
+                Forms\Components\Section::make(__('enrollments.pricing_registration') ?? 'Pricing')
+                    ->schema([
                         Forms\Components\Select::make('pricing_type')
                             ->options([
                                 'full' => __('enrollments.pricing_type_options.full'),
@@ -401,8 +406,16 @@ class EnrollmentResource extends Resource
                             ->required()
                             ->reactive()
                             ->disabled(function (Forms\Get $get) {
-                                // Disable installment option if not allowed
+                                // Disable installment option if not allowed or for per-session/trial
+                                $mode = $get('enrollment_mode');
+                                if (in_array($mode, ['per_session', 'trial'])) {
+                                    return true; // Installments not allowed for per-session/trial
+                                }
                                 return $get('_allow_installments') === false;
+                            })
+                            ->visible(function (Forms\Get $get) {
+                                $mode = $get('enrollment_mode');
+                                return $mode === 'course_full'; // Only show for full course
                             })
                             ->label(__('enrollments.pricing_type')),
                         Forms\Components\TextInput::make('total_amount')
@@ -412,46 +425,22 @@ class EnrollmentResource extends Resource
                             ->disabled()
                             ->dehydrated()
                             ->label(__('enrollments.total_amount'))
-                            ->helperText(function (Forms\Get $get) {
-                                $courseId = $get('course_id');
-                                $branchId = $get('branch_id');
-                                $registrationType = $get('registration_type') ?? 'online';
-
-                                if (!$courseId) {
-                                    return null;
-                                }
-
-                                $pricingService = app(\App\Services\PricingService::class);
-                                $coursePrice = $pricingService->resolveCoursePrice($courseId, $branchId, $registrationType);
-
-                                if (!$coursePrice) {
-                                    // Map registration_type to delivery_type for display
-                                    $deliveryTypeValues = match ($registrationType) {
-                                        'onsite' => ['onsite'],
-                                        'online' => ['online', 'virtual'],
-                                        default => [],
-                                    };
-                                    $deliveryTypesStr = implode(' or ', $deliveryTypeValues);
-
-                                    $message = sprintf(
-                                        'No active course price found. Searched: course_id=%d, branch_id=%s, registration_type=%s, delivery_type=%s',
-                                        $courseId,
-                                        $branchId ? $branchId : 'null',
-                                        $registrationType,
-                                        $deliveryTypesStr
-                                    );
-
-                                    return $message;
-                                }
-
-                                return null;
-                            }),
+                            ->suffix('OMR'),
+                        Forms\Components\Hidden::make('currency_code')
+                            ->default('OMR')
+                            ->dehydrated(),
                         Forms\Components\Hidden::make('_allow_installments')
                             ->default(false)
                             ->dehydrated(false),
                         Forms\Components\Hidden::make('_min_down_payment')
                             ->dehydrated(false),
                         Forms\Components\Hidden::make('_max_installments')
+                            ->dehydrated(false),
+                        Forms\Components\Hidden::make('_course_price')
+                            ->dehydrated(false),
+                        Forms\Components\Hidden::make('_allowed_modes')
+                            ->dehydrated(false),
+                        Forms\Components\Hidden::make('_sessions_count')
                             ->dehydrated(false),
                     ])
                     ->columns(2)
@@ -464,55 +453,76 @@ class EnrollmentResource extends Resource
                             ->content(function (Forms\Get $get) {
                                 $courseId = $get('course_id');
                                 $branchId = $get('branch_id');
-                                $registrationType = $get('registration_type') ?? 'online';
+                                $deliveryType = $get('delivery_type') ?? 'online';
+                                $enrollmentMode = $get('enrollment_mode');
+                                $sessionsPurchased = $get('sessions_purchased');
+                                $totalAmount = $get('total_amount') ?? 0;
 
                                 if (!$courseId) {
                                     return new \Illuminate\Support\HtmlString('<p class="text-gray-500">Select a course to see pricing information.</p>');
                                 }
 
                                 // For onsite, branch is required
-                                if ($registrationType === 'onsite' && !$branchId) {
+                                if ($deliveryType === 'onsite' && !$branchId) {
                                     return new \Illuminate\Support\HtmlString('<p class="text-yellow-600">Please select a branch to see pricing information for onsite enrollment.</p>');
                                 }
 
+                                if (!$enrollmentMode) {
+                                    return new \Illuminate\Support\HtmlString('<p class="text-gray-500">Select enrollment mode to see pricing information.</p>');
+                                }
+
                                 $pricingService = app(\App\Services\PricingService::class);
-                                $coursePrice = $pricingService->resolveCoursePrice($courseId, $branchId, $registrationType);
+                                $coursePrice = $pricingService->resolveCoursePrice($courseId, $branchId, $deliveryType);
 
                                 if (!$coursePrice) {
-                                    // Map registration_type to delivery_type for display
-                                    $deliveryTypeValues = match ($registrationType) {
-                                        'onsite' => ['onsite'],
-                                        'online' => ['online', 'virtual'],
-                                        default => [],
-                                    };
-                                    $deliveryTypesStr = implode(' or ', $deliveryTypeValues);
-
                                     $message = sprintf(
-                                        'No active course price found. Searched: course_id=%d, branch_id=%s, registration_type=%s, delivery_type=%s. Please configure pricing.',
+                                        'No active course price found. Searched: course_id=%d, branch_id=%s, delivery_type=%s. Please configure pricing.',
                                         $courseId,
                                         $branchId ? $branchId : 'null',
-                                        $registrationType,
-                                        $deliveryTypesStr
+                                        $deliveryType
                                     );
-
                                     return new \Illuminate\Support\HtmlString('<p class="text-red-600">' . htmlspecialchars($message) . '</p>');
                                 }
 
                                 $precision = config('money.precision', 3);
-                                $symbol = config('money.symbol', 'ر.ع');
+                                $symbol = 'OMR';
                                 
                                 $html = '<div class="space-y-2">';
                                 $html .= '<div class="grid grid-cols-2 gap-4">';
-                                $html .= '<div><strong>Price:</strong> ' . number_format((float) $coursePrice->price, $precision) . ' ' . $symbol . '</div>';
-                                $html .= '<div><strong>Allow Installments:</strong> ' . ($coursePrice->allow_installments ? 'Yes' : 'No') . '</div>';
+                                
+                                // Show enrollment mode
+                                $modeLabel = match($enrollmentMode) {
+                                    'course_full' => 'Full Course',
+                                    'per_session' => 'Per Session',
+                                    'trial' => 'Trial',
+                                    default => $enrollmentMode,
+                                };
+                                $html .= '<div><strong>Enrollment Mode:</strong> ' . htmlspecialchars($modeLabel) . '</div>';
+                                
+                                // Show sessions if applicable
+                                if (in_array($enrollmentMode, ['per_session', 'trial'])) {
+                                    $html .= '<div><strong>Sessions:</strong> ' . ($sessionsPurchased ?? 1) . '</div>';
+                                }
+                                
+                                // Show total amount
+                                $html .= '<div><strong>Total Amount:</strong> ' . number_format((float) $totalAmount, $precision) . ' ' . $symbol . '</div>';
+                                
+                                // Show course price details
+                                if ($enrollmentMode === 'course_full') {
+                                    $html .= '<div><strong>Course Price:</strong> ' . number_format((float) $coursePrice->price, $precision) . ' ' . $symbol . '</div>';
+                                    $html .= '<div><strong>Allow Installments:</strong> ' . ($coursePrice->allow_installments ? 'Yes' : 'No') . '</div>';
 
-                                if ($coursePrice->allow_installments) {
-                                    if ($coursePrice->min_down_payment) {
-                                        $html .= '<div><strong>Min Down Payment:</strong> ' . number_format((float) $coursePrice->min_down_payment, $precision) . ' ' . $symbol . '</div>';
+                                    if ($coursePrice->allow_installments) {
+                                        if ($coursePrice->min_down_payment) {
+                                            $html .= '<div><strong>Min Down Payment:</strong> ' . number_format((float) $coursePrice->min_down_payment, $precision) . ' ' . $symbol . '</div>';
+                                        }
+                                        if ($coursePrice->max_installments) {
+                                            $html .= '<div><strong>Max Installments:</strong> ' . $coursePrice->max_installments . '</div>';
+                                        }
                                     }
-                                    if ($coursePrice->max_installments) {
-                                        $html .= '<div><strong>Max Installments:</strong> ' . $coursePrice->max_installments . '</div>';
-                                    }
+                                } else {
+                                    $html .= '<div><strong>Session Price:</strong> ' . number_format((float) $coursePrice->session_price, $precision) . ' ' . $symbol . '</div>';
+                                    $html .= '<div><strong>Total Sessions:</strong> ' . ($coursePrice->sessions_count ?? 'N/A') . '</div>';
                                 }
 
                                 $html .= '</div>';
@@ -521,7 +531,9 @@ class EnrollmentResource extends Resource
                                 return new \Illuminate\Support\HtmlString($html);
                             }),
                     ])
-                    ->visible(fn (Forms\Get $get) => $get('course_id'))
+                    ->visible(function (Forms\Get $get) {
+                        return !empty($get('course_id')) && !empty($get('enrollment_mode'));
+                    })
                     ->collapsible()
                     ->collapsed(false),
 
@@ -530,6 +542,7 @@ class EnrollmentResource extends Resource
                         Forms\Components\Select::make('status')
                             ->options([
                                 'pending' => __('enrollments.status_options.pending'),
+                                'pending_payment' => __('enrollments.status_options.pending_payment'),
                                 'active' => __('enrollments.status_options.active'),
                                 'completed' => __('enrollments.status_options.completed'),
                                 'cancelled' => __('enrollments.status_options.cancelled'),
@@ -599,6 +612,7 @@ class EnrollmentResource extends Resource
                     ->formatStateUsing(fn ($state) => __('enrollments.status_options.' . $state->value))
                     ->color(fn ($state) => match($state) {
                         EnrollmentStatus::ACTIVE => 'success',
+                        EnrollmentStatus::PENDING_PAYMENT => 'warning',
                         EnrollmentStatus::COMPLETED => 'info',
                         EnrollmentStatus::CANCELLED => 'danger',
                         default => 'gray',
@@ -630,6 +644,7 @@ class EnrollmentResource extends Resource
                 Tables\Filters\SelectFilter::make('status')
                     ->options([
                         'pending' => __('enrollments.status_options.pending'),
+                        'pending_payment' => __('enrollments.status_options.pending_payment'),
                         'active' => __('enrollments.status_options.active'),
                         'completed' => __('enrollments.status_options.completed'),
                         'cancelled' => __('enrollments.status_options.cancelled'),
@@ -701,7 +716,7 @@ class EnrollmentResource extends Resource
                                     ->where('status', '!=', 'paid')
                                     ->get()
                                     ->mapWithKeys(function ($installment) {
-                                        return [$installment->id => 'Installment #' . $installment->installment_no . ' - ' . number_format($installment->amount, 2) . ' SAR (Due: ' . $installment->due_date->format('Y-m-d') . ')'];
+                                        return [$installment->id => 'Installment #' . $installment->installment_no . ' - ' . number_format($installment->amount, 2) . ' OMR (Due: ' . $installment->due_date->format('Y-m-d') . ')'];
                                     });
                             })
                             ->label(__('payments.installment'))

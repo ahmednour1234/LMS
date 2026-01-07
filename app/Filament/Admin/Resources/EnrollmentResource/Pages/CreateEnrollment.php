@@ -2,6 +2,9 @@
 
 namespace App\Filament\Admin\Resources\EnrollmentResource\Pages;
 
+use App\Domain\Enrollment\Services\EnrollmentPriceCalculator;
+use App\Enums\EnrollmentMode;
+use App\Enums\EnrollmentStatus;
 use App\Filament\Admin\Resources\EnrollmentResource;
 use Filament\Actions;
 use Filament\Resources\Pages\CreateRecord;
@@ -23,15 +26,15 @@ class CreateEnrollment extends CreateRecord
             $data['branch_id'] = auth()->user()->branch_id;
         }
 
-        // Set registration_type based on course if not set (for non-hybrid courses)
-        if (!empty($data['course_id']) && empty($data['registration_type'])) {
+        // Set delivery_type based on course if not set (for non-hybrid courses)
+        if (!empty($data['course_id']) && empty($data['delivery_type'])) {
             $course = \App\Domain\Training\Models\Course::find($data['course_id']);
             if ($course) {
-                $data['registration_type'] = match ($course->delivery_type) {
+                $data['delivery_type'] = match ($course->delivery_type) {
                     \App\Domain\Training\Enums\DeliveryType::Onsite => 'onsite',
                     \App\Domain\Training\Enums\DeliveryType::Online => 'online',
                     \App\Domain\Training\Enums\DeliveryType::Virtual => 'online',
-                    \App\Domain\Training\Enums\DeliveryType::Hybrid => $data['registration_type'] ?? 'online',
+                    \App\Domain\Training\Enums\DeliveryType::Hybrid => $data['delivery_type'] ?? 'online',
                     default => 'online',
                 };
             }
@@ -44,27 +47,33 @@ class CreateEnrollment extends CreateRecord
             ]);
         }
 
-        $registrationType = $data['registration_type'] ?? 'online';
-        if (!in_array($registrationType, ['onsite', 'online'])) {
+        if (empty($data['enrollment_mode'])) {
             throw \Illuminate\Validation\ValidationException::withMessages([
-                'registration_type' => 'Registration type must be either "onsite" or "online".',
+                'enrollment_mode' => 'Enrollment mode is required.',
             ]);
         }
 
-        // Validate branch_id required when registration_type is onsite
-        if ($registrationType === 'onsite' && empty($data['branch_id'])) {
+        $deliveryType = $data['delivery_type'] ?? 'online';
+        if (!in_array($deliveryType, ['onsite', 'online'])) {
+            throw \Illuminate\Validation\ValidationException::withMessages([
+                'delivery_type' => 'Delivery type must be either "onsite" or "online".',
+            ]);
+        }
+
+        // Validate branch_id required when delivery_type is onsite
+        if ($deliveryType === 'onsite' && empty($data['branch_id'])) {
             throw \Illuminate\Validation\ValidationException::withMessages([
                 'branch_id' => 'Branch is required for onsite enrollment.',
             ]);
         }
 
-        // Resolve price using PricingService and override total_amount
+        // Resolve price using PricingService
         $pricingService = app(\App\Services\PricingService::class);
         $branchId = $data['branch_id'] ?? null;
         $coursePrice = $pricingService->resolveCoursePrice(
             $data['course_id'],
             $branchId,
-            $registrationType
+            $deliveryType
         );
 
         if (!$coursePrice) {
@@ -73,20 +82,57 @@ class CreateEnrollment extends CreateRecord
             ]);
         }
 
-        // Override total_amount from resolved price (ignore client input)
-        $data['total_amount'] = (float) $coursePrice->price;
+        // Validate enrollment mode is allowed by pricing mode
+        $calculator = app(EnrollmentPriceCalculator::class);
+        $enrollmentMode = EnrollmentMode::from($data['enrollment_mode']);
+        
+        if (!$calculator->validateMode($coursePrice, $enrollmentMode)) {
+            throw \Illuminate\Validation\ValidationException::withMessages([
+                'enrollment_mode' => 'This enrollment mode is not allowed for this course pricing configuration.',
+            ]);
+        }
 
-        // Validate installment constraints if pricing_type is installment
-        $pricingType = $data['pricing_type'] ?? 'full';
-        if ($pricingType === 'installment') {
-            if (!$coursePrice->allow_installments) {
+        // Validate sessions_purchased based on enrollment mode
+        if ($enrollmentMode === EnrollmentMode::TRIAL) {
+            if (empty($data['sessions_purchased']) || (int) $data['sessions_purchased'] !== 1) {
                 throw \Illuminate\Validation\ValidationException::withMessages([
-                    'pricing_type' => 'Installment pricing is not allowed for this course/registration type combination.',
+                    'sessions_purchased' => 'Trial enrollment must have exactly 1 session.',
                 ]);
             }
+            $data['sessions_purchased'] = 1;
+        } elseif ($enrollmentMode === EnrollmentMode::PER_SESSION) {
+            $sessionsPurchased = (int) ($data['sessions_purchased'] ?? 0);
+            $sessionsCount = $coursePrice->sessions_count ?? 1;
+            if ($sessionsPurchased < 1 || $sessionsPurchased > $sessionsCount) {
+                throw \Illuminate\Validation\ValidationException::withMessages([
+                    'sessions_purchased' => "Sessions purchased must be between 1 and {$sessionsCount}.",
+                ]);
+            }
+        } elseif ($enrollmentMode === EnrollmentMode::COURSE_FULL) {
+            $data['sessions_purchased'] = null;
+        }
 
-            // Additional validation for down_payment and installments_count would go here
-            // if those fields exist in the enrollment form
+        // Calculate price using EnrollmentPriceCalculator
+        $sessionsPurchased = $data['sessions_purchased'] ?? null;
+        $priceResult = $calculator->calculate($coursePrice, $enrollmentMode, $sessionsPurchased);
+        $data['total_amount'] = $priceResult['total_amount'];
+        $data['currency_code'] = $priceResult['currency_code'];
+
+        // Set status based on enrollment mode
+        if ($enrollmentMode === EnrollmentMode::TRIAL) {
+            $data['status'] = EnrollmentStatus::ACTIVE->value;
+        } else {
+            $data['status'] = EnrollmentStatus::PENDING_PAYMENT->value;
+        }
+
+        // Validate installment constraints if pricing_type is installment (only for course_full)
+        $pricingType = $data['pricing_type'] ?? 'full';
+        if ($pricingType === 'installment' && $enrollmentMode === EnrollmentMode::COURSE_FULL) {
+            if (!$coursePrice->allow_installments) {
+                throw \Illuminate\Validation\ValidationException::withMessages([
+                    'pricing_type' => 'Installment pricing is not allowed for this course.',
+                ]);
+            }
         }
 
         // Set created_by

@@ -4,6 +4,7 @@ namespace App\Domain\Enrollment\Models;
 
 use App\Domain\Branch\Models\Branch;
 use App\Domain\Training\Models\Course;
+use App\Enums\EnrollmentMode;
 use App\Enums\EnrollmentStatus;
 use App\Models\User;
 use App\Support\Traits\HasVisibilityScope;
@@ -52,6 +53,10 @@ class Enrollment extends Model
         'status',
         'pricing_type',
         'registration_type',
+        'enrollment_mode',
+        'sessions_purchased',
+        'currency_code',
+        'delivery_type',
         'total_amount',
         'progress_percent',
         'enrolled_at',
@@ -70,6 +75,10 @@ class Enrollment extends Model
             'status' => EnrollmentStatus::class,
             'pricing_type' => 'string',
             'registration_type' => 'string',
+            'enrollment_mode' => EnrollmentMode::class,
+            'sessions_purchased' => 'integer',
+            'currency_code' => 'string',
+            'delivery_type' => 'string',
             'total_amount' => 'decimal:3',
             'progress_percent' => 'decimal:2',
             'enrolled_at' => 'datetime',
@@ -122,6 +131,30 @@ class Enrollment extends Model
     public function revenueRecognitions(): HasMany
     {
         return $this->hasMany(\App\Domain\Accounting\Models\RevenueRecognition::class);
+    }
+
+    /**
+     * Check if enrollment is trial mode
+     */
+    public function isTrial(): bool
+    {
+        return $this->enrollment_mode === EnrollmentMode::TRIAL;
+    }
+
+    /**
+     * Check if enrollment is per-session mode
+     */
+    public function isPerSession(): bool
+    {
+        return $this->enrollment_mode === EnrollmentMode::PER_SESSION;
+    }
+
+    /**
+     * Check if enrollment is course full mode
+     */
+    public function isCourseFull(): bool
+    {
+        return $this->enrollment_mode === EnrollmentMode::COURSE_FULL;
     }
 }
 
