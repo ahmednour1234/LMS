@@ -36,14 +36,18 @@ class JournalLineSeeder extends Seeder
                 continue;
             }
 
-            // Create 2-5 journal lines per journal
-            $linesCount = rand(2, 5);
+            // Create 2-5 journal lines per journal (ensure even number for balancing)
+            $linesCount = max(2, rand(2, 5));
             $totalDebit = 0;
             $totalCredit = 0;
             $linesToCreate = [];
 
+            // Ensure we have at least one debit and one credit line
+            $debitCount = max(1, (int) floor($linesCount / 2));
+            $creditCount = max(1, $linesCount - $debitCount);
+
             for ($i = 1; $i <= $linesCount; $i++) {
-                $isDebit = $i <= ($linesCount / 2);
+                $isDebit = $i <= $debitCount;
                 
                 $amount = rand(100, 10000);
                 $account = $accounts->random();
@@ -73,15 +77,35 @@ class JournalLineSeeder extends Seeder
             }
 
             // Balance the journal (make total debit = total credit)
-            if ($totalDebit !== $totalCredit) {
+            if ($totalDebit !== $totalCredit && count($linesToCreate) > 0) {
                 $difference = abs($totalDebit - $totalCredit);
                 $lastIndex = count($linesToCreate) - 1;
                 
-                if ($lastIndex >= 0) {
-                    if ($totalDebit > $totalCredit) {
-                        $linesToCreate[$lastIndex]['credit'] += $difference;
+                if ($totalDebit > $totalCredit) {
+                    // Need more credit - add to last credit line or create new
+                    $lastCreditIndex = $lastIndex;
+                    while ($lastCreditIndex >= 0 && $linesToCreate[$lastCreditIndex]['debit'] > 0) {
+                        $lastCreditIndex--;
+                    }
+                    if ($lastCreditIndex >= 0) {
+                        $linesToCreate[$lastCreditIndex]['credit'] += $difference;
                     } else {
+                        // If no credit line found, add to last line
+                        $linesToCreate[$lastIndex]['credit'] += $difference;
+                        $linesToCreate[$lastIndex]['debit'] = max(0, $linesToCreate[$lastIndex]['debit'] - $difference);
+                    }
+                } else {
+                    // Need more debit - add to last debit line or create new
+                    $lastDebitIndex = $lastIndex;
+                    while ($lastDebitIndex >= 0 && $linesToCreate[$lastDebitIndex]['credit'] > 0) {
+                        $lastDebitIndex--;
+                    }
+                    if ($lastDebitIndex >= 0) {
+                        $linesToCreate[$lastDebitIndex]['debit'] += $difference;
+                    } else {
+                        // If no debit line found, add to last line
                         $linesToCreate[$lastIndex]['debit'] += $difference;
+                        $linesToCreate[$lastIndex]['credit'] = max(0, $linesToCreate[$lastIndex]['credit'] - $difference);
                     }
                 }
             }

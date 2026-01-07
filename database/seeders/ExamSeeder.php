@@ -26,25 +26,29 @@ class ExamSeeder extends Seeder
                 $query->where('course_id', $course->id);
             })->get();
 
-            // Create 1-2 exams per course
-            $examsCount = rand(1, 2);
+            // Check how many exams already exist for this course
+            $existingExamsCount = Exam::where('course_id', $course->id)->count();
+            $targetExamsCount = rand(1, 2);
+            $examsToCreate = max(0, $targetExamsCount - $existingExamsCount);
             
-            for ($i = 1; $i <= $examsCount; $i++) {
+            for ($i = 1; $i <= $examsToCreate; $i++) {
                 $examTypes = ['mcq', 'essay', 'mixed'];
                 $type = $examTypes[array_rand($examTypes)];
                 
                 $lessonId = $lessons->isNotEmpty() ? $lessons->random()->id : null;
 
+                $examNumber = $existingExamsCount + $i;
+                
                 $examData = [
                     'course_id' => $course->id,
                     'lesson_id' => $lessonId,
                     'title' => [
-                        'ar' => "امتحان {$i}",
-                        'en' => "Exam {$i}",
+                        'ar' => "امتحان {$examNumber}",
+                        'en' => "Exam {$examNumber}",
                     ],
                     'description' => [
-                        'ar' => "وصف الامتحان {$i}",
-                        'en' => "Description of exam {$i}",
+                        'ar' => "وصف الامتحان {$examNumber}",
+                        'en' => "Description of exam {$examNumber}",
                     ],
                     'type' => $type,
                     'total_score' => rand(50, 100),
@@ -52,14 +56,7 @@ class ExamSeeder extends Seeder
                     'is_active' => true,
                 ];
 
-                Exam::firstOrCreate(
-                    [
-                        'course_id' => $course->id,
-                        'lesson_id' => $lessonId,
-                        'title' => $examData['title'],
-                    ],
-                    $examData
-                );
+                Exam::create($examData);
             }
         }
 
