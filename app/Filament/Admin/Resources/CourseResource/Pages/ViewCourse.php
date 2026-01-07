@@ -19,6 +19,9 @@ class ViewCourse extends ViewRecord
             Actions\Action::make('studio')
                 ->label(__('Course Studio'))
                 ->icon('heroicon-o-cog-6-tooth')
+                ->color('primary')
+                ->button()
+                ->size(Actions\Action::SIZE_LARGE)
                 ->url(fn () => CourseResource::getUrl('studio', ['record' => $this->getRecord()]))
                 ->visible(fn () => auth()->user()->isSuperAdmin() || auth()->user()->hasRole('admin')),
             Actions\EditAction::make(),

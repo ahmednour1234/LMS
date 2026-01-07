@@ -196,6 +196,8 @@ class CourseResource extends Resource
                 Tables\Actions\Action::make('studio')
                     ->label(__('Course Studio'))
                     ->icon('heroicon-o-cog-6-tooth')
+                    ->color('primary')
+                    ->button()
                     ->url(fn ($record) => static::getUrl('studio', ['record' => $record]))
                     ->visible(fn () => auth()->user()->isSuperAdmin() || auth()->user()->hasRole('admin')),
                 Tables\Actions\EditAction::make(),
