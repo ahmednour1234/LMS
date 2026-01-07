@@ -68,11 +68,35 @@ class CoursePriceResource extends Resource
                     ])
                     ->label(__('course_prices.delivery_type'))
                     ->helperText(__('course_prices.delivery_type_helper')),
+                Forms\Components\Select::make('pricing_mode')
+                    ->options([
+                        'course_total' => __('course_prices.pricing_mode_options.course_total'),
+                        'per_session' => __('course_prices.pricing_mode_options.per_session'),
+                        'both' => __('course_prices.pricing_mode_options.both'),
+                    ])
+                    ->label(__('course_prices.pricing_mode'))
+                    ->default('course_total')
+                    ->required()
+                    ->live(),
                 Forms\Components\TextInput::make('price')
                     ->numeric()
-                    ->required()
                     ->prefix('$')
-                    ->label(__('course_prices.price')),
+                    ->label(__('course_prices.price'))
+                    ->visible(fn (Forms\Get $get) => in_array($get('pricing_mode'), ['course_total', 'both']))
+                    ->required(fn (Forms\Get $get) => in_array($get('pricing_mode'), ['course_total', 'both'])),
+                Forms\Components\TextInput::make('session_price')
+                    ->numeric()
+                    ->prefix('$')
+                    ->label(__('course_prices.session_price'))
+                    ->helperText(__('course_prices.session_price_helper'))
+                    ->visible(fn (Forms\Get $get) => in_array($get('pricing_mode'), ['per_session', 'both']))
+                    ->required(fn (Forms\Get $get) => in_array($get('pricing_mode'), ['per_session', 'both'])),
+                Forms\Components\TextInput::make('sessions_count')
+                    ->numeric()
+                    ->label(__('course_prices.sessions_count'))
+                    ->visible(fn (Forms\Get $get) => in_array($get('pricing_mode'), ['per_session', 'both']))
+                    ->minValue(1)
+                    ->nullable(),
                 Forms\Components\Toggle::make('allow_installments')
                     ->label(__('course_prices.allow_installments'))
                     ->default(false)
@@ -123,10 +147,25 @@ class CoursePriceResource extends Resource
                     })
                     ->badge()
                     ->label(__('course_prices.delivery_type')),
+                Tables\Columns\TextColumn::make('pricing_mode')
+                    ->formatStateUsing(fn ($state) => $state ? __('course_prices.pricing_mode_options.' . $state) : '-')
+                    ->badge()
+                    ->label(__('course_prices.pricing_mode')),
                 Tables\Columns\TextColumn::make('price')
                     ->money()
                     ->sortable()
-                    ->label(__('course_prices.price')),
+                    ->label(__('course_prices.price'))
+                    ->placeholder('-'),
+                Tables\Columns\TextColumn::make('session_price')
+                    ->money()
+                    ->sortable()
+                    ->label(__('course_prices.session_price'))
+                    ->placeholder('-')
+                    ->toggleable(isToggledHiddenByDefault: false),
+                Tables\Columns\TextColumn::make('sessions_count')
+                    ->label(__('course_prices.sessions_count'))
+                    ->placeholder('-')
+                    ->toggleable(isToggledHiddenByDefault: true),
                 Tables\Columns\IconColumn::make('allow_installments')
                     ->boolean()
                     ->label(__('course_prices.allow_installments')),

@@ -3,6 +3,7 @@
 namespace App\Domain\Enrollment\Models;
 
 use App\Domain\Branch\Models\Branch;
+use App\Models\User;
 use App\Support\Traits\HasVisibilityScope;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -17,6 +18,7 @@ class Student extends Authenticatable implements JWTSubject
     use HasFactory, HasVisibilityScope, SoftDeletes, Notifiable;
 
     protected $fillable = [
+        'user_id',
         'branch_id',
         'name',
         'student_code',
@@ -61,6 +63,11 @@ class Student extends Authenticatable implements JWTSubject
     public function getJWTCustomClaims()
     {
         return [];
+    }
+
+    public function user(): BelongsTo
+    {
+        return $this->belongsTo(User::class);
     }
 
     public function branch(): BelongsTo

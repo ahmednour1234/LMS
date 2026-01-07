@@ -18,7 +18,10 @@ class CoursePrice extends Model
         'course_id',
         'branch_id',
         'delivery_type',
+        'pricing_mode',
         'price',
+        'session_price',
+        'sessions_count',
         'allow_installments',
         'min_down_payment',
         'max_installments',
@@ -29,7 +32,10 @@ class CoursePrice extends Model
     {
         return [
             'delivery_type' => DeliveryType::class,
+            'pricing_mode' => 'string',
             'price' => 'decimal:2',
+            'session_price' => 'decimal:2',
+            'sessions_count' => 'integer',
             'allow_installments' => 'boolean',
             'min_down_payment' => 'decimal:2',
             'is_active' => 'boolean',
