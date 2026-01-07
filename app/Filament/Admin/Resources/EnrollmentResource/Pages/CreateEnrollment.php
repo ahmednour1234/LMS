@@ -140,4 +140,13 @@ class CreateEnrollment extends CreateRecord
 
         return $data;
     }
+
+    protected function afterCreate(): void
+    {
+        // Refresh the enrollment to ensure all relationships and attributes are loaded
+        $this->record->refresh();
+        
+        // Fire EnrollmentCreated event to trigger AR invoice creation and other listeners
+        event(new \App\Domain\Enrollment\Events\EnrollmentCreated($this->record));
+    }
 }
