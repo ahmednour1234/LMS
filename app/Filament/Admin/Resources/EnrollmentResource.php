@@ -190,40 +190,6 @@ class EnrollmentResource extends Resource
                     ])
                     ->columns(2),
 
-                Forms\Components\Section::make(__('enrollments.enrollment_mode') ?? 'Enrollment Mode')
-                    ->schema([
-                        Forms\Components\Select::make('enrollment_mode')
-                            ->options([
-                                'course_full' => __('enrollments.enrollment_mode_options.course_full') ?? 'Full Course',
-                                'per_session' => __('enrollments.enrollment_mode_options.per_session') ?? 'Per Session',
-                                'trial' => __('enrollments.enrollment_mode_options.trial') ?? 'Trial',
-                            ])
-                            ->required()
-                            ->reactive()
-                            ->visible(fn (Forms\Get $get) => !empty($get('course_id')) && !empty($get('_allowed_modes')))
-                            ->options(function (Forms\Get $get) {
-                                $allowedModes = $get('_allowed_modes') ?? [];
-                                $allOptions = [
-                                    'course_full' => __('enrollments.enrollment_mode_options.course_full') ?? 'Full Course',
-                                    'per_session' => __('enrollments.enrollment_mode_options.per_session') ?? 'Per Session',
-                                    'trial' => __('enrollments.enrollment_mode_options.trial') ?? 'Trial',
-                                ];
-                                return array_intersect_key($allOptions, array_flip($allowedModes));
-                            })
-                            ->afterStateUpdated(function (Forms\Set $set, Forms\Get $get, $state) {
-                                if ($state === 'trial') {
-                                    $set('sessions_purchased', 1);
-                                } elseif ($state === 'course_full') {
-                                    $set('sessions_purchased', null);
-                                }
-                                self::resolveAndUpdatePrice($set, $get);
-                            })
-                            ->label(__('enrollments.enrollment_mode') ?? 'Enrollment Mode')
-                            ->helperText(__('enrollments.enrollment_mode_helper') ?? 'Select how the student will enroll in this course.'),
-                    ])
-                    ->visible(fn (Forms\Get $get) => !empty($get('course_id')))
-                    ->collapsible(),
-
                 Forms\Components\Section::make(__('enrollments.delivery_type') ?? 'Delivery Type')
                     ->schema([
                         Forms\Components\Select::make('delivery_type')
@@ -251,8 +217,6 @@ class EnrollmentResource extends Resource
                                 $deliveryType = $get('delivery_type');
                                 if ($deliveryType === 'online') {
                                     $set('branch_id', null);
-                                } else {
-                                    $set('branch_id', null);
                                 }
                                 self::resolveAndUpdatePrice($set, $get);
                             })
@@ -277,6 +241,12 @@ class EnrollmentResource extends Resource
                                 }
                                 return __('enrollments.select_delivery_type_helper') ?? 'Choose whether this enrollment is for onsite or online delivery.';
                             }),
+                    ])
+                    ->visible(fn (Forms\Get $get) => !empty($get('course_id')))
+                    ->collapsible(),
+
+                Forms\Components\Section::make(__('enrollments.branch') ?? 'Branch')
+                    ->schema([
                         Forms\Components\Select::make('branch_id')
                             ->relationship(
                                 name: 'branch',
@@ -329,6 +299,10 @@ class EnrollmentResource extends Resource
                                 // Required when delivery_type is 'onsite'
                                 return $get('delivery_type') === 'onsite';
                             })
+                            ->disabled(function (Forms\Get $get) {
+                                // Disable when delivery_type is 'online'
+                                return $get('delivery_type') === 'online';
+                            })
                             ->afterStateUpdated(function (Forms\Set $set, Forms\Get $get) {
                                 self::resolveAndUpdatePrice($set, $get);
                             })
@@ -338,8 +312,8 @@ class EnrollmentResource extends Resource
                                     return false;
                                 }
                                 $deliveryType = $get('delivery_type') ?? 'online';
-                                // Always visible, but required only for onsite
-                                return true;
+                                // Only visible when delivery_type is 'onsite'
+                                return $deliveryType === 'onsite';
                             })
                             ->label(__('enrollments.branch'))
                             ->helperText(function (Forms\Get $get) {
@@ -347,8 +321,50 @@ class EnrollmentResource extends Resource
                                 if ($deliveryType === 'onsite') {
                                     return __('enrollments.branch_required_onsite') ?? 'Branch selection is required for onsite enrollment.';
                                 }
-                                return __('enrollments.branch_optional_online') ?? 'Branch selection is optional for online enrollment.';
+                                return null;
                             }),
+                    ])
+                    ->visible(function (Forms\Get $get) {
+                        $courseId = $get('course_id');
+                        if (!$courseId) {
+                            return false;
+                        }
+                        $deliveryType = $get('delivery_type') ?? 'online';
+                        // Only visible when delivery_type is 'onsite'
+                        return $deliveryType === 'onsite';
+                    })
+                    ->collapsible(),
+
+                Forms\Components\Section::make(__('enrollments.enrollment_mode') ?? 'Enrollment Mode')
+                    ->schema([
+                        Forms\Components\Select::make('enrollment_mode')
+                            ->options([
+                                'course_full' => __('enrollments.enrollment_mode_options.course_full') ?? 'Full Course',
+                                'per_session' => __('enrollments.enrollment_mode_options.per_session') ?? 'Per Session',
+                                'trial' => __('enrollments.enrollment_mode_options.trial') ?? 'Trial',
+                            ])
+                            ->required()
+                            ->reactive()
+                            ->visible(fn (Forms\Get $get) => !empty($get('course_id')) && !empty($get('_allowed_modes')))
+                            ->options(function (Forms\Get $get) {
+                                $allowedModes = $get('_allowed_modes') ?? [];
+                                $allOptions = [
+                                    'course_full' => __('enrollments.enrollment_mode_options.course_full') ?? 'Full Course',
+                                    'per_session' => __('enrollments.enrollment_mode_options.per_session') ?? 'Per Session',
+                                    'trial' => __('enrollments.enrollment_mode_options.trial') ?? 'Trial',
+                                ];
+                                return array_intersect_key($allOptions, array_flip($allowedModes));
+                            })
+                            ->afterStateUpdated(function (Forms\Set $set, Forms\Get $get, $state) {
+                                if ($state === 'trial') {
+                                    $set('sessions_purchased', 1);
+                                } elseif ($state === 'course_full') {
+                                    $set('sessions_purchased', null);
+                                }
+                                self::resolveAndUpdatePrice($set, $get);
+                            })
+                            ->label(__('enrollments.enrollment_mode') ?? 'Enrollment Mode')
+                            ->helperText(__('enrollments.enrollment_mode_helper') ?? 'Select how the student will enroll in this course.'),
                     ])
                     ->visible(fn (Forms\Get $get) => !empty($get('course_id')))
                     ->collapsible(),
