@@ -36,22 +36,19 @@ class CreateArInvoice
 
         // Create AR invoice
         // Note: due_amount is computed automatically via accessor (total_amount - paid_amount)
-        // The accessor will always compute it correctly when reading, so we don't need to set it
-        $invoice = ArInvoice::create([
-            'enrollment_id' => $enrollment->id,
-            'user_id' => $enrollment->user_id, // Student user_id
-            'branch_id' => $enrollment->branch_id,
-            'total_amount' => $enrollment->total_amount,
-            'status' => 'open',
-            'issued_at' => now(),
-            'created_by' => $enrollment->created_by,
-        ]);
-
-        // Set initial due_amount in database using raw query (bypasses model accessor)
-        // This is for database consistency, but the accessor will always compute it correctly when reading
-        DB::table('ar_invoices')
-            ->where('id', $invoice->id)
-            ->update(['due_amount' => $enrollment->total_amount]);
+        // But we need to set it initially to match total_amount since the field is required in the database
+        $invoice = ArInvoice::unguarded(function () use ($enrollment) {
+            return ArInvoice::create([
+                'enrollment_id' => $enrollment->id,
+                'user_id' => $enrollment->user_id, // Student user_id
+                'branch_id' => $enrollment->branch_id,
+                'total_amount' => $enrollment->total_amount,
+                'due_amount' => $enrollment->total_amount, // Initially equals total_amount
+                'status' => 'open',
+                'issued_at' => now(),
+                'created_by' => $enrollment->created_by,
+            ]);
+        });
 
         // Fire event for audit logging
         event(new InvoiceGenerated($invoice));

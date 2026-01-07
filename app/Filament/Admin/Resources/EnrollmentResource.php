@@ -838,20 +838,19 @@ class EnrollmentResource extends Resource
                             }
 
                             // Create AR invoice
-                            $invoice = \App\Domain\Accounting\Models\ArInvoice::create([
-                                'enrollment_id' => $record->id,
-                                'user_id' => $record->user_id,
-                                'branch_id' => $record->branch_id,
-                                'total_amount' => $record->total_amount,
-                                'status' => 'open',
-                                'issued_at' => now(),
-                                'created_by' => $record->created_by ?? auth()->id(),
-                            ]);
-
-                            // Set initial due_amount in database
-                            \Illuminate\Support\Facades\DB::table('ar_invoices')
-                                ->where('id', $invoice->id)
-                                ->update(['due_amount' => $record->total_amount]);
+                            // Note: due_amount is guarded, so we use unguarded to set it initially
+                            $invoice = \App\Domain\Accounting\Models\ArInvoice::unguarded(function () use ($record) {
+                                return \App\Domain\Accounting\Models\ArInvoice::create([
+                                    'enrollment_id' => $record->id,
+                                    'user_id' => $record->user_id,
+                                    'branch_id' => $record->branch_id,
+                                    'total_amount' => $record->total_amount,
+                                    'due_amount' => $record->total_amount, // Initially equals total_amount
+                                    'status' => 'open',
+                                    'issued_at' => now(),
+                                    'created_by' => $record->created_by ?? auth()->id(),
+                                ]);
+                            });
 
                             // Fire event for audit logging
                             event(new \App\Domain\Accounting\Events\InvoiceGenerated($invoice));
