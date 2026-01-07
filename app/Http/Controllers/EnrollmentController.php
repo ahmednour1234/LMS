@@ -22,8 +22,12 @@ class EnrollmentController extends Controller
     {
         $enrollment->load(['student', 'course', 'branch', 'arInvoice.arInstallments', 'payments']);
         
+        $appName = \App\Models\Setting::where('key', 'app_name')->first()?->value ?? [];
+        $appNameText = is_array($appName) ? ($appName[app()->getLocale()] ?? $appName['en'] ?? 'LMS') : (string) $appName;
+        
         return $this->pdfService->render('pdf.enrollment', [
             'enrollment' => $enrollment,
+            'app_name' => $appNameText,
         ]);
     }
 }

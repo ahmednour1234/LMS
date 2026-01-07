@@ -10,7 +10,8 @@
         body { direction: ltr; text-align: left; font-family: Arial, sans-serif; }
         @endif
         .header { margin-bottom: 20px; border-bottom: 2px solid #000; padding-bottom: 10px; }
-        .header h1 { margin: 0; font-size: 24px; font-weight: bold; }
+        .header h1 { margin: 0 0 5px 0; font-size: 24px; font-weight: bold; }
+        .header h2 { margin: 0; font-size: 18px; font-weight: normal; }
         .info-table { width: 100%; border-collapse: collapse; margin-bottom: 20px; }
         .info-table td { padding: 8px; border: 1px solid #ddd; }
         .info-table td:first-child { font-weight: bold; width: 30%; background-color: #f5f5f5; }
@@ -20,7 +21,8 @@
 </head>
 <body>
     <div class="header">
-        <h1>{{ __('enrollments.enrollment') }} - {{ $enrollment->reference }}</h1>
+        <h1>{{ $app_name ?? 'LMS' }}</h1>
+        <h2>{{ __('enrollments.enrollment') }} - {{ $enrollment->reference }}</h2>
     </div>
 
     <table class="info-table">
@@ -35,6 +37,14 @@
         <tr>
             <td>{{ __('enrollments.course') }}</td>
             <td>{{ is_array($enrollment->course->name ?? null) ? ($enrollment->course->name[app()->getLocale()] ?? $enrollment->course->name['ar'] ?? '') : ($enrollment->course->name ?? '') }}</td>
+        </tr>
+        <tr>
+            <td>{{ __('courses.delivery_type') }}</td>
+            <td>{{ __('courses.delivery_type_options.' . ($enrollment->course->delivery_type->value ?? 'online')) }}</td>
+        </tr>
+        <tr>
+            <td>{{ __('enrollments.enrollment_mode') }}</td>
+            <td>{{ __('enrollments.enrollment_mode_options.' . ($enrollment->enrollment_mode->value ?? 'course_full')) }}</td>
         </tr>
         <tr>
             <td>{{ __('enrollments.status') }}</td>

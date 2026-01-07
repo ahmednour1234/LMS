@@ -22,7 +22,7 @@ class PriceResolverTest extends TestCase
     {
         parent::setUp();
         $this->priceResolver = new PriceResolver();
-        
+
         // Create test course and branch
         $this->branch = Branch::factory()->create();
         $this->course = Course::factory()->create([
