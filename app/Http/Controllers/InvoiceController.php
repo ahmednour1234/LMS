@@ -23,19 +23,36 @@ class InvoiceController extends Controller
     {
         $invoice->load(['enrollment.student', 'enrollment.course', 'arInstallments', 'branch']);
         
-        // Get required settings for invoice PDF
-        $settings = [
-            'app_name' => Setting::where('key', 'app_name')->first()?->value ?? [],
-            'app_phone' => Setting::where('key', 'app_phone')->first()?->value ?? [],
-            'app_whatsapp' => Setting::where('key', 'app_whatsapp')->first()?->value ?? [],
-            'tax_registration_number' => Setting::where('key', 'tax_registration_number')->first()?->value ?? [],
-            'commercial_registration_number' => Setting::where('key', 'commercial_registration_number')->first()?->value ?? [],
-        ];
+        // Set locale to Arabic for invoice generation
+        $originalLocale = app()->getLocale();
+        app()->setLocale('ar');
         
-        return $this->pdfService->render('pdf.ar-invoice', [
-            'invoice' => $invoice,
-            'settings' => $settings,
-        ]);
+        // Set Carbon locale for date formatting
+        if (class_exists(\Carbon\Carbon::class)) {
+            \Carbon\Carbon::setLocale('ar');
+        }
+        
+        try {
+            // Get required settings for invoice PDF
+            $settings = [
+                'app_name' => Setting::where('key', 'app_name')->first()?->value ?? [],
+                'app_phone' => Setting::where('key', 'app_phone')->first()?->value ?? [],
+                'app_whatsapp' => Setting::where('key', 'app_whatsapp')->first()?->value ?? [],
+                'tax_registration_number' => Setting::where('key', 'tax_registration_number')->first()?->value ?? [],
+                'commercial_registration_number' => Setting::where('key', 'commercial_registration_number')->first()?->value ?? [],
+            ];
+            
+            return $this->pdfService->render('pdf.ar-invoice', [
+                'invoice' => $invoice,
+                'settings' => $settings,
+            ]);
+        } finally {
+            // Restore original locale
+            app()->setLocale($originalLocale);
+            if (class_exists(\Carbon\Carbon::class)) {
+                \Carbon\Carbon::setLocale($originalLocale);
+            }
+        }
     }
 }
 

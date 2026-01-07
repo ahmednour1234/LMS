@@ -15,9 +15,26 @@ class PublicInvoiceController extends Controller
         $invoice = ArInvoice::with(['enrollment.student', 'enrollment.course', 'arInstallments', 'branch'])
             ->findOrFail($id);
 
-        return view('public.invoice', [
-            'invoice' => $invoice,
-        ]);
+        // Set locale to Arabic for invoice display
+        $originalLocale = app()->getLocale();
+        app()->setLocale('ar');
+        
+        // Set Carbon locale for date formatting
+        if (class_exists(\Carbon\Carbon::class)) {
+            \Carbon\Carbon::setLocale('ar');
+        }
+
+        try {
+            return view('public.invoice', [
+                'invoice' => $invoice,
+            ]);
+        } finally {
+            // Restore original locale
+            app()->setLocale($originalLocale);
+            if (class_exists(\Carbon\Carbon::class)) {
+                \Carbon\Carbon::setLocale($originalLocale);
+            }
+        }
     }
 }
 
