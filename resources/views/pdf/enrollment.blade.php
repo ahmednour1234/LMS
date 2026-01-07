@@ -60,6 +60,10 @@
             <td>{{ __('courses.delivery_type_options.' . ($enrollment->course->delivery_type->value ?? 'online')) }}</td>
         </tr>
         <tr>
+            <td>{{ __('enrollments.delivery_type') }}</td>
+            <td>{{ __('enrollments.delivery_type_options.' . ($enrollment->delivery_type ?? 'online')) }}</td>
+        </tr>
+        <tr>
             <td>{{ __('enrollments.enrollment_mode') }}</td>
             <td>{{ __('enrollments.enrollment_mode_options.' . ($enrollment->enrollment_mode->value ?? 'course_full')) }}</td>
         </tr>
