@@ -27,11 +27,16 @@ class ManageCourseStudio extends Page
 
     public Course $record;
 
+    public static function shouldRegisterNavigation(array $parameters = []): bool
+    {
+        return false;
+    }
+
     public function mount(int | string $record): void
     {
         // Check authorization first
         $user = auth()->user();
-        if (!$user->isSuperAdmin() && !$user->hasRole('admin')) {
+        if (!$user || (!$user->isSuperAdmin() && !$user->hasRole('admin'))) {
             abort(403);
         }
 
