@@ -48,7 +48,13 @@ class CoursePriceResource extends Resource
         return $form
             ->schema([
                 Forms\Components\Select::make('course_id')
-                    ->relationship('course', 'code', fn (Builder $query) => $query->where('branch_id', auth()->user()->branch_id ?? null))
+                    ->relationship('course', 'code', function (Builder $query) {
+                        $user = auth()->user();
+                        if (!$user->isSuperAdmin()) {
+                            $query->where('branch_id', $user->branch_id);
+                        }
+                        // Super admins see all courses (no filter)
+                    })
                     ->searchable()
                     ->preload()
                     ->required()
