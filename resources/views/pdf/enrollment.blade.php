@@ -5,7 +5,18 @@
     <title>{{ __('enrollments.enrollment') }} - {{ $enrollment->reference }}</title>
     <style>
         @if(app()->getLocale() === 'ar')
-        body { direction: rtl; text-align: right; font-family: 'Amiri', 'DejaVu Sans', sans-serif; }
+        @font-face {
+            font-family: dejavusanscondensed;
+        }
+        * {
+            font-family: dejavusanscondensed, Arial, sans-serif !important;
+        }
+        body { 
+            direction: rtl; 
+            text-align: right; 
+            font-family: dejavusanscondensed, Arial, sans-serif !important;
+            unicode-bidi: embed;
+        }
         @else
         body { direction: ltr; text-align: left; font-family: Arial, sans-serif; }
         @endif
@@ -15,6 +26,12 @@
         .info-table { width: 100%; border-collapse: collapse; margin-bottom: 20px; }
         .info-table td { padding: 8px; border: 1px solid #ddd; }
         .info-table td:first-child { font-weight: bold; width: 30%; background-color: #f5f5f5; }
+        @if(app()->getLocale() === 'ar')
+        .info-table td {
+            font-family: dejavusanscondensed, Arial, sans-serif !important;
+            text-align: right;
+        }
+        @endif
         .amount { font-size: 20px; font-weight: bold; text-align: right; padding: 15px; background-color: #f0f0f0; border: 2px solid #000; margin-top: 20px; }
         .footer { margin-top: 30px; padding-top: 10px; border-top: 1px solid #ddd; font-size: 12px; color: #666; }
     </style>

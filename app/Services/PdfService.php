@@ -67,24 +67,20 @@ class PdfService
             ];
         }
 
-        // Fallback to DejaVu if Amiri not available
-        if (empty($fontData['amiri'])) {
-            $fontData['dejavusans'] = [
-                'R' => 'DejaVuSans.ttf',
-                'B' => 'DejaVuSans-Bold.ttf',
-                'I' => 'DejaVuSans-Oblique.ttf',
-                'BI' => 'DejaVuSans-BoldOblique.ttf',
-            ];
-        }
-
+        // Use XBRiyaz as built-in Arabic font (comes with mPDF)
+        // This is the best Arabic font available in mPDF by default
         $config['fontDir'] = $fontDirs;
         $config['fontdata'] = $fontData;
 
         // Set default font for Arabic
-        if ($isRtl && isset($fontData['amiri'])) {
-            $config['default_font'] = 'amiri';
-        } elseif ($isRtl) {
-            $config['default_font'] = 'dejavusans';
+        if ($isRtl) {
+            // Use DejaVu Sans Condensed which has good Arabic support in mPDF
+            // Enable auto script to font for automatic Arabic font selection
+            $config['default_font'] = 'dejavusanscondensed';
+            $config['autoScriptToLang'] = true;
+            $config['autoLangToFont'] = true;
+            // Set Arabic as secondary language
+            $config['lang'] = 'ar';
         }
 
         // Create mPDF instance
@@ -97,16 +93,24 @@ class PdfService
         if ($isRtl) {
             $rtlCss = '
                 <style>
+                    @font-face {
+                        font-family: dejavusanscondensed;
+                    }
+                    * {
+                        font-family: dejavusanscondensed, Arial, sans-serif;
+                    }
                     body {
                         direction: rtl;
                         text-align: right;
-                        font-family: ' . ($config['default_font'] ?? 'dejavusans') . ', sans-serif;
+                        font-family: dejavusanscondensed, Arial, sans-serif;
+                        unicode-bidi: embed;
                     }
                     table {
                         direction: rtl;
                     }
                     th, td {
                         text-align: right;
+                        font-family: dejavusanscondensed, Arial, sans-serif;
                     }
                 </style>
             ';
@@ -158,22 +162,16 @@ class PdfService
             ];
         }
 
-        if (empty($fontData['amiri'])) {
-            $fontData['dejavusans'] = [
-                'R' => 'DejaVuSans.ttf',
-                'B' => 'DejaVuSans-Bold.ttf',
-                'I' => 'DejaVuSans-Oblique.ttf',
-                'BI' => 'DejaVuSans-BoldOblique.ttf',
-            ];
-        }
-
+        // Use XBRiyaz as built-in Arabic font (comes with mPDF)
         $config['fontDir'] = $fontDirs;
         $config['fontdata'] = $fontData;
 
-        if ($isRtl && isset($fontData['amiri'])) {
-            $config['default_font'] = 'amiri';
-        } elseif ($isRtl) {
-            $config['default_font'] = 'dejavusans';
+        // Set default font for Arabic
+        if ($isRtl) {
+            $config['default_font'] = 'dejavusanscondensed';
+            $config['autoScriptToLang'] = true;
+            $config['autoLangToFont'] = true;
+            $config['lang'] = 'ar';
         }
 
         $mpdf = new Mpdf($config);
@@ -181,16 +179,24 @@ class PdfService
         if ($isRtl) {
             $rtlCss = '
                 <style>
+                    @font-face {
+                        font-family: dejavusanscondensed;
+                    }
+                    * {
+                        font-family: dejavusanscondensed, Arial, sans-serif;
+                    }
                     body {
                         direction: rtl;
                         text-align: right;
-                        font-family: ' . ($config['default_font'] ?? 'dejavusans') . ', sans-serif;
+                        font-family: dejavusanscondensed, Arial, sans-serif;
+                        unicode-bidi: embed;
                     }
                     table {
                         direction: rtl;
                     }
                     th, td {
                         text-align: right;
+                        font-family: dejavusanscondensed, Arial, sans-serif;
                     }
                 </style>
             ';
