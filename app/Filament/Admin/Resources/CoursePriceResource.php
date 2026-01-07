@@ -64,7 +64,6 @@ class CoursePriceResource extends Resource
                     ->options([
                         DeliveryType::Onsite->value => __('course_prices.delivery_type_options.onsite'),
                         DeliveryType::Online->value => __('course_prices.delivery_type_options.online'),
-                        DeliveryType::Virtual->value => __('course_prices.delivery_type_options.virtual'),
                     ])
                     ->label(__('course_prices.delivery_type'))
                     ->helperText(__('course_prices.delivery_type_helper')),
@@ -263,7 +262,6 @@ class CoursePriceResource extends Resource
                     ->options([
                         DeliveryType::Onsite->value => __('course_prices.delivery_type_options.onsite'),
                         DeliveryType::Online->value => __('course_prices.delivery_type_options.online'),
-                        DeliveryType::Virtual->value => __('course_prices.delivery_type_options.virtual'),
                     ])
                     ->label(__('course_prices.delivery_type')),
                 Tables\Filters\TernaryFilter::make('allow_installments')

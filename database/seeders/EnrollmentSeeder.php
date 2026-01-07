@@ -65,7 +65,7 @@ class EnrollmentSeeder extends Seeder
                 // Determine delivery type based on course
                 $deliveryType = match($course->delivery_type->value) {
                     'onsite' => 'onsite',
-                    'online', 'virtual' => 'online',
+                    'online' => 'online',
                     'hybrid' => rand(0, 1) ? 'online' : 'onsite',
                     default => 'online',
                 };

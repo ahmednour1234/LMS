@@ -165,7 +165,7 @@
         "delivery_type_options": {
             "onsite": "حضوري",
             "online": "أونلاين",
-            "virtual": "افتراضي"
+            "hybrid": "مختلط"
         },
         "duration_hours": "عدد الساعات",
         "hours": "ساعة",
@@ -183,8 +183,7 @@
         "delivery_type_helper": "اتركه فارغاً لجميع أنواع التوصيل",
         "delivery_type_options": {
             "onsite": "حضوري",
-            "online": "أونلاين",
-            "virtual": "افتراضي"
+            "online": "أونلاين"
         },
         "all_delivery_types": "جميع الأنواع",
         "global": "عام",

@@ -80,7 +80,7 @@ class CourseResource extends Resource
                     ->options([
                         DeliveryType::Onsite->value => __('courses.delivery_type_options.onsite'),
                         DeliveryType::Online->value => __('courses.delivery_type_options.online'),
-                        DeliveryType::Virtual->value => __('courses.delivery_type_options.virtual'),
+                        DeliveryType::Hybrid->value => __('courses.delivery_type_options.hybrid'),
                     ])
                     ->required()
                     ->label(__('courses.delivery_type')),
@@ -182,7 +182,7 @@ class CourseResource extends Resource
                     ->options([
                         DeliveryType::Onsite->value => __('courses.delivery_type_options.onsite'),
                         DeliveryType::Online->value => __('courses.delivery_type_options.online'),
-                        DeliveryType::Virtual->value => __('courses.delivery_type_options.virtual'),
+                        DeliveryType::Hybrid->value => __('courses.delivery_type_options.hybrid'),
                     ])
                     ->label(__('courses.delivery_type')),
                 Tables\Filters\SelectFilter::make('branch_id')

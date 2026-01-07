@@ -23,7 +23,7 @@ class CoursePriceSeeder extends Seeder
             return;
         }
 
-        $deliveryTypes = [DeliveryType::Onsite, DeliveryType::Online, DeliveryType::Virtual];
+        $deliveryTypes = [DeliveryType::Onsite, DeliveryType::Online];
         $pricingModes = ['course_total', 'per_session', 'both'];
 
         foreach ($courses as $course) {
@@ -71,8 +71,8 @@ class CoursePriceSeeder extends Seeder
                 }
             }
             
-            // Also create global prices (no branch) for online/virtual
-            foreach ([DeliveryType::Online, DeliveryType::Virtual] as $deliveryType) {
+            // Also create global prices (no branch) for online
+            foreach ([DeliveryType::Online] as $deliveryType) {
                 $pricingMode = $pricingModes[array_rand($pricingModes)];
                 
                 $priceData = [

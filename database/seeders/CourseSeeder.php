@@ -50,7 +50,7 @@ class CourseSeeder extends Seeder
                 'code' => 'COURSE-003',
                 'name' => ['ar' => 'التسويق الإلكتروني', 'en' => 'Digital Marketing'],
                 'description' => ['ar' => 'استراتيجيات التسويق الرقمي الحديثة', 'en' => 'Modern digital marketing strategies'],
-                'delivery_type' => 'virtual',
+                'delivery_type' => 'online',
                 'duration_hours' => 35,
             ],
             [

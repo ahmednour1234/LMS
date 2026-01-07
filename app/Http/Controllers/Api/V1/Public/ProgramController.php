@@ -12,7 +12,7 @@ use Illuminate\Http\Request;
 
 /**
  * @group Public Programs
- * 
+ *
  * Public API for browsing programs. No authentication required.
  */
 class ProgramController extends ApiController
@@ -26,16 +26,16 @@ class ProgramController extends ApiController
 
     /**
      * List Programs
-     * 
+     *
      * Get a paginated list of programs with optional filtering and sorting.
-     * 
+     *
      * @queryParam q string optional Search programs by name (ar/en). Example: Programming
      * @queryParam active integer optional Filter by active status (1 for active, 0 for inactive). Default: 1. Example: 1
      * @queryParam branch_id integer optional Filter by branch ID. Example: 1
      * @queryParam sort string optional Sort order: newest, oldest, or name. Default: newest. Example: newest
      * @queryParam per_page integer optional Number of items per page. Default: 15. Example: 15
      * @queryParam page integer optional Page number. Example: 1
-     * 
+     *
      * @response 200 {
      *   "success": true,
      *   "message": "Programs retrieved successfully.",
@@ -65,11 +65,11 @@ class ProgramController extends ApiController
 
     /**
      * Show Program
-     * 
+     *
      * Get a single program by ID.
-     * 
+     *
      * @urlParam program integer required The ID of the program. Example: 1
-     * 
+     *
      * @response 200 {
      *   "success": true,
      *   "message": "Program retrieved successfully.",
@@ -112,18 +112,18 @@ class ProgramController extends ApiController
 
     /**
      * Get Program Courses
-     * 
+     *
      * Get courses for a specific program with optional filtering.
-     * 
+     *
      * @urlParam program integer required The ID of the program. Example: 1
      * @queryParam q string optional Search courses by title (ar/en). Example: PHP
      * @queryParam active integer optional Filter by active status (1 for active, 0 for inactive). Default: 1. Example: 1
      * @queryParam branch_id integer optional Filter by branch ID. Example: 1
-     * @queryParam delivery_type string optional Filter by delivery type: online, onsite, hybrid, virtual. Example: online
+     * @queryParam delivery_type string optional Filter by delivery type: online, onsite, hybrid. Example: online
      * @queryParam has_price integer optional Only show courses with active prices (1). Example: 1
      * @queryParam sort string optional Sort order: newest, oldest, or title. Default: newest. Example: newest
      * @queryParam per_page integer optional Number of items per page. Default: 15. Example: 15
-     * 
+     *
      * @response 200 {
      *   "success": true,
      *   "message": "Program courses retrieved successfully.",

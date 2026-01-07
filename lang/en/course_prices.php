@@ -11,7 +11,6 @@ return [
     'delivery_type_options' => [
         'onsite' => 'Onsite',
         'online' => 'Online',
-        'virtual' => 'Virtual',
     ],
     'all_delivery_types' => 'All Types',
     'global' => 'Global',

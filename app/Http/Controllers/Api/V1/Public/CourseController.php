@@ -33,7 +33,7 @@ class CourseController extends ApiController
      * @queryParam q string optional Search courses by title (ar/en). Example: PHP
      * @queryParam program_id integer optional Filter by program ID. Example: 1
      * @queryParam branch_id integer optional Filter by branch ID. Example: 1
-     * @queryParam delivery_type string optional Filter by delivery type: online, onsite, hybrid, virtual. Example: online
+     * @queryParam delivery_type string optional Filter by delivery type: online, onsite, hybrid. Example: online
      * @queryParam active integer optional Filter by active status (1 for active, 0 for inactive). Default: 1. Example: 1
      * @queryParam has_price integer optional Only show courses with active prices (1). Example: 1
      * @queryParam sort string optional Sort order: newest, oldest, or title. Default: newest. Example: newest
@@ -127,7 +127,7 @@ class CourseController extends ApiController
      * 
      * @urlParam course integer required The ID of the course. Example: 1
      * @queryParam branch_id integer optional Filter by branch ID. Example: 1
-     * @queryParam delivery_type string optional Filter by delivery type: online, onsite, hybrid, virtual. Example: online
+     * @queryParam delivery_type string optional Filter by delivery type: online, onsite, hybrid. Example: online
      * @queryParam active integer optional Filter by active status (1 for active, 0 for inactive). Default: 1. Example: 1
      * 
      * @response 200 {

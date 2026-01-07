@@ -75,7 +75,7 @@ class EnrollmentTestSeeder extends Seeder
             // Determine delivery type
             $deliveryType = match($course->delivery_type->value) {
                 'onsite' => 'onsite',
-                'online', 'virtual' => 'online',
+                'online' => 'online',
                 'hybrid' => 'online',
                 default => 'online',
             };
@@ -145,7 +145,7 @@ class EnrollmentTestSeeder extends Seeder
             // Try to find a price that supports this mode
             $deliveryType = match($course->delivery_type->value) {
                 'onsite' => 'onsite',
-                'online', 'virtual' => 'online',
+                'online' => 'online',
                 'hybrid' => 'online',
                 default => 'online',
             };

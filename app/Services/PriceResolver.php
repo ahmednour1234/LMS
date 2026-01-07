@@ -321,7 +321,7 @@ class PriceResolver
     {
         return match ($registrationType) {
             'onsite' => [DeliveryType::Onsite],
-            'online' => [DeliveryType::Online, DeliveryType::Virtual],
+            'online' => [DeliveryType::Online],
             default => throw new \InvalidArgumentException("Invalid registration_type: {$registrationType}"),
         };
     }

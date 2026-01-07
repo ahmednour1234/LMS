@@ -29,10 +29,10 @@ class PricingService
     ): string {
         // Map registration_type to delivery_type for CoursePrice lookup
         // 'onsite' → 'onsite'
-        // 'online' → 'online' or 'virtual'
+        // 'online' → 'online'
         $deliveryTypes = match ($registrationType) {
             'onsite' => ['onsite'],
-            'online' => ['online', 'virtual'],
+            'online' => ['online'],
             default => throw new \InvalidArgumentException("Invalid registration_type: {$registrationType}"),
         };
 
@@ -106,10 +106,10 @@ class PricingService
         }
 
         // Map registration_type to delivery_type enum values
-        // 'online' registration_type can match both Online and Virtual delivery types
+        // 'online' registration_type matches Online delivery type
         $deliveryTypeEnums = match ($registrationType) {
             'onsite' => [DeliveryType::Onsite],
-            'online' => [DeliveryType::Online, DeliveryType::Virtual],
+            'online' => [DeliveryType::Online],
             default => throw new \InvalidArgumentException("Invalid registration_type: {$registrationType}"),
         };
 

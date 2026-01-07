@@ -33,7 +33,6 @@ class CreateEnrollment extends CreateRecord
                 $data['delivery_type'] = match ($course->delivery_type) {
                     \App\Domain\Training\Enums\DeliveryType::Onsite => 'onsite',
                     \App\Domain\Training\Enums\DeliveryType::Online => 'online',
-                    \App\Domain\Training\Enums\DeliveryType::Virtual => 'online',
                     \App\Domain\Training\Enums\DeliveryType::Hybrid => $data['delivery_type'] ?? 'online',
                     default => 'online',
                 };

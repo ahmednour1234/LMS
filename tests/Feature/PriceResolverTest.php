@@ -194,15 +194,15 @@ class PriceResolverTest extends TestCase
     }
 
     /**
-     * Test online registration type maps to Online and Virtual delivery types
+     * Test online registration type maps to Online delivery type
      */
-    public function test_online_registration_maps_to_online_and_virtual(): void
+    public function test_online_registration_maps_to_online(): void
     {
-        // Create Virtual delivery type price
-        $virtualPrice = CoursePrice::create([
+        // Create Online delivery type price
+        $onlinePrice = CoursePrice::create([
             'course_id' => $this->course->id,
             'branch_id' => null,
-            'delivery_type' => DeliveryType::Virtual,
+            'delivery_type' => DeliveryType::Online,
             'pricing_mode' => 'course_total',
             'price' => 150.000,
             'is_active' => true,
@@ -215,7 +215,7 @@ class PriceResolverTest extends TestCase
         );
 
         $this->assertNotNull($resolved);
-        $this->assertEquals($virtualPrice->id, $resolved->id);
+        $this->assertEquals($onlinePrice->id, $resolved->id);
     }
 
     /**

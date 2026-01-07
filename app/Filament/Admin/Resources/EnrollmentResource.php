@@ -166,7 +166,6 @@ class EnrollmentResource extends Resource
                                         $deliveryType = match ($course->delivery_type) {
                                             \App\Domain\Training\Enums\DeliveryType::Onsite => 'onsite',
                                             \App\Domain\Training\Enums\DeliveryType::Online => 'online',
-                                            \App\Domain\Training\Enums\DeliveryType::Virtual => 'online',
                                             \App\Domain\Training\Enums\DeliveryType::Hybrid => 'online', // Default, can be changed
                                             default => 'online',
                                         };
@@ -233,8 +232,7 @@ class EnrollmentResource extends Resource
                                 if ($course->delivery_type !== \App\Domain\Training\Enums\DeliveryType::Hybrid) {
                                     $type = match($course->delivery_type) {
                                         \App\Domain\Training\Enums\DeliveryType::Onsite => __('enrollments.delivery_type_options.onsite') ?? 'On-site',
-                                        \App\Domain\Training\Enums\DeliveryType::Online,
-                                        \App\Domain\Training\Enums\DeliveryType::Virtual => __('enrollments.delivery_type_options.online') ?? 'Online',
+                                        \App\Domain\Training\Enums\DeliveryType::Online => __('enrollments.delivery_type_options.online') ?? 'Online',
                                         default => 'Online',
                                     };
                                     return __('enrollments.auto_set_delivery_type') ?? "Auto-set to: {$type} (based on course delivery type)";
@@ -260,7 +258,7 @@ class EnrollmentResource extends Resource
                                         // Map delivery_type to delivery_type enum for filtering
                                         $deliveryTypeEnum = match($deliveryType) {
                                             'onsite' => \App\Domain\Training\Enums\DeliveryType::Onsite,
-                                            'online' => null, // online/virtual - will handle separately
+                                            'online' => null, // online - will handle separately
                                             default => null,
                                         };
 

@@ -14,7 +14,7 @@ return [
     'delivery_type_options' => [
         'onsite' => 'Onsite',
         'online' => 'Online',
-        'virtual' => 'Virtual',
+        'hybrid' => 'Hybrid',
     ],
     'duration_hours' => 'Duration (Hours)',
     'hours' => 'hours',

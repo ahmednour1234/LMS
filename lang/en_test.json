@@ -183,8 +183,7 @@
         "delivery_type_helper": "Leave empty for all delivery types",
         "delivery_type_options": {
             "onsite": "Onsite",
-            "online": "Online",
-            "virtual": "Virtual"
+            "online": "Online"
         },
         "all_delivery_types": "All Types",
         "global": "Global",

@@ -11,7 +11,6 @@ return [
     'delivery_type_options' => [
         'onsite' => 'حضوري',
         'online' => 'أونلاين',
-        'virtual' => 'افتراضي',
     ],
     'all_delivery_types' => 'جميع الأنواع',
     'global' => 'عام',

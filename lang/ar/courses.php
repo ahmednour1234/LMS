@@ -14,7 +14,7 @@ return [
     'delivery_type_options' => [
         'onsite' => 'حضوري',
         'online' => 'أونلاين',
-        'virtual' => 'افتراضي',
+        'hybrid' => 'مختلط',
     ],
     'duration_hours' => 'المدة (بالساعات)',
     'hours' => 'ساعات',
