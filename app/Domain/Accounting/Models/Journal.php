@@ -29,9 +29,8 @@ class Journal extends Model
         'updated_by',
     ];
 
-    protected $attributes = [
-        'original_status' => null,
-    ];
+    // Note: original_status is not a database column, it's only used in memory
+    // Removed from $attributes to prevent insertion attempts
 
     protected function casts(): array
     {
@@ -45,6 +44,11 @@ class Journal extends Model
     protected static function boot()
     {
         parent::boot();
+
+        // Ensure original_status is never saved to database
+        static::saving(function ($journal) {
+            unset($journal->attributes['original_status']);
+        });
 
         // Store original status when model is retrieved
         static::retrieved(function ($journal) {

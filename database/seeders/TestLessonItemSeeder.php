@@ -23,8 +23,9 @@ class TestLessonItemSeeder extends Seeder
 
         foreach ($lessons as $lesson) {
             // Create exactly 2 items per lesson for predictable testing
+            // Valid types: 'video', 'pdf', 'file', 'link'
             for ($i = 1; $i <= 2; $i++) {
-                $itemType = $i === 1 ? 'video' : 'document';
+                $itemType = $i === 1 ? 'video' : 'pdf';
                 
                 $itemData = [
                     'lesson_id' => $lesson->id,

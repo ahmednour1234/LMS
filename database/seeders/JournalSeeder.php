@@ -52,10 +52,11 @@ class JournalSeeder extends Seeder
                     $journalData['posted_at'] = now()->subDays(rand(0, 30));
                 }
 
-                Journal::firstOrCreate(
-                    ['reference' => $reference],
-                    $journalData
-                );
+                // Use create with check to avoid issues with original_status attribute
+                $existingJournal = Journal::where('reference', $reference)->first();
+                if (!$existingJournal) {
+                    Journal::create($journalData);
+                }
             }
         }
 

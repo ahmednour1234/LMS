@@ -15,12 +15,15 @@ class TestLessonSeeder extends Seeder
      */
     public function run(): void
     {
-        $sections = CourseSection::take(3)->get();
+        $sections = CourseSection::all();
 
         if ($sections->isEmpty()) {
             $this->command->warn('No course sections found. Please seed course sections first.');
             return;
         }
+
+        // Only create lessons for the first 3 sections to keep it minimal
+        $sections = $sections->take(3);
 
         foreach ($sections as $index => $section) {
             // Create exactly 2 lessons per section for predictable testing

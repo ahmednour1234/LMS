@@ -50,10 +50,11 @@ class TestJournalSeeder extends Seeder
                 $journalData['posted_at'] = now()->subDays($i - 1);
             }
 
-            Journal::firstOrCreate(
-                ['reference' => $reference],
-                $journalData
-            );
+            // Use create with check to avoid issues with original_status attribute
+            $existingJournal = Journal::where('reference', $reference)->first();
+            if (!$existingJournal) {
+                Journal::create($journalData);
+            }
         }
 
         $this->command->info('Test journals seeded successfully!');
