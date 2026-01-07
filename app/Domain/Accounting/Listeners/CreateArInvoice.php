@@ -5,14 +5,11 @@ namespace App\Domain\Accounting\Listeners;
 use App\Domain\Accounting\Events\InvoiceGenerated;
 use App\Domain\Accounting\Models\ArInvoice;
 use App\Domain\Enrollment\Events\EnrollmentCreated;
-use Illuminate\Contracts\Queue\ShouldQueue;
-use Illuminate\Queue\InteractsWithQueue;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 
-class CreateArInvoice implements ShouldQueue
+class CreateArInvoice
 {
-    use InteractsWithQueue;
 
     public function handle(EnrollmentCreated $event): void
     {
