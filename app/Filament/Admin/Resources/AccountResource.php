@@ -111,7 +111,7 @@ class AccountResource extends Resource
                     ->sortable()
                     ->label(__('accounts.parent')),
                 Tables\Columns\TextColumn::make('opening_balance')
-                    ->money()
+                    ->money('OMR')
                     ->sortable()
                     ->label(__('accounts.opening_balance')),
                 Tables\Columns\TextColumn::make('branch.name')

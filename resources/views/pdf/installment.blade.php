@@ -42,11 +42,11 @@
         </tr>
         <tr>
             <td>{{ __('installments.amount') }}</td>
-            <td>{{ number_format($installment->amount, 2) }} SAR</td>
+            <td>{{ number_format($installment->amount, config('money.precision', 3)) }} {{ config('money.symbol', 'ر.ع') }}</td>
         </tr>
         <tr>
             <td>{{ __('installments.paid_amount') }}</td>
-            <td>{{ number_format($installment->paid_amount, 2) }} SAR</td>
+            <td>{{ number_format($installment->paid_amount, config('money.precision', 3)) }} {{ config('money.symbol', 'ر.ع') }}</td>
         </tr>
         <tr>
             <td>{{ __('installments.status') }}</td>

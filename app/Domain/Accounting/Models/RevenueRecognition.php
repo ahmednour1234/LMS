@@ -20,7 +20,7 @@ class RevenueRecognition extends Model
     protected function casts(): array
     {
         return [
-            'recognized_amount' => 'decimal:2',
+            'recognized_amount' => 'decimal:3',
             'recognized_at' => 'datetime',
         ];
     }

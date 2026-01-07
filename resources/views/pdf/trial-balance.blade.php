@@ -45,18 +45,18 @@
             <tr>
                 <td>{{ $row->accountCode }}</td>
                 <td>{{ $row->accountName }}</td>
-                <td>{{ number_format($row->openingBalance, 2) }}</td>
-                <td>{{ number_format($row->totalDebit, 2) }}</td>
-                <td>{{ number_format($row->totalCredit, 2) }}</td>
-                <td>{{ number_format($row->closingBalance, 2) }}</td>
+                <td>{{ number_format($row->openingBalance, config('money.precision', 3)) }}</td>
+                <td>{{ number_format($row->totalDebit, config('money.precision', 3)) }}</td>
+                <td>{{ number_format($row->totalCredit, config('money.precision', 3)) }}</td>
+                <td>{{ number_format($row->closingBalance, config('money.precision', 3)) }}</td>
             </tr>
             @endforeach
             <tr class="total-row">
                 <td colspan="2">{{ __('pdf.total') }}</td>
-                <td>{{ number_format($data->sum('openingBalance'), 2) }}</td>
-                <td>{{ number_format($data->sum('totalDebit'), 2) }}</td>
-                <td>{{ number_format($data->sum('totalCredit'), 2) }}</td>
-                <td>{{ number_format($data->sum('closingBalance'), 2) }}</td>
+                <td>{{ number_format($data->sum('openingBalance'), config('money.precision', 3)) }}</td>
+                <td>{{ number_format($data->sum('totalDebit'), config('money.precision', 3)) }}</td>
+                <td>{{ number_format($data->sum('totalCredit'), config('money.precision', 3)) }}</td>
+                <td>{{ number_format($data->sum('closingBalance'), config('money.precision', 3)) }}</td>
             </tr>
         </tbody>
     </table>

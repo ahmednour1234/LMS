@@ -25,9 +25,9 @@ class ArInstallment extends Model
     {
         return [
             'due_date' => 'date',
-            'amount' => 'decimal:2',
+            'amount' => 'decimal:3',
             'status' => 'string',
-            'paid_amount' => 'decimal:2',
+            'paid_amount' => 'decimal:3',
             'paid_at' => 'datetime',
         ];
     }

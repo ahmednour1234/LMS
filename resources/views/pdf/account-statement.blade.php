@@ -30,7 +30,7 @@
         <p><strong>{{ __('accounts.code') }}:</strong> {{ $account->code }}</p>
         <p><strong>{{ __('accounts.name') }}:</strong> {{ $account->name }}</p>
         <p><strong>{{ __('pdf.period') }}:</strong> {{ $startDate->format('Y-m-d') }} - {{ $endDate->format('Y-m-d') }}</p>
-        <p><strong>{{ __('pdf.opening_balance') }}:</strong> {{ number_format($openingBalance, 2) }}</p>
+        <p><strong>{{ __('pdf.opening_balance') }}:</strong> {{ number_format($openingBalance, config('money.precision', 3)) }} {{ config('money.symbol', 'ر.ع') }}</p>
     </div>
 
     <table class="table">
@@ -49,7 +49,7 @@
                 <td colspan="3">{{ __('pdf.opening_balance') }}</td>
                 <td></td>
                 <td></td>
-                <td>{{ number_format($openingBalance, 2) }}</td>
+                <td>{{ number_format($openingBalance, config('money.precision', 3)) }}</td>
             </tr>
             @php $runningBalance = $openingBalance; @endphp
             @foreach($data as $line)
@@ -60,16 +60,16 @@
                     <td>{{ $line->journalDate->format('Y-m-d') }}</td>
                     <td>{{ $line->journalReference }}</td>
                     <td>{{ $line->lineDescription ?? $line->journalDescription }}</td>
-                    <td>{{ number_format($line->debit, 2) }}</td>
-                    <td>{{ number_format($line->credit, 2) }}</td>
-                    <td>{{ number_format($runningBalance, 2) }}</td>
+                    <td>{{ number_format($line->debit, config('money.precision', 3)) }}</td>
+                    <td>{{ number_format($line->credit, config('money.precision', 3)) }}</td>
+                    <td>{{ number_format($runningBalance, config('money.precision', 3)) }}</td>
                 </tr>
             @endforeach
             <tr class="closing-row">
                 <td colspan="3">{{ __('pdf.closing_balance') }}</td>
-                <td>{{ number_format($data->sum('debit'), 2) }}</td>
-                <td>{{ number_format($data->sum('credit'), 2) }}</td>
-                <td>{{ number_format($runningBalance, 2) }}</td>
+                <td>{{ number_format($data->sum('debit'), config('money.precision', 3)) }}</td>
+                <td>{{ number_format($data->sum('credit'), config('money.precision', 3)) }}</td>
+                <td>{{ number_format($runningBalance, config('money.precision', 3)) }}</td>
             </tr>
         </tbody>
     </table>

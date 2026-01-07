@@ -113,11 +113,11 @@ class ArInvoiceResource extends Resource
                     ->sortable()
                     ->label(__('ar_invoices.user')),
                 Tables\Columns\TextColumn::make('total_amount')
-                    ->money('SAR')
+                    ->money('OMR')
                     ->sortable()
                     ->label(__('ar_invoices.total_amount')),
                 Tables\Columns\TextColumn::make('due_amount')
-                    ->money('SAR')
+                    ->money('OMR')
                     ->sortable()
                     ->label(__('ar_invoices.due_amount')),
                 Tables\Columns\TextColumn::make('status')

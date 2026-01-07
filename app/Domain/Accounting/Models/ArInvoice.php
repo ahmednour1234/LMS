@@ -19,6 +19,15 @@ class ArInvoice extends Model
         'user_id',
         'branch_id',
         'total_amount',
+        'subtotal',
+        'manual_discount',
+        'manual_discount_reason',
+        'manual_discount_by',
+        'manual_discount_at',
+        'promo_code_id',
+        'promo_discount',
+        'tax_rate',
+        'tax_total',
         'status',
         'issued_at',
         'created_by',
@@ -32,11 +41,17 @@ class ArInvoice extends Model
     protected function casts(): array
     {
         return [
-            'total_amount' => 'decimal:2',
+            'total_amount' => 'decimal:3',
             // Note: due_amount is computed via accessor, cast kept for backward compatibility but value is ignored
-            'due_amount' => 'decimal:2',
+            'due_amount' => 'decimal:3',
+            'subtotal' => 'decimal:3',
+            'manual_discount' => 'decimal:3',
+            'promo_discount' => 'decimal:3',
+            'tax_rate' => 'decimal:2',
+            'tax_total' => 'decimal:3',
             'status' => 'string',
             'issued_at' => 'datetime',
+            'manual_discount_at' => 'datetime',
         ];
     }
 

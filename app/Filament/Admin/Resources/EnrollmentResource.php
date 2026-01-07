@@ -498,14 +498,17 @@ class EnrollmentResource extends Resource
                                     return new \Illuminate\Support\HtmlString('<p class="text-red-600">' . htmlspecialchars($message) . '</p>');
                                 }
 
+                                $precision = config('money.precision', 3);
+                                $symbol = config('money.symbol', 'ر.ع');
+                                
                                 $html = '<div class="space-y-2">';
                                 $html .= '<div class="grid grid-cols-2 gap-4">';
-                                $html .= '<div><strong>Price:</strong> ' . number_format((float) $coursePrice->price, 2) . ' SAR</div>';
+                                $html .= '<div><strong>Price:</strong> ' . number_format((float) $coursePrice->price, $precision) . ' ' . $symbol . '</div>';
                                 $html .= '<div><strong>Allow Installments:</strong> ' . ($coursePrice->allow_installments ? 'Yes' : 'No') . '</div>';
 
                                 if ($coursePrice->allow_installments) {
                                     if ($coursePrice->min_down_payment) {
-                                        $html .= '<div><strong>Min Down Payment:</strong> ' . number_format((float) $coursePrice->min_down_payment, 2) . ' SAR</div>';
+                                        $html .= '<div><strong>Min Down Payment:</strong> ' . number_format((float) $coursePrice->min_down_payment, $precision) . ' ' . $symbol . '</div>';
                                     }
                                     if ($coursePrice->max_installments) {
                                         $html .= '<div><strong>Max Installments:</strong> ' . $coursePrice->max_installments . '</div>';
@@ -575,17 +578,17 @@ class EnrollmentResource extends Resource
                     ->sortable()
                     ->label(__('enrollments.course')),
                 Tables\Columns\TextColumn::make('total_amount')
-                    ->money('SAR')
+                    ->money('OMR')
                     ->sortable()
                     ->label(__('enrollments.total_amount')),
                 Tables\Columns\TextColumn::make('paid_amount')
-                    ->money('SAR')
+                    ->money('OMR')
                     ->default(function ($record) {
                         return $record->payments()->where('status', 'paid')->sum('amount');
                     })
                     ->label(__('enrollments.paid_amount')),
                 Tables\Columns\TextColumn::make('due_amount')
-                    ->money('SAR')
+                    ->money('OMR')
                     ->default(function ($record) {
                         $paid = $record->payments()->where('status', 'paid')->sum('amount');
                         return $record->total_amount - $paid;

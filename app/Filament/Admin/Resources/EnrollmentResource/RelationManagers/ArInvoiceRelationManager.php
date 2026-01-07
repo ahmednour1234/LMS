@@ -65,10 +65,10 @@ class ArInvoiceRelationManager extends RelationManager
                 Tables\Columns\TextColumn::make('user.name')
                     ->label(__('ar_invoices.user')),
                 Tables\Columns\TextColumn::make('total_amount')
-                    ->money('SAR')
+                    ->money('OMR')
                     ->label(__('ar_invoices.total_amount')),
                 Tables\Columns\TextColumn::make('due_amount')
-                    ->money('SAR')
+                    ->money('OMR')
                     ->formatStateUsing(function ($record) {
                         return $record ? $record->due_amount : 0;
                     })

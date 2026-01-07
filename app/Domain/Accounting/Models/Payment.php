@@ -32,7 +32,7 @@ class Payment extends Model
     protected function casts(): array
     {
         return [
-            'amount' => 'decimal:2',
+            'amount' => 'decimal:3',
             'method' => 'string',
             'status' => 'string',
             'paid_at' => 'datetime',

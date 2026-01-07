@@ -50,11 +50,11 @@ class OverdueInstallmentsTableWidget extends BaseWidget
                     ->color('danger'),
                 Tables\Columns\TextColumn::make('amount')
                     ->label('Amount')
-                    ->money('USD')
+                    ->money('OMR')
                     ->sortable(),
                 Tables\Columns\TextColumn::make('paid_amount')
                     ->label('Paid')
-                    ->money('USD')
+                    ->money('OMR')
                     ->sortable(),
                 Tables\Columns\TextColumn::make('status')
                     ->label('Status')

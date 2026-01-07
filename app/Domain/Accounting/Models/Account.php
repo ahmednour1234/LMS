@@ -29,7 +29,7 @@ class Account extends Model
     {
         return [
             'normal_balance' => 'string',
-            'opening_balance' => 'decimal:2',
+            'opening_balance' => 'decimal:3',
             'is_active' => 'boolean',
         ];
     }

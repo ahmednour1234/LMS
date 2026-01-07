@@ -42,7 +42,7 @@
         <div class="account-section">
             <div class="account-header">
                 {{ $firstLine->accountCode }} - {{ $firstLine->accountName }}
-                <br>{{ __('pdf.opening_balance') }}: {{ number_format($openingBalance, 2) }}
+                <br>{{ __('pdf.opening_balance') }}: {{ number_format($openingBalance, config('money.precision', 3)) }} {{ config('money.symbol', 'ر.ع') }}
             </div>
             <table class="table">
                 <thead>
@@ -65,9 +65,9 @@
                             <td>{{ $line->journalDate->format('Y-m-d') }}</td>
                             <td>{{ $line->journalReference }}</td>
                             <td>{{ $line->lineDescription ?? $line->journalDescription }}</td>
-                            <td>{{ number_format($line->debit, 2) }}</td>
-                            <td>{{ number_format($line->credit, 2) }}</td>
-                            <td>{{ number_format($runningBalance, 2) }}</td>
+                            <td>{{ number_format($line->debit, config('money.precision', 3)) }}</td>
+                            <td>{{ number_format($line->credit, config('money.precision', 3)) }}</td>
+                            <td>{{ number_format($runningBalance, config('money.precision', 3)) }}</td>
                         </tr>
                     @endforeach
                 </tbody>

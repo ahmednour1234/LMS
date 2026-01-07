@@ -30,7 +30,7 @@
         </tr>
         <tr>
             <td>{{ __('payments.amount') }}</td>
-            <td>{{ number_format($payment->amount, 2) }}</td>
+            <td>{{ number_format($payment->amount, config('money.precision', 3)) }} {{ config('money.symbol', 'ر.ع') }}</td>
         </tr>
         <tr>
             <td>{{ __('payments.payment_method') }}</td>
@@ -61,7 +61,7 @@
     </table>
 
     <div class="amount">
-        {{ __('pdf.total_amount') }}: {{ number_format($payment->amount, 2) }}
+        {{ __('pdf.total_amount') }}: {{ number_format($payment->amount, config('money.precision', 3)) }} {{ config('money.symbol', 'ر.ع') }}
     </div>
 
     <div class="footer">

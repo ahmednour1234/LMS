@@ -45,7 +45,7 @@ class LatestEnrollmentsTableWidget extends BaseWidget
                     ->sortable(),
                 Tables\Columns\TextColumn::make('total_amount')
                     ->label('Amount')
-                    ->money('USD')
+                    ->money('OMR')
                     ->sortable(),
                 Tables\Columns\TextColumn::make('created_at')
                     ->label('Created At')

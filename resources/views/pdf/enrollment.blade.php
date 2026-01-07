@@ -42,15 +42,15 @@
         </tr>
         <tr>
             <td>{{ __('enrollments.total_amount') }}</td>
-            <td>{{ number_format($enrollment->total_amount, 2) }} SAR</td>
+            <td>{{ number_format($enrollment->total_amount, config('money.precision', 3)) }} {{ config('money.symbol', 'ر.ع') }}</td>
         </tr>
         <tr>
             <td>{{ __('enrollments.paid_amount') }}</td>
-            <td>{{ number_format($enrollment->payments()->where('status', 'paid')->sum('amount'), 2) }} SAR</td>
+            <td>{{ number_format($enrollment->payments()->where('status', 'paid')->sum('amount'), config('money.precision', 3)) }} {{ config('money.symbol', 'ر.ع') }}</td>
         </tr>
         <tr>
             <td>{{ __('enrollments.due_amount') }}</td>
-            <td>{{ number_format($enrollment->total_amount - $enrollment->payments()->where('status', 'paid')->sum('amount'), 2) }} SAR</td>
+            <td>{{ number_format($enrollment->total_amount - $enrollment->payments()->where('status', 'paid')->sum('amount'), config('money.precision', 3)) }} {{ config('money.symbol', 'ر.ع') }}</td>
         </tr>
         @if($enrollment->branch)
         <tr>

@@ -70,7 +70,7 @@ class Enrollment extends Model
             'status' => EnrollmentStatus::class,
             'pricing_type' => 'string',
             'registration_type' => 'string',
-            'total_amount' => 'decimal:2',
+            'total_amount' => 'decimal:3',
             'progress_percent' => 'decimal:2',
             'enrolled_at' => 'datetime',
             'registered_at' => 'datetime',

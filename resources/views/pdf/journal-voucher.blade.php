@@ -70,14 +70,14 @@
             <tr>
                 <td>{{ $line->account->code }} - {{ $line->account->name }}</td>
                 <td>{{ $line->memo ?? '-' }}</td>
-                <td class="text-right">{{ number_format($line->debit, 2) }}</td>
-                <td class="text-right">{{ number_format($line->credit, 2) }}</td>
+                <td class="text-right">{{ number_format($line->debit, config('money.precision', 3)) }}</td>
+                <td class="text-right">{{ number_format($line->credit, config('money.precision', 3)) }}</td>
             </tr>
             @endforeach
             <tr class="total-row">
                 <td colspan="2">{{ __('pdf.total') }}</td>
-                <td class="text-right">{{ number_format($journal->journalLines->sum('debit'), 2) }}</td>
-                <td class="text-right">{{ number_format($journal->journalLines->sum('credit'), 2) }}</td>
+                <td class="text-right">{{ number_format($journal->journalLines->sum('debit'), config('money.precision', 3)) }}</td>
+                <td class="text-right">{{ number_format($journal->journalLines->sum('credit'), config('money.precision', 3)) }}</td>
             </tr>
         </tbody>
     </table>

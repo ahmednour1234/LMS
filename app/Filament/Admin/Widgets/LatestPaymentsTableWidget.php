@@ -33,7 +33,7 @@ class LatestPaymentsTableWidget extends BaseWidget
                     ->default('N/A'),
                 Tables\Columns\TextColumn::make('amount')
                     ->label('Amount')
-                    ->money('USD')
+                    ->money('OMR')
                     ->sortable(),
                 Tables\Columns\TextColumn::make('method')
                     ->label('Method')

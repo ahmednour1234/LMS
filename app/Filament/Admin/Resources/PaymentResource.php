@@ -135,7 +135,7 @@ class PaymentResource extends Resource
                     ->formatStateUsing(fn ($state) => MultilingualHelper::formatMultilingualField($state))
                     ->label(__('payments.course')),
                 Tables\Columns\TextColumn::make('amount')
-                    ->money('SAR')
+                    ->money('OMR')
                     ->sortable()
                     ->label(__('payments.amount')),
                 Tables\Columns\TextColumn::make('method')

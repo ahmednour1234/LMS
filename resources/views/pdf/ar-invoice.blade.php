@@ -56,11 +56,11 @@
         </tr>
         <tr>
             <td>{{ __('ar_invoices.total_amount') }}</td>
-            <td>{{ number_format($invoice->total_amount, 2) }} SAR</td>
+            <td>{{ number_format($invoice->total_amount, config('money.precision', 3)) }} {{ config('money.symbol', 'ر.ع') }}</td>
         </tr>
         <tr>
             <td>{{ __('ar_invoices.due_amount') }}</td>
-            <td>{{ number_format($invoice->due_amount, 2) }} SAR</td>
+            <td>{{ number_format($invoice->due_amount, config('money.precision', 3)) }} {{ config('money.symbol', 'ر.ع') }}</td>
         </tr>
         <tr>
             <td>{{ __('ar_invoices.status') }}</td>
@@ -87,7 +87,7 @@
         <tr>
             <td>{{ $installment->installment_no }}</td>
             <td>{{ $installment->due_date->format('Y-m-d') }}</td>
-            <td>{{ number_format($installment->amount, 2) }} SAR</td>
+            <td>{{ number_format($installment->amount, config('money.precision', 3)) }} {{ config('money.symbol', 'ر.ع') }}</td>
             <td>{{ __('installments.status_options.' . $installment->status) }}</td>
         </tr>
         @endforeach

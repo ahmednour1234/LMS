@@ -47,12 +47,12 @@
                 <tr>
                     <td>{{ $item->accountCode }}</td>
                     <td>{{ $item->accountName }}</td>
-                    <td>{{ number_format($item->amount, 2) }}</td>
+                    <td>{{ number_format($item->amount, config('money.precision', 3)) }}</td>
                 </tr>
                 @endforeach
                 <tr class="total-row">
                     <td colspan="2">{{ __('pdf.total_revenue') }}</td>
-                    <td>{{ number_format($revenues->sum('amount'), 2) }}</td>
+                    <td>{{ number_format($revenues->sum('amount'), config('money.precision', 3)) }}</td>
                 </tr>
             </tbody>
         </table>
@@ -73,12 +73,12 @@
                 <tr>
                     <td>{{ $item->accountCode }}</td>
                     <td>{{ $item->accountName }}</td>
-                    <td>{{ number_format($item->amount, 2) }}</td>
+                    <td>{{ number_format($item->amount, config('money.precision', 3)) }}</td>
                 </tr>
                 @endforeach
                 <tr class="total-row">
                     <td colspan="2">{{ __('pdf.total_expenses') }}</td>
-                    <td>{{ number_format($expenses->sum('amount'), 2) }}</td>
+                    <td>{{ number_format($expenses->sum('amount'), config('money.precision', 3)) }}</td>
                 </tr>
             </tbody>
         </table>
@@ -91,7 +91,7 @@
     @endphp
 
     <div class="net-income">
-        {{ __('pdf.net_income') }}: {{ number_format($netIncome, 2) }}
+        {{ __('pdf.net_income') }}: {{ number_format($netIncome, config('money.precision', 3)) }} {{ config('money.symbol', 'ر.ع') }}
     </div>
 
     <div class="footer">

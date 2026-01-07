@@ -51,7 +51,7 @@ class PaymentsRelationManager extends RelationManager
             ->recordTitleAttribute('amount')
             ->columns([
                 Tables\Columns\TextColumn::make('amount')
-                    ->money('SAR')
+                    ->money('OMR')
                     ->sortable()
                     ->label(__('payments.amount')),
                 Tables\Columns\TextColumn::make('method')

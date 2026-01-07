@@ -13,32 +13,44 @@ use Exception;
  */
 class BusinessException extends Exception
 {
-    protected ApiErrorCode $errorCode;
+    protected ?ApiErrorCode $errorCode = null;
     protected mixed $details = null;
 
     /**
      * Create a new business exception instance.
      * 
-     * @param ApiErrorCode $errorCode The error code
-     * @param string $message The error message
+     * Supports two constructor signatures:
+     * 1. BusinessException(string $message) - Simple message only
+     * 2. BusinessException(ApiErrorCode $errorCode, string $message, mixed $details, int $code) - Full API format
+     * 
+     * @param ApiErrorCode|string $errorCodeOrMessage The error code or message
+     * @param string|null $message The error message (when using error code)
      * @param mixed $details Optional error details
      * @param int $code HTTP status code (default: 400)
      */
     public function __construct(
-        ApiErrorCode $errorCode,
-        string $message,
+        ApiErrorCode|string $errorCodeOrMessage,
+        ?string $message = null,
         mixed $details = null,
         int $code = 400
     ) {
-        parent::__construct($message, $code);
-        $this->errorCode = $errorCode;
+        // Support simple string message constructor
+        if (is_string($errorCodeOrMessage)) {
+            parent::__construct($errorCodeOrMessage, $code);
+            $this->details = $details;
+            return;
+        }
+
+        // Full constructor with ApiErrorCode
+        parent::__construct($message ?? '', $code);
+        $this->errorCode = $errorCodeOrMessage;
         $this->details = $details;
     }
 
     /**
      * Get the error code.
      */
-    public function getErrorCode(): ApiErrorCode
+    public function getErrorCode(): ?ApiErrorCode
     {
         return $this->errorCode;
     }

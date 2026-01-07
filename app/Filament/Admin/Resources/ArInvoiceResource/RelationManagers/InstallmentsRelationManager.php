@@ -60,11 +60,11 @@ class InstallmentsRelationManager extends RelationManager
                     ->label(__('installments.due_date'))
                     ->color(fn ($record) => $record->due_date < now() && $record->status !== 'paid' ? 'danger' : null),
                 Tables\Columns\TextColumn::make('amount')
-                    ->money('SAR')
+                    ->money('OMR')
                     ->sortable()
                     ->label(__('installments.amount')),
                 Tables\Columns\TextColumn::make('paid_amount')
-                    ->money('SAR')
+                    ->money('OMR')
                     ->label(__('installments.paid_amount')),
                 Tables\Columns\TextColumn::make('status')
                     ->badge()

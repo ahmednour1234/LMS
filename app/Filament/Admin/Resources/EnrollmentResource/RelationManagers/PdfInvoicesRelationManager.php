@@ -58,7 +58,7 @@ class PdfInvoicesRelationManager extends RelationManager
             ->recordTitleAttribute('invoice_no')
             ->columns([
                 Tables\Columns\TextColumn::make('payment.amount')
-                    ->money('SAR')
+                    ->money('OMR')
                     ->sortable()
                     ->label(__('pdf_invoices.payment_amount')),
                 Tables\Columns\TextColumn::make('invoice_no')
