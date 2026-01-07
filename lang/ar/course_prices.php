@@ -28,6 +28,11 @@ return [
     'allow_installments' => 'السماح بالأقساط',
     'min_down_payment' => 'الحد الأدنى للدفعة الأولى',
     'max_installments' => 'الحد الأقصى للأقساط',
+    'max_installments_helper' => 'الحد الأقصى لعدد الأقساط المسموح بها',
+    'max_installments_helper_course_total' => 'الحد الأقصى :limit قسط لتسعير الدورة الكاملة',
+    'max_installments_helper_session_based' => 'الحد الأقصى :count قسط (بناءً على عدد الجلسات)',
+    'max_installments_exceeds_sessions' => 'لا يمكن أن يتجاوز الحد الأقصى للأقساط عدد الجلسات (:count)',
+    'max_installments_exceeds_limit' => 'لا يمكن أن يتجاوز الحد الأقصى للأقساط :limit',
     'is_active' => 'نشط',
 ];
 

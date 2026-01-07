@@ -28,6 +28,11 @@ return [
     'allow_installments' => 'Allow Installments',
     'min_down_payment' => 'Min Down Payment',
     'max_installments' => 'Max Installments',
+    'max_installments_helper' => 'Maximum number of installments allowed',
+    'max_installments_helper_course_total' => 'Maximum :limit installments allowed for course total pricing',
+    'max_installments_helper_session_based' => 'Maximum :count installments (based on sessions count)',
+    'max_installments_exceeds_sessions' => 'Maximum installments cannot exceed the number of sessions (:count)',
+    'max_installments_exceeds_limit' => 'Maximum installments cannot exceed :limit',
     'is_active' => 'Active',
 ];
 

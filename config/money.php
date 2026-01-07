@@ -108,6 +108,17 @@ return [
 
     /*
     |--------------------------------------------------------------------------
+    | Max Installments Limit
+    |--------------------------------------------------------------------------
+    |
+    | The maximum number of installments allowed for course total pricing mode.
+    | For per-session or both modes, the limit is based on sessions_count.
+    |
+    */
+    'max_installments_limit' => env('MAX_INSTALLMENTS_LIMIT', 36),
+
+    /*
+    |--------------------------------------------------------------------------
     | Account Codes (Chart of Accounts)
     |--------------------------------------------------------------------------
     |

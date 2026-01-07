@@ -103,7 +103,8 @@ class CoursePriceResource extends Resource
                     ->visible(fn (Forms\Get $get) => in_array($get('pricing_mode'), ['per_session', 'both']))
                     ->minValue(1)
                     ->required(fn (Forms\Get $get) => in_array($get('pricing_mode'), ['per_session', 'both']))
-                    ->helperText(__('course_prices.sessions_count_helper')),
+                    ->helperText(__('course_prices.sessions_count_helper'))
+                    ->live(onBlur: true),
                 Forms\Components\Toggle::make('allow_installments')
                     ->label(__('course_prices.allow_installments'))
                     ->default(false)
@@ -133,10 +134,45 @@ class CoursePriceResource extends Resource
                     ->integer()
                     ->label(__('course_prices.max_installments'))
                     ->minValue(1)
-                    ->maxValue(24)
+                    ->maxValue(function (Forms\Get $get): int {
+                        $pricingMode = $get('pricing_mode') ?? 'course_total';
+                        if (in_array($pricingMode, ['per_session', 'both'])) {
+                            return (int) ($get('sessions_count') ?? 1);
+                        }
+                        return config('money.max_installments_limit', 36);
+                    })
                     ->visible(fn (Forms\Get $get) => $get('allow_installments'))
                     ->required(fn (Forms\Get $get) => $get('allow_installments'))
-                    ->helperText(__('course_prices.max_installments_helper')),
+                    ->helperText(function (Forms\Get $get): string {
+                        $pricingMode = $get('pricing_mode') ?? 'course_total';
+                        if (in_array($pricingMode, ['per_session', 'both'])) {
+                            $sessionsCount = (int) ($get('sessions_count') ?? 1);
+                            return __('course_prices.max_installments_helper_session_based', ['count' => $sessionsCount]);
+                        }
+                        $limit = config('money.max_installments_limit', 36);
+                        return __('course_prices.max_installments_helper_course_total', ['limit' => $limit]);
+                    })
+                    ->rules([
+                        fn (Forms\Get $get): \Closure => function (string $attribute, $value, \Closure $fail) use ($get) {
+                            if ($value === null) {
+                                return;
+                            }
+                            $pricingMode = $get('pricing_mode') ?? 'course_total';
+                            $maxInstallments = (int) $value;
+                            
+                            if (in_array($pricingMode, ['per_session', 'both'])) {
+                                $sessionsCount = (int) ($get('sessions_count') ?? 1);
+                                if ($maxInstallments > $sessionsCount) {
+                                    $fail(__('course_prices.max_installments_exceeds_sessions', ['count' => $sessionsCount]));
+                                }
+                            } else {
+                                $limit = config('money.max_installments_limit', 36);
+                                if ($maxInstallments > $limit) {
+                                    $fail(__('course_prices.max_installments_exceeds_limit', ['limit' => $limit]));
+                                }
+                            }
+                        },
+                    ]),
                 Forms\Components\Toggle::make('is_active')
                     ->label(__('course_prices.is_active'))
                     ->default(true),

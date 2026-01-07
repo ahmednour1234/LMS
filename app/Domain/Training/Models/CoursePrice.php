@@ -98,9 +98,25 @@ class CoursePrice extends Model
                 }
             }
 
-            // max_installments should be reasonable (max 24 months)
-            if ((int) $this->max_installments > 24) {
-                throw new BusinessException('Maximum installments cannot exceed 24.');
+            // Validate max_installments based on pricing mode
+            $maxInstallments = (int) $this->max_installments;
+            
+            if (in_array($pricingMode, ['per_session', 'both'])) {
+                // For per-session or both modes, max_installments cannot exceed sessions_count
+                $sessionsCount = (int) ($this->sessions_count ?? 1);
+                if ($maxInstallments > $sessionsCount) {
+                    throw new BusinessException(
+                        __('course_prices.max_installments_exceeds_sessions', ['count' => $sessionsCount])
+                    );
+                }
+            } else {
+                // For course_total mode, use configurable limit
+                $limit = config('money.max_installments_limit', 36);
+                if ($maxInstallments > $limit) {
+                    throw new BusinessException(
+                        __('course_prices.max_installments_exceeds_limit', ['limit' => $limit])
+                    );
+                }
             }
         }
     }
