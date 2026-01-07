@@ -422,7 +422,6 @@ class EnrollmentResource extends Resource
                             ->numeric()
                             ->required()
                             ->default(0)
-                            ->disabled()
                             ->dehydrated()
                             ->label(__('enrollments.total_amount'))
                             ->suffix('OMR'),
