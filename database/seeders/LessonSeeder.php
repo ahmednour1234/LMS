@@ -34,14 +34,14 @@ class LessonSeeder extends Seeder
                         'ar' => "وصف الدرس {$i}",
                         'en' => "Description of lesson {$i}",
                     ],
-                    'order' => $i,
+                    'sort_order' => $i,
                     'is_active' => true,
                 ];
 
                 Lesson::firstOrCreate(
                     [
                         'section_id' => $section->id,
-                        'order' => $i,
+                        'sort_order' => $i,
                     ],
                     $lessonData
                 );
