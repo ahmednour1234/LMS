@@ -5,9 +5,13 @@ namespace Database\Seeders;
 use App\Domain\Branch\Models\Branch;
 use App\Domain\Enrollment\Models\Enrollment;
 use App\Domain\Enrollment\Models\Student;
+use App\Domain\Enrollment\Services\EnrollmentPriceCalculator;
 use App\Domain\Training\Models\Course;
+use App\Domain\Training\Models\CoursePrice;
+use App\Enums\EnrollmentMode;
 use App\Enums\EnrollmentStatus;
 use App\Models\User;
+use App\Services\PricingService;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\Schema;
 
@@ -38,13 +42,10 @@ class EnrollmentSeeder extends Seeder
             return;
         }
 
-        $statuses = [
-            EnrollmentStatus::PENDING->value,
-            EnrollmentStatus::ACTIVE->value,
-            EnrollmentStatus::COMPLETED->value,
-        ];
-
+        $pricingService = app(PricingService::class);
+        $calculator = app(EnrollmentPriceCalculator::class);
         $enrollmentCount = 0;
+        $enrollmentModes = [EnrollmentMode::COURSE_FULL, EnrollmentMode::PER_SESSION, EnrollmentMode::TRIAL];
         
         // Create 2-4 enrollments per student
         foreach ($students as $student) {
@@ -61,11 +62,64 @@ class EnrollmentSeeder extends Seeder
             foreach ($coursesToEnroll as $course) {
                 $enrollmentDate = now()->subDays(rand(1, 90));
                 
+                // Determine delivery type based on course
+                $deliveryType = match($course->delivery_type->value) {
+                    'onsite' => 'onsite',
+                    'online', 'virtual' => 'online',
+                    'hybrid' => rand(0, 1) ? 'online' : 'onsite',
+                    default => 'online',
+                };
+
+                // Get branch for pricing (required for onsite)
+                $branchId = $deliveryType === 'onsite' ? $student->branch_id : null;
+                
+                // Resolve course price
+                $coursePrice = $pricingService->resolveCoursePrice($course->id, $branchId, $deliveryType);
+                
+                if (!$coursePrice) {
+                    $this->command->warn("No price found for course {$course->id}, skipping enrollment.");
+                    continue;
+                }
+
+                // Get allowed enrollment modes
+                $allowedModes = $calculator->getAllowedModes($coursePrice);
+                
+                if (empty($allowedModes)) {
+                    $this->command->warn("No allowed enrollment modes for course {$course->id}, skipping enrollment.");
+                    continue;
+                }
+
+                // Select a random allowed mode
+                $enrollmentMode = $allowedModes[array_rand($allowedModes)];
+                
+                // Determine sessions_purchased and status based on mode
+                $sessionsPurchased = null;
+                $status = EnrollmentStatus::PENDING_PAYMENT;
+                
+                if ($enrollmentMode === EnrollmentMode::TRIAL) {
+                    $sessionsPurchased = 1;
+                    $status = EnrollmentStatus::ACTIVE;
+                } elseif ($enrollmentMode === EnrollmentMode::PER_SESSION) {
+                    $sessionsCount = $coursePrice->sessions_count ?? 10;
+                    $sessionsPurchased = rand(1, min(5, $sessionsCount));
+                }
+
+                // Calculate price
+                $priceResult = $calculator->calculate($coursePrice, $enrollmentMode, $sessionsPurchased);
+                
                 $enrollmentData = [
-                    'reference' => 'ENR-' . str_pad($enrollmentCount + 1, 6, '0', STR_PAD_LEFT),
-                    'status' => $statuses[array_rand($statuses)],
+                    'student_id' => $student->id,
+                    'course_id' => $course->id,
+                    'user_id' => $users->random()->id,
+                    'enrollment_mode' => $enrollmentMode->value,
+                    'delivery_type' => $deliveryType,
+                    'sessions_purchased' => $sessionsPurchased,
+                    'currency_code' => $priceResult['currency_code'],
+                    'total_amount' => $priceResult['total_amount'],
+                    'status' => $status->value,
+                    'pricing_type' => 'full', // Default to full payment
                     'enrolled_at' => $enrollmentDate,
-                    'branch_id' => $student->branch_id,
+                    'branch_id' => $deliveryType === 'onsite' ? $student->branch_id : null,
                     'created_by' => $users->random()->id,
                     'updated_by' => $users->random()->id,
                     'notes' => rand(0, 1) ? 'Enrolled via seeder' : null,

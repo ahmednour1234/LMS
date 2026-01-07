@@ -30,19 +30,27 @@ class JournalLineSeeder extends Seeder
         }
 
         foreach ($journals as $journal) {
+            // Skip if journal already has lines
+            $existingLinesCount = JournalLine::where('journal_id', $journal->id)->count();
+            if ($existingLinesCount > 0) {
+                continue;
+            }
+
             // Create 2-5 journal lines per journal
             $linesCount = rand(2, 5);
             $totalDebit = 0;
             $totalCredit = 0;
+            $linesToCreate = [];
 
             for ($i = 1; $i <= $linesCount; $i++) {
                 $isDebit = $i <= ($linesCount / 2);
                 
                 $amount = rand(100, 10000);
+                $account = $accounts->random();
                 
                 $lineData = [
                     'journal_id' => $journal->id,
-                    'account_id' => $accounts->random()->id,
+                    'account_id' => $account->id,
                     'memo' => 'Journal line memo ' . $i,
                 ];
 
@@ -61,22 +69,26 @@ class JournalLineSeeder extends Seeder
                     $lineData['cost_center_id'] = $costCenters->random()->id;
                 }
 
-                JournalLine::create($lineData);
+                $linesToCreate[] = $lineData;
             }
 
             // Balance the journal (make total debit = total credit)
             if ($totalDebit !== $totalCredit) {
                 $difference = abs($totalDebit - $totalCredit);
-                $lastLine = JournalLine::where('journal_id', $journal->id)->latest()->first();
+                $lastIndex = count($linesToCreate) - 1;
                 
-                if ($lastLine) {
+                if ($lastIndex >= 0) {
                     if ($totalDebit > $totalCredit) {
-                        $lastLine->credit = $lastLine->credit + $difference;
+                        $linesToCreate[$lastIndex]['credit'] += $difference;
                     } else {
-                        $lastLine->debit = $lastLine->debit + $difference;
+                        $linesToCreate[$lastIndex]['debit'] += $difference;
                     }
-                    $lastLine->save();
                 }
+            }
+
+            // Create all lines
+            foreach ($linesToCreate as $lineData) {
+                JournalLine::create($lineData);
             }
         }
 

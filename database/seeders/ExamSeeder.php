@@ -52,7 +52,14 @@ class ExamSeeder extends Seeder
                     'is_active' => true,
                 ];
 
-                Exam::create($examData);
+                Exam::firstOrCreate(
+                    [
+                        'course_id' => $course->id,
+                        'lesson_id' => $lessonId,
+                        'title' => $examData['title'],
+                    ],
+                    $examData
+                );
             }
         }
 

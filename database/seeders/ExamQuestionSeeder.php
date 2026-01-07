@@ -63,7 +63,13 @@ class ExamQuestionSeeder extends Seeder
                     $questionData['correct_answer'] = rand(0, 1);
                 }
 
-                ExamQuestion::create($questionData);
+                ExamQuestion::firstOrCreate(
+                    [
+                        'exam_id' => $exam->id,
+                        'order' => $i,
+                    ],
+                    $questionData
+                );
             }
         }
 
