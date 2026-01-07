@@ -21,7 +21,7 @@
 </head>
 <body>
     <div class="header">
-        <h1>{{ $app_name ?? 'LMS' }}</h1>
+        <h1>{{ $app_name ?? 'نظام إدارة التعلم' }}</h1>
         <h2>{{ __('enrollments.enrollment') }} - {{ $enrollment->reference }}</h2>
     </div>
 

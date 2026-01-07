@@ -20,10 +20,13 @@ class EnrollmentController extends Controller
      */
     public function print(Enrollment $enrollment)
     {
+        // Set locale to Arabic for print
+        app()->setLocale('ar');
+        
         $enrollment->load(['student', 'course', 'branch', 'arInvoice.arInstallments', 'payments']);
         
         $appName = \App\Models\Setting::where('key', 'app_name')->first()?->value ?? [];
-        $appNameText = is_array($appName) ? ($appName[app()->getLocale()] ?? $appName['en'] ?? 'LMS') : (string) $appName;
+        $appNameText = is_array($appName) ? ($appName['ar'] ?? $appName['en'] ?? 'نظام إدارة التعلم') : (string) $appName;
         
         return $this->pdfService->render('pdf.enrollment', [
             'enrollment' => $enrollment,
