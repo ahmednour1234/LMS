@@ -114,13 +114,31 @@ class ApiResponseService
     ): JsonResponse {
         // Handle Laravel Resource Collections
         if ($paginator instanceof ResourceCollection) {
-            $resource = $paginator->response()->getData(true);
-            return self::success(
-                $resource['data'] ?? [],
-                $message,
-                200,
-                $resource['meta'] ?? null
-            );
+            // Get the underlying paginator from the resource collection
+            // When using ResourceCollection::collection($paginator), the resource property is the paginator
+            $underlyingPaginator = $paginator->resource;
+            
+            // Extract data from the resource collection
+            $data = $paginator->resolve();
+            
+            // Format pagination meta consistently - ensure we have a paginator
+            if ($underlyingPaginator instanceof LengthAwarePaginator) {
+                $meta = [
+                    'pagination' => [
+                        'current_page' => $underlyingPaginator->currentPage(),
+                        'per_page' => $underlyingPaginator->perPage(),
+                        'total' => $underlyingPaginator->total(),
+                        'last_page' => $underlyingPaginator->lastPage(),
+                        'from' => $underlyingPaginator->firstItem(),
+                        'to' => $underlyingPaginator->lastItem(),
+                    ],
+                ];
+                
+                return self::success($data, $message, 200, $meta);
+            }
+            
+            // Fallback if resource is not a paginator (shouldn't happen in normal usage)
+            return self::success($data, $message, 200);
         }
 
         // Handle standard paginators
