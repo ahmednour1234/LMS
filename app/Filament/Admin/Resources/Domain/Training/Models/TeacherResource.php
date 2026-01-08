@@ -25,7 +25,7 @@ class TeacherResource extends Resource
 
     public static function getNavigationLabel(): string
     {
-        return 'Teachers';
+        return __('teachers.teachers');
     }
 
     public static function getModelLabel(): string
@@ -35,7 +35,12 @@ class TeacherResource extends Resource
 
     public static function getPluralModelLabel(): string
     {
-        return 'Teachers';
+        return __('teachers.teachers');
+    }
+
+    public static function getNavigationGroup(): ?string
+    {
+        return __('navigation.groups.training');
     }
 
     public static function canViewAny(): bool
