@@ -436,10 +436,13 @@ class StatsOverviewWidget extends BaseWidget
         }
 
         // Determine color (can be dynamic based on trend)
-        $color = $config['color'];
-        if (is_callable($color) && $trend !== null) {
-            $color = $color($trend);
+        $color = $config['color'] ?? 'primary';
+        if (is_callable($color)) {
+            // Only execute callable if trend is available (callable likely depends on trend)
+            $color = $trend !== null ? $color($trend) : 'primary';
         }
+        // Ensure color is always a string and never null
+        $color = (string) ($color ?? 'primary');
 
         // Build description
         $description = null;
@@ -458,8 +461,8 @@ class StatsOverviewWidget extends BaseWidget
             }
         }
 
-        // Chart color defaults to stat color
-        $chartColor = $config['chart_color'] ?? $color;
+        // Chart color defaults to stat color (ensure it's always a string)
+        $chartColor = (string) ($config['chart_color'] ?? $color);
 
         return $this->makeStat(
             label: $config['label'],
