@@ -22,346 +22,322 @@ class StatsOverviewWidget extends BaseWidget
         $user = auth()->user();
         $branchId = $user->isSuperAdmin() ? null : $user->branch_id;
 
-        return [
-            $this->statEnrollmentsToday($branchId),
-            $this->statPaymentsCollectedToday($branchId),
-            $this->statCollectionsThisMonth($branchId),
-            $this->statOverdueInstallments($branchId),
-            $this->statArOpenAmount($branchId),
-            $this->statRecognizedRevenueThisMonth($branchId),
-            $this->statTotalCourses($branchId),
-            $this->statTotalStudents($branchId),
-            $this->statTotalTeachers($branchId),
-        ];
+        return array_map(
+            fn(array $config) => $this->buildStat($config, $branchId),
+            $this->getStatConfigs()
+        );
     }
 
-    /* =========================
-     |  STATS
-     * ========================= */
-
-    protected function statEnrollmentsToday(?int $branchId): Stat
+    /**
+     * Get all stat configurations in a single array.
+     */
+    protected function getStatConfigs(): array
     {
-        return $this->buildStat([
-            'label' => __('dashboard.stats.enrollments_today') ?? 'Enrollments Today',
-            'value_callback' => fn(?int $bid) => Enrollment::query()
-                ->whereDate('created_at', today())
-                ->when($bid, fn (Builder $q) => $q->where('branch_id', $bid))
-                ->count(),
-            'icon' => 'heroicon-o-academic-cap',
-            'color' => 'success',
-            'chart' => [
-                'type' => 'last_days',
-                'days' => 7,
-                'callback' => fn(Carbon $date, ?int $bid) => Enrollment::query()
-                    ->whereDate('created_at', $date)
+        $monthStart = now()->startOfMonth();
+        $monthEnd = now()->endOfMonth();
+
+        return [
+            // Enrollments Today
+            [
+                'label' => __('dashboard.stats.enrollments_today') ?? 'Enrollments Today',
+                'value_callback' => fn(?int $bid) => Enrollment::query()
+                    ->whereDate('created_at', today())
                     ->when($bid, fn (Builder $q) => $q->where('branch_id', $bid))
                     ->count(),
+                'icon' => 'heroicon-o-academic-cap',
+                'color' => 'success',
+                'chart' => [
+                    'type' => 'last_days',
+                    'days' => 7,
+                    'callback' => fn(Carbon $date, ?int $bid) => Enrollment::query()
+                        ->whereDate('created_at', $date)
+                        ->when($bid, fn (Builder $q) => $q->where('branch_id', $bid))
+                        ->count(),
+                ],
+                'trend' => [
+                    'type' => 'vs_previous_day',
+                    'suffix' => ' from yesterday',
+                ],
+                'description' => __('dashboard.stats.enrollments_today_desc') ?? 'New enrollments registered today',
+                'description_icon' => 'heroicon-m-user-plus',
+                'chart_color' => 'success',
             ],
-            'trend' => [
-                'type' => 'vs_previous_day',
-                'suffix' => ' from yesterday',
-            ],
-            'description' => __('dashboard.stats.enrollments_today_desc') ?? 'New enrollments registered today',
-            'description_icon' => 'heroicon-m-user-plus',
-            'chart_color' => 'success',
-        ], $branchId);
-    }
 
-    protected function statPaymentsCollectedToday(?int $branchId): Stat
-    {
-        return $this->buildStat([
-            'label' => __('dashboard.stats.payments_collected_today') ?? 'Payments Today',
-            'value_callback' => fn(?int $bid) => (float) Payment::query()
-                ->where('status', 'completed')
-                ->whereDate('paid_at', today())
-                ->when($bid, fn (Builder $q) => $q->where('branch_id', $bid))
-                ->sum('amount'),
-            'value_formatter' => fn($value) => $this->money($value),
-            'icon' => 'heroicon-o-banknotes',
-            'color' => fn(array $trend) => $trend['is_positive'] ? 'success' : 'danger',
-            'chart' => [
-                'type' => 'last_days',
-                'days' => 7,
-                'callback' => fn(Carbon $date, ?int $bid) => (float) Payment::query()
+            // Payments Collected Today
+            [
+                'label' => __('dashboard.stats.payments_collected_today') ?? 'Payments Today',
+                'value_callback' => fn(?int $bid) => (float) Payment::query()
                     ->where('status', 'completed')
-                    ->whereDate('paid_at', $date)
+                    ->whereDate('paid_at', today())
                     ->when($bid, fn (Builder $q) => $q->where('branch_id', $bid))
                     ->sum('amount'),
+                'value_formatter' => fn($value) => $this->money($value),
+                'icon' => 'heroicon-o-banknotes',
+                'color' => fn(array $trend) => $trend['is_positive'] ? 'success' : 'danger',
+                'chart' => [
+                    'type' => 'last_days',
+                    'days' => 7,
+                    'callback' => fn(Carbon $date, ?int $bid) => (float) Payment::query()
+                        ->where('status', 'completed')
+                        ->whereDate('paid_at', $date)
+                        ->when($bid, fn (Builder $q) => $q->where('branch_id', $bid))
+                        ->sum('amount'),
+                ],
+                'trend' => [
+                    'type' => 'vs_previous_day',
+                    'suffix' => ' from yesterday',
+                ],
+                'description' => __('dashboard.stats.payments_collected_today_desc') ?? 'Total payments collected today',
+                'description_icon' => 'heroicon-m-currency-dollar',
+                'chart_color' => 'success',
             ],
-            'trend' => [
-                'type' => 'vs_previous_day',
-                'suffix' => ' from yesterday',
-            ],
-            'description' => __('dashboard.stats.payments_collected_today_desc') ?? 'Total payments collected today',
-            'description_icon' => 'heroicon-m-currency-dollar',
-            'chart_color' => 'success',
-        ], $branchId);
-    }
 
-    protected function statCollectionsThisMonth(?int $branchId): Stat
-    {
-        $start = now()->startOfMonth();
-        $end = now()->endOfMonth();
-
-        return $this->buildStat([
-            'label' => __('dashboard.stats.collections_this_month') ?? 'Collections This Month',
-            'value_callback' => fn(?int $bid) => (float) Payment::query()
-                ->where('status', 'completed')
-                ->whereBetween('paid_at', [$start, $end])
-                ->when($bid, fn (Builder $q) => $q->where('branch_id', $bid))
-                ->sum('amount'),
-            'value_formatter' => fn($value) => $this->money($value),
-            'icon' => 'heroicon-o-chart-bar-square',
-            'color' => 'info',
-            'chart' => [
-                'type' => 'month_buckets',
-                'start' => $start,
-                'end' => $end,
-                'points' => 7,
-                'callback' => fn(Carbon $from, Carbon $to, ?int $bid) => (float) Payment::query()
+            // Collections This Month
+            [
+                'label' => __('dashboard.stats.collections_this_month') ?? 'Collections This Month',
+                'value_callback' => fn(?int $bid) => (float) Payment::query()
                     ->where('status', 'completed')
-                    ->whereBetween('paid_at', [$from, $to])
+                    ->whereBetween('paid_at', [$monthStart, $monthEnd])
                     ->when($bid, fn (Builder $q) => $q->where('branch_id', $bid))
                     ->sum('amount'),
+                'value_formatter' => fn($value) => $this->money($value),
+                'icon' => 'heroicon-o-chart-bar-square',
+                'color' => 'info',
+                'chart' => [
+                    'type' => 'month_buckets',
+                    'start' => $monthStart,
+                    'end' => $monthEnd,
+                    'points' => 7,
+                    'callback' => fn(Carbon $from, Carbon $to, ?int $bid) => (float) Payment::query()
+                        ->where('status', 'completed')
+                        ->whereBetween('paid_at', [$from, $to])
+                        ->when($bid, fn (Builder $q) => $q->where('branch_id', $bid))
+                        ->sum('amount'),
+                ],
+                'trend' => [
+                    'type' => 'vs_previous_period',
+                    'comparison_callback' => fn(?int $bid) => (float) Payment::query()
+                        ->where('status', 'completed')
+                        ->whereBetween('paid_at', [now()->subMonth()->startOfMonth(), now()->subMonth()->endOfMonth()])
+                        ->when($bid, fn (Builder $q) => $q->where('branch_id', $bid))
+                        ->sum('amount'),
+                    'suffix' => ' vs last month',
+                ],
+                'description' => __('dashboard.stats.collections_this_month_desc') ?? 'Total collections for current month',
+                'description_icon' => 'heroicon-m-banknotes',
+                'chart_color' => 'info',
             ],
-            'trend' => [
-                'type' => 'vs_previous_period',
-                'comparison_callback' => fn(?int $bid) => (float) Payment::query()
-                    ->where('status', 'completed')
-                    ->whereBetween('paid_at', [now()->subMonth()->startOfMonth(), now()->subMonth()->endOfMonth()])
-                    ->when($bid, fn (Builder $q) => $q->where('branch_id', $bid))
-                    ->sum('amount'),
-                'suffix' => ' vs last month',
-            ],
-            'description' => __('dashboard.stats.collections_this_month_desc') ?? 'Total collections for current month',
-            'description_icon' => 'heroicon-m-banknotes',
-            'chart_color' => 'info',
-        ], $branchId);
-    }
 
-    protected function statOverdueInstallments(?int $branchId): Stat
-    {
-        return $this->buildStat([
-            'label' => __('dashboard.stats.overdue_installments') ?? 'Overdue Installments',
-            'value_callback' => fn(?int $bid) => ArInstallment::query()
-                ->where('due_date', '<', today())
-                ->where('status', '!=', 'paid')
-                ->when($bid, function (Builder $q) use ($bid) {
-                    return $q->whereHas('arInvoice', fn (Builder $inv) => $inv->where('branch_id', $bid));
-                })
-                ->count(),
-            'icon' => 'heroicon-o-exclamation-circle',
-            'color' => 'danger',
-            'chart' => [
-                'type' => 'last_days',
-                'days' => 7,
-                'callback' => fn(Carbon $date, ?int $bid) => ArInstallment::query()
-                    ->where('due_date', '<', $date)
+            // Overdue Installments
+            [
+                'label' => __('dashboard.stats.overdue_installments') ?? 'Overdue Installments',
+                'value_callback' => fn(?int $bid) => ArInstallment::query()
+                    ->where('due_date', '<', today())
                     ->where('status', '!=', 'paid')
                     ->when($bid, function (Builder $q) use ($bid) {
                         return $q->whereHas('arInvoice', fn (Builder $inv) => $inv->where('branch_id', $bid));
                     })
                     ->count(),
+                'icon' => 'heroicon-o-exclamation-circle',
+                'color' => 'danger',
+                'chart' => [
+                    'type' => 'last_days',
+                    'days' => 7,
+                    'callback' => fn(Carbon $date, ?int $bid) => ArInstallment::query()
+                        ->where('due_date', '<', $date)
+                        ->where('status', '!=', 'paid')
+                        ->when($bid, function (Builder $q) use ($bid) {
+                            return $q->whereHas('arInvoice', fn (Builder $inv) => $inv->where('branch_id', $bid));
+                        })
+                        ->count(),
+                ],
+                'trend' => null,
+                'description' => __('dashboard.stats.overdue_installments_desc') ?? 'Installments requiring attention',
+                'description_icon' => 'heroicon-m-exclamation-triangle',
+                'chart_color' => 'danger',
             ],
-            'trend' => null,
-            'description' => __('dashboard.stats.overdue_installments_desc') ?? 'Installments requiring attention',
-            'description_icon' => 'heroicon-m-exclamation-triangle',
-            'chart_color' => 'danger',
-        ], $branchId);
-    }
 
-    protected function statArOpenAmount(?int $branchId): Stat
-    {
-        return $this->buildStat([
-            'label' => __('dashboard.stats.ar_open_amount') ?? 'AR Open Amount',
-            'value_callback' => function(?int $bid) {
-                $openQuery = ArInvoice::query()
-                    ->whereIn('status', ['open', 'partial'])
-                    ->when($bid, fn (Builder $q) => $q->where('branch_id', $bid));
-                return (float) (clone $openQuery)->get()->sum('due_amount');
-            },
-            'value_formatter' => fn($value) => $this->money($value),
-            'icon' => 'heroicon-o-document-duplicate',
-            'color' => 'warning',
-            'chart' => [
-                'type' => 'last_days',
-                'days' => 7,
-                'callback' => fn(Carbon $date, ?int $bid) => (float) ArInvoice::query()
-                    ->whereIn('status', ['open', 'partial'])
-                    ->whereDate('created_at', '<=', $date)
-                    ->when($bid, fn (Builder $q) => $q->where('branch_id', $bid))
-                    ->get()
-                    ->sum('due_amount'),
+            // AR Open Amount
+            [
+                'label' => __('dashboard.stats.ar_open_amount') ?? 'AR Open Amount',
+                'value_callback' => function(?int $bid) {
+                    $openQuery = ArInvoice::query()
+                        ->whereIn('status', ['open', 'partial'])
+                        ->when($bid, fn (Builder $q) => $q->where('branch_id', $bid));
+                    return (float) (clone $openQuery)->get()->sum('due_amount');
+                },
+                'value_formatter' => fn($value) => $this->money($value),
+                'icon' => 'heroicon-o-document-duplicate',
+                'color' => 'warning',
+                'chart' => [
+                    'type' => 'last_days',
+                    'days' => 7,
+                    'callback' => fn(Carbon $date, ?int $bid) => (float) ArInvoice::query()
+                        ->whereIn('status', ['open', 'partial'])
+                        ->whereDate('created_at', '<=', $date)
+                        ->when($bid, fn (Builder $q) => $q->where('branch_id', $bid))
+                        ->get()
+                        ->sum('due_amount'),
+                ],
+                'trend' => null,
+                'description' => function($trend, $value, ?int $bid) {
+                    $openQuery = ArInvoice::query()
+                        ->whereIn('status', ['open', 'partial'])
+                        ->when($bid, fn (Builder $q) => $q->where('branch_id', $bid));
+                    $invoiceCount = (clone $openQuery)->count();
+                    return ($invoiceCount > 0 ? "{$invoiceCount} invoices • " : '')
+                        . (__('dashboard.stats.ar_open_amount_desc') ?? 'Accounts receivable outstanding');
+                },
+                'description_icon' => 'heroicon-m-document-text',
+                'chart_color' => 'warning',
             ],
-            'trend' => null,
-            'description' => function($trend, $value, ?int $bid) {
-                $openQuery = ArInvoice::query()
-                    ->whereIn('status', ['open', 'partial'])
-                    ->when($bid, fn (Builder $q) => $q->where('branch_id', $bid));
-                $invoiceCount = (clone $openQuery)->count();
-                return ($invoiceCount > 0 ? "{$invoiceCount} invoices • " : '')
-                    . (__('dashboard.stats.ar_open_amount_desc') ?? 'Accounts receivable outstanding');
-            },
-            'description_icon' => 'heroicon-m-document-text',
-            'chart_color' => 'warning',
-        ], $branchId);
-    }
 
-    protected function statRecognizedRevenueThisMonth(?int $branchId): Stat
-    {
-        $start = now()->startOfMonth();
-        $end = now()->endOfMonth();
-
-        return $this->buildStat([
-            'label' => __('dashboard.stats.recognized_revenue_this_month') ?? 'Recognized Revenue',
-            'value_callback' => fn(?int $bid) => (float) RevenueRecognition::query()
-                ->whereBetween('recognized_at', [$start, $end])
-                ->when($bid, function (Builder $q) use ($bid) {
-                    return $q->whereHas('enrollment', fn (Builder $enr) => $enr->where('branch_id', $bid));
-                })
-                ->sum('recognized_amount'),
-            'value_formatter' => fn($value) => $this->money($value),
-            'icon' => 'heroicon-o-chart-bar',
-            'color' => 'success',
-            'chart' => [
-                'type' => 'last_days',
-                'days' => 7,
-                'callback' => fn(Carbon $date, ?int $bid) => (float) RevenueRecognition::query()
-                    ->whereDate('recognized_at', $date)
+            // Recognized Revenue This Month
+            [
+                'label' => __('dashboard.stats.recognized_revenue_this_month') ?? 'Recognized Revenue',
+                'value_callback' => fn(?int $bid) => (float) RevenueRecognition::query()
+                    ->whereBetween('recognized_at', [$monthStart, $monthEnd])
                     ->when($bid, function (Builder $q) use ($bid) {
                         return $q->whereHas('enrollment', fn (Builder $enr) => $enr->where('branch_id', $bid));
                     })
                     ->sum('recognized_amount'),
+                'value_formatter' => fn($value) => $this->money($value),
+                'icon' => 'heroicon-o-chart-bar',
+                'color' => 'success',
+                'chart' => [
+                    'type' => 'last_days',
+                    'days' => 7,
+                    'callback' => fn(Carbon $date, ?int $bid) => (float) RevenueRecognition::query()
+                        ->whereDate('recognized_at', $date)
+                        ->when($bid, function (Builder $q) use ($bid) {
+                            return $q->whereHas('enrollment', fn (Builder $enr) => $enr->where('branch_id', $bid));
+                        })
+                        ->sum('recognized_amount'),
+                ],
+                'trend' => [
+                    'type' => 'vs_previous_period',
+                    'comparison_callback' => fn(?int $bid) => (float) RevenueRecognition::query()
+                        ->whereBetween('recognized_at', [now()->subMonth()->startOfMonth(), now()->subMonth()->endOfMonth()])
+                        ->when($bid, function (Builder $q) use ($bid) {
+                            return $q->whereHas('enrollment', fn (Builder $enr) => $enr->where('branch_id', $bid));
+                        })
+                        ->sum('recognized_amount'),
+                    'suffix' => ' vs last month',
+                ],
+                'description' => __('dashboard.stats.recognized_revenue_this_month_desc') ?? 'Revenue recognized this month',
+                'description_icon' => 'heroicon-m-chart-bar',
+                'chart_color' => 'success',
             ],
-            'trend' => [
-                'type' => 'vs_previous_period',
-                'comparison_callback' => fn(?int $bid) => (float) RevenueRecognition::query()
-                    ->whereBetween('recognized_at', [now()->subMonth()->startOfMonth(), now()->subMonth()->endOfMonth()])
-                    ->when($bid, function (Builder $q) use ($bid) {
-                        return $q->whereHas('enrollment', fn (Builder $enr) => $enr->where('branch_id', $bid));
-                    })
-                    ->sum('recognized_amount'),
-                'suffix' => ' vs last month',
-            ],
-            'description' => __('dashboard.stats.recognized_revenue_this_month_desc') ?? 'Revenue recognized this month',
-            'description_icon' => 'heroicon-m-chart-bar',
-            'chart_color' => 'success',
-        ], $branchId);
-    }
 
-    protected function statTotalCourses(?int $branchId): Stat
-    {
-        return $this->buildStat([
-            'label' => __('dashboard.stats.total_courses') ?? 'Active Courses',
-            'value_callback' => function(?int $bid) {
-                $activeQuery = Course::query()
-                    ->where('is_active', true)
-                    ->when($bid, fn (Builder $q) => $q->where('branch_id', $bid));
-                return (clone $activeQuery)->count();
-            },
-            'icon' => 'heroicon-o-book-open',
-            'color' => 'primary',
-            'chart' => [
-                'type' => 'last_days',
-                'days' => 7,
-                'callback' => fn(Carbon $date, ?int $bid) => Course::query()
-                    ->where('is_active', true)
-                    ->whereDate('created_at', '<=', $date)
-                    ->when($bid, fn (Builder $q) => $q->where('branch_id', $bid))
-                    ->count(),
+            // Total Courses
+            [
+                'label' => __('dashboard.stats.total_courses') ?? 'Active Courses',
+                'value_callback' => function(?int $bid) {
+                    $activeQuery = Course::query()
+                        ->where('is_active', true)
+                        ->when($bid, fn (Builder $q) => $q->where('branch_id', $bid));
+                    return (clone $activeQuery)->count();
+                },
+                'icon' => 'heroicon-o-book-open',
+                'color' => 'primary',
+                'chart' => [
+                    'type' => 'last_days',
+                    'days' => 7,
+                    'callback' => fn(Carbon $date, ?int $bid) => Course::query()
+                        ->where('is_active', true)
+                        ->whereDate('created_at', '<=', $date)
+                        ->when($bid, fn (Builder $q) => $q->where('branch_id', $bid))
+                        ->count(),
+                ],
+                'trend' => null,
+                'description' => function($trend, $value, ?int $bid) {
+                    $activeQuery = Course::query()
+                        ->where('is_active', true)
+                        ->when($bid, fn (Builder $q) => $q->where('branch_id', $bid));
+                    $count = (clone $activeQuery)->count();
+                    $totalCount = Course::query()
+                        ->when($bid, fn (Builder $q) => $q->where('branch_id', $bid))
+                        ->count();
+                    $newThisMonth = Course::query()
+                        ->where('is_active', true)
+                        ->whereMonth('created_at', now()->month)
+                        ->whereYear('created_at', now()->year)
+                        ->when($bid, fn (Builder $q) => $q->where('branch_id', $bid))
+                        ->count();
+                    return ($newThisMonth > 0 ? "{$newThisMonth} new this month • " : '')
+                        . (__('dashboard.stats.active_courses') ?? "{$count} of {$totalCount} total courses");
+                },
+                'description_icon' => 'heroicon-m-academic-cap',
+                'chart_color' => 'primary',
             ],
-            'trend' => null,
-            'description' => function($trend, $value, ?int $bid) {
-                $activeQuery = Course::query()
-                    ->where('is_active', true)
-                    ->when($bid, fn (Builder $q) => $q->where('branch_id', $bid));
-                $count = (clone $activeQuery)->count();
-                $totalCount = Course::query()
-                    ->when($bid, fn (Builder $q) => $q->where('branch_id', $bid))
-                    ->count();
-                $newThisMonth = Course::query()
-                    ->where('is_active', true)
-                    ->whereMonth('created_at', now()->month)
-                    ->whereYear('created_at', now()->year)
-                    ->when($bid, fn (Builder $q) => $q->where('branch_id', $bid))
-                    ->count();
-                return ($newThisMonth > 0 ? "{$newThisMonth} new this month • " : '')
-                    . (__('dashboard.stats.active_courses') ?? "{$count} of {$totalCount} total courses");
-            },
-            'description_icon' => 'heroicon-m-academic-cap',
-            'chart_color' => 'primary',
-        ], $branchId);
-    }
 
-    protected function statTotalStudents(?int $branchId): Stat
-    {
-        return $this->buildStat([
-            'label' => __('dashboard.stats.total_students') ?? 'Active Students',
-            'value_callback' => fn(?int $bid) => Student::query()
-                ->where('status', 'active')
-                ->when($bid, fn (Builder $q) => $q->where('branch_id', $bid))
-                ->count(),
-            'icon' => 'heroicon-o-users',
-            'color' => 'info',
-            'chart' => [
-                'type' => 'last_days',
-                'days' => 7,
-                'callback' => fn(Carbon $date, ?int $bid) => Student::query()
-                    ->where('status', 'active')
-                    ->whereDate('created_at', '<=', $date)
-                    ->when($bid, fn (Builder $q) => $q->where('branch_id', $bid))
-                    ->count(),
-            ],
-            'trend' => null,
-            'description' => function($trend, $value, ?int $bid) {
-                $count = Student::query()
+            // Total Students
+            [
+                'label' => __('dashboard.stats.total_students') ?? 'Active Students',
+                'value_callback' => fn(?int $bid) => Student::query()
                     ->where('status', 'active')
                     ->when($bid, fn (Builder $q) => $q->where('branch_id', $bid))
-                    ->count();
-                $newThisMonth = Student::query()
-                    ->where('status', 'active')
-                    ->whereMonth('created_at', now()->month)
-                    ->whereYear('created_at', now()->year)
-                    ->when($bid, fn (Builder $q) => $q->where('branch_id', $bid))
-                    ->count();
-                return ($newThisMonth > 0 ? "{$newThisMonth} new this month • " : '')
-                    . (__('dashboard.stats.active_students') ?? 'Total active students');
-            },
-            'description_icon' => 'heroicon-m-user-group',
-            'chart_color' => 'info',
-        ], $branchId);
-    }
-
-    protected function statTotalTeachers(?int $branchId): Stat
-    {
-        return $this->buildStat([
-            'label' => __('dashboard.stats.total_teachers') ?? 'Active Teachers',
-            'value_callback' => fn(?int $bid) => Teacher::query()->where('active', true)->count(),
-            'icon' => 'heroicon-o-academic-cap',
-            'color' => 'warning',
-            'chart' => [
-                'type' => 'last_days',
-                'days' => 7,
-                'callback' => fn(Carbon $date, ?int $bid) => Teacher::query()
-                    ->where('active', true)
-                    ->whereDate('created_at', '<=', $date)
                     ->count(),
+                'icon' => 'heroicon-o-users',
+                'color' => 'info',
+                'chart' => [
+                    'type' => 'last_days',
+                    'days' => 7,
+                    'callback' => fn(Carbon $date, ?int $bid) => Student::query()
+                        ->where('status', 'active')
+                        ->whereDate('created_at', '<=', $date)
+                        ->when($bid, fn (Builder $q) => $q->where('branch_id', $bid))
+                        ->count(),
+                ],
+                'trend' => null,
+                'description' => function($trend, $value, ?int $bid) {
+                    $count = Student::query()
+                        ->where('status', 'active')
+                        ->when($bid, fn (Builder $q) => $q->where('branch_id', $bid))
+                        ->count();
+                    $newThisMonth = Student::query()
+                        ->where('status', 'active')
+                        ->whereMonth('created_at', now()->month)
+                        ->whereYear('created_at', now()->year)
+                        ->when($bid, fn (Builder $q) => $q->where('branch_id', $bid))
+                        ->count();
+                    return ($newThisMonth > 0 ? "{$newThisMonth} new this month • " : '')
+                        . (__('dashboard.stats.active_students') ?? 'Total active students');
+                },
+                'description_icon' => 'heroicon-m-user-group',
+                'chart_color' => 'info',
             ],
-            'trend' => null,
-            'description' => function($trend, $value, ?int $bid) {
-                $count = Teacher::query()->where('active', true)->count();
-                $total = Teacher::query()->count();
-                $newThisMonth = Teacher::query()
-                    ->where('active', true)
-                    ->whereMonth('created_at', now()->month)
-                    ->whereYear('created_at', now()->year)
-                    ->count();
-                return ($newThisMonth > 0 ? "{$newThisMonth} new this month • " : '')
-                    . (__('dashboard.stats.active_teachers') ?? "{$count} of {$total} total teachers");
-            },
-            'description_icon' => 'heroicon-m-user-circle',
-            'chart_color' => 'warning',
-        ], $branchId);
+
+            // Total Teachers
+            [
+                'label' => __('dashboard.stats.total_teachers') ?? 'Active Teachers',
+                'value_callback' => fn(?int $bid) => Teacher::query()->where('active', true)->count(),
+                'icon' => 'heroicon-o-academic-cap',
+                'color' => 'warning',
+                'chart' => [
+                    'type' => 'last_days',
+                    'days' => 7,
+                    'callback' => fn(Carbon $date, ?int $bid) => Teacher::query()
+                        ->where('active', true)
+                        ->whereDate('created_at', '<=', $date)
+                        ->count(),
+                ],
+                'trend' => null,
+                'description' => function($trend, $value, ?int $bid) {
+                    $count = Teacher::query()->where('active', true)->count();
+                    $total = Teacher::query()->count();
+                    $newThisMonth = Teacher::query()
+                        ->where('active', true)
+                        ->whereMonth('created_at', now()->month)
+                        ->whereYear('created_at', now()->year)
+                        ->count();
+                    return ($newThisMonth > 0 ? "{$newThisMonth} new this month • " : '')
+                        . (__('dashboard.stats.active_teachers') ?? "{$count} of {$total} total teachers");
+                },
+                'description_icon' => 'heroicon-m-user-circle',
+                'chart_color' => 'warning',
+            ],
+        ];
     }
 
     /* =========================
