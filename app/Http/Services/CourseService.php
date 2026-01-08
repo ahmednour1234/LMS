@@ -49,6 +49,22 @@ class CourseService
             $query->where('delivery_type', $filters['delivery_type']);
         }
 
+        // Filter by owner_teacher_id (optional)
+        if (isset($filters['owner_teacher_id']) && $filters['owner_teacher_id'] !== null) {
+            $query->where('owner_teacher_id', $filters['owner_teacher_id']);
+        }
+
+        // Filter by teacher_id (optional) - courses where teacher is assigned or owner
+        if (isset($filters['teacher_id']) && $filters['teacher_id'] !== null) {
+            $teacherId = $filters['teacher_id'];
+            $query->where(function (Builder $q) use ($teacherId) {
+                $q->where('owner_teacher_id', $teacherId)
+                  ->orWhereHas('teachers', function (Builder $teacherQuery) use ($teacherId) {
+                      $teacherQuery->where('teachers.id', $teacherId);
+                  });
+            });
+        }
+
         // Filter by has_price (only courses with active prices)
         if (isset($filters['has_price']) && $filters['has_price'] == 1) {
             $query->whereHas('prices', function (Builder $q) {
@@ -76,6 +92,10 @@ class CourseService
     public function findByIdWithContent(int $id): ?Course
     {
         return Course::with([
+            'program',
+            'branch',
+            'ownerTeacher',
+            'teachers',
             'sections' => function ($query) {
                 $query->where('is_active', true)
                       ->orderBy('order')

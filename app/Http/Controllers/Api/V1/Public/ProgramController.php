@@ -66,9 +66,10 @@ class ProgramController extends ApiController
     /**
      * Show Program
      *
-     * Get a single program by ID.
+     * Get a single program by ID with courses.
      *
      * @urlParam program integer required The ID of the program. Example: 1
+     * @queryParam include_courses integer optional Include courses in response (1). Example: 1
      *
      * @response 200 {
      *   "success": true,
@@ -80,6 +81,7 @@ class ProgramController extends ApiController
      *     "active": true,
      *     "branch_id": 1,
      *     "code": "PROG001",
+     *     "courses": [...],
      *     "created_at": "2026-01-15T12:00:00+00:00"
      *   }
      * }
@@ -91,9 +93,10 @@ class ProgramController extends ApiController
      *   }
      * }
      */
-    public function show(int $program): JsonResponse
+    public function show(Request $request, int $program): JsonResponse
     {
-        $programModel = $this->programService->findById($program);
+        $includeCourses = $request->input('include_courses', 1) == 1;
+        $programModel = $this->programService->findById($program, $includeCourses);
 
         if (!$programModel) {
             return $this->errorResponse(
@@ -120,6 +123,8 @@ class ProgramController extends ApiController
      * @queryParam active integer optional Filter by active status (1 for active, 0 for inactive). Default: 1. Example: 1
      * @queryParam branch_id integer optional Filter by branch ID. Example: 1
      * @queryParam delivery_type string optional Filter by delivery type: online, onsite, hybrid. Example: online
+     * @queryParam owner_teacher_id integer optional Filter by owner teacher ID. Example: 1
+     * @queryParam teacher_id integer optional Filter by teacher ID (owner or assigned). Example: 1
      * @queryParam has_price integer optional Only show courses with active prices (1). Example: 1
      * @queryParam sort string optional Sort order: newest, oldest, or title. Default: newest. Example: newest
      * @queryParam per_page integer optional Number of items per page. Default: 15. Example: 15
@@ -158,6 +163,8 @@ class ProgramController extends ApiController
             'active' => $request->input('active', 1),
             'branch_id' => $request->input('branch_id'),
             'delivery_type' => $request->input('delivery_type'),
+            'owner_teacher_id' => $request->input('owner_teacher_id'),
+            'teacher_id' => $request->input('teacher_id'),
             'has_price' => $request->input('has_price'),
             'sort' => $request->input('sort', 'newest'),
         ];

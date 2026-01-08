@@ -42,6 +42,10 @@ Route::prefix('v1')->group(function () {
 
     // Public API (No Authentication Required)
     Route::prefix('public')->group(function () {
+        // Teachers
+        Route::get('/teachers', [App\Http\Controllers\Api\V1\Public\TeacherController::class, 'index']);
+        Route::get('/teachers/{teacher}', [App\Http\Controllers\Api\V1\Public\TeacherController::class, 'show']);
+
         // Programs
         Route::get('/programs', [App\Http\Controllers\Api\V1\Public\ProgramController::class, 'index']);
         Route::get('/programs/{program}', [App\Http\Controllers\Api\V1\Public\ProgramController::class, 'show']);

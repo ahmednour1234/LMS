@@ -20,7 +20,31 @@ class CourseShowResource extends JsonResource
             'description' => $this->description, // JSON object with ar/en or null
             'active' => $this->is_active, // Transform is_active to active
             'program_id' => $this->program_id,
+            'program' => [
+                'id' => $this->whenLoaded('program')?->id,
+                'name' => $this->whenLoaded('program')?->name,
+                'code' => $this->whenLoaded('program')?->code,
+            ],
             'branch_id' => $this->branch_id,
+            'branch' => [
+                'id' => $this->whenLoaded('branch')?->id,
+                'name' => $this->whenLoaded('branch')?->name,
+            ],
+            'owner_teacher_id' => $this->owner_teacher_id,
+            'owner_teacher' => [
+                'id' => $this->whenLoaded('ownerTeacher')?->id,
+                'name' => $this->whenLoaded('ownerTeacher')?->name,
+                'email' => $this->whenLoaded('ownerTeacher')?->email,
+            ],
+            'teachers' => $this->whenLoaded('teachers', function () {
+                return $this->teachers->map(function ($teacher) {
+                    return [
+                        'id' => $teacher->id,
+                        'name' => $teacher->name,
+                        'email' => $teacher->email,
+                    ];
+                });
+            }),
             'delivery_type' => $this->delivery_type?->value,
             'duration_hours' => $this->duration_hours,
             'code' => $this->code,

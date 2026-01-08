@@ -54,11 +54,29 @@ class ProgramService
      * Get a single program by ID.
      *
      * @param int $id
+     * @param bool $withCourses Whether to load courses relation
      * @return Program|null
      */
-    public function findById(int $id): ?Program
+    public function findById(int $id, bool $withCourses = false): ?Program
     {
-        return Program::find($id);
+        $query = Program::query();
+        
+        if ($withCourses) {
+            $query->with([
+                'branch',
+                'courses' => function ($query) {
+                    $query->where('is_active', true)
+                          ->orderBy('created_at', 'desc')
+                          ->orderBy('id', 'desc');
+                },
+                'courses.ownerTeacher',
+                'courses.teachers',
+            ]);
+        } else {
+            $query->with('branch');
+        }
+        
+        return $query->find($id);
     }
 
     /**
@@ -103,6 +121,22 @@ class ProgramService
         // Filter by delivery_type (optional)
         if (isset($filters['delivery_type']) && !empty($filters['delivery_type'])) {
             $query->where('delivery_type', $filters['delivery_type']);
+        }
+
+        // Filter by owner_teacher_id (optional)
+        if (isset($filters['owner_teacher_id']) && $filters['owner_teacher_id'] !== null) {
+            $query->where('owner_teacher_id', $filters['owner_teacher_id']);
+        }
+
+        // Filter by teacher_id (optional) - courses where teacher is assigned or owner
+        if (isset($filters['teacher_id']) && $filters['teacher_id'] !== null) {
+            $teacherId = $filters['teacher_id'];
+            $query->where(function (Builder $q) use ($teacherId) {
+                $q->where('owner_teacher_id', $teacherId)
+                  ->orWhereHas('teachers', function (Builder $teacherQuery) use ($teacherId) {
+                      $teacherQuery->where('teachers.id', $teacherId);
+                  });
+            });
         }
 
         // Filter by has_price (only courses with active prices)

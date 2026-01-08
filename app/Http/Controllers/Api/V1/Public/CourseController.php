@@ -34,6 +34,8 @@ class CourseController extends ApiController
      * @queryParam program_id integer optional Filter by program ID. Example: 1
      * @queryParam branch_id integer optional Filter by branch ID. Example: 1
      * @queryParam delivery_type string optional Filter by delivery type: online, onsite, hybrid. Example: online
+     * @queryParam owner_teacher_id integer optional Filter by owner teacher ID. Example: 1
+     * @queryParam teacher_id integer optional Filter by teacher ID (owner or assigned). Example: 1
      * @queryParam active integer optional Filter by active status (1 for active, 0 for inactive). Default: 1. Example: 1
      * @queryParam has_price integer optional Only show courses with active prices (1). Example: 1
      * @queryParam sort string optional Sort order: newest, oldest, or title. Default: newest. Example: newest
@@ -56,6 +58,8 @@ class CourseController extends ApiController
             'program_id' => $request->input('program_id'),
             'branch_id' => $request->input('branch_id'),
             'delivery_type' => $request->input('delivery_type'),
+            'owner_teacher_id' => $request->input('owner_teacher_id'),
+            'teacher_id' => $request->input('teacher_id'),
             'active' => $request->input('active', 1),
             'has_price' => $request->input('has_price'),
             'sort' => $request->input('sort', 'newest'),

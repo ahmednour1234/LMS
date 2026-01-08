@@ -20,7 +20,13 @@ class ProgramResource extends JsonResource
             'description' => $this->description, // JSON object with ar/en or null
             'active' => $this->is_active,
             'branch_id' => $this->branch_id,
+            'branch' => [
+                'id' => $this->whenLoaded('branch')?->id,
+                'name' => $this->whenLoaded('branch')?->name,
+            ],
             'code' => $this->code,
+            'parent_id' => $this->parent_id,
+            'courses' => CourseListResource::collection($this->whenLoaded('courses')),
             'created_at' => $this->created_at?->toIso8601String(),
             'updated_at' => $this->updated_at?->toIso8601String(),
         ];
