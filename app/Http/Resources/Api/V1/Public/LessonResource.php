@@ -2,11 +2,14 @@
 
 namespace App\Http\Resources\Api\V1\Public;
 
+use App\Support\Traits\HasTranslatableFields;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
 
 class LessonResource extends JsonResource
 {
+    use HasTranslatableFields;
+
     /**
      * Transform the resource into an array.
      *
@@ -14,10 +17,12 @@ class LessonResource extends JsonResource
      */
     public function toArray(Request $request): array
     {
+        $locale = app()->getLocale();
+
         return [
             'id' => $this->id,
-            'title' => $this->title, // JSON object with ar/en
-            'description' => $this->description, // JSON object with ar/en or null
+            'title' => $this->getTranslatedValue($this->title, $locale), // Auto-translate
+            'description' => $this->getTranslatedValue($this->description, $locale), // Auto-translate
             'type' => $this->lesson_type?->value, // Transform lesson_type to type
             'is_preview' => $this->is_preview,
             'estimated_minutes' => $this->estimated_minutes,
@@ -25,16 +30,20 @@ class LessonResource extends JsonResource
             'sort_order' => $this->sort_order,
             'active' => $this->is_active, // Transform is_active to active
             'section_id' => $this->section_id,
-            'section' => [
-                'id' => $this->whenLoaded('section')?->id,
-                'title' => $this->whenLoaded('section')?->title,
-                'sort_order' => $this->whenLoaded('section')?->order,
-            ],
-            'course' => [
-                'id' => $this->whenLoaded('section.course')?->id,
-                'title' => $this->whenLoaded('section.course')?->name,
-                'code' => $this->whenLoaded('section.course')?->code,
-            ],
+            'section' => $this->whenLoaded('section', function () use ($locale) {
+                return [
+                    'id' => $this->section->id,
+                    'title' => $this->getTranslatedValue($this->section->title, $locale),
+                    'sort_order' => $this->section->order,
+                ];
+            }),
+            'course' => $this->whenLoaded('section.course', function () use ($locale) {
+                return [
+                    'id' => $this->section->course->id,
+                    'title' => $this->getTranslatedValue($this->section->course->name, $locale),
+                    'code' => $this->section->course->code,
+                ];
+            }),
             'created_at' => $this->created_at?->toIso8601String(),
             'updated_at' => $this->updated_at?->toIso8601String(),
         ];

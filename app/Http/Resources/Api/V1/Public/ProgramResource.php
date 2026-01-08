@@ -2,11 +2,14 @@
 
 namespace App\Http\Resources\Api\V1\Public;
 
+use App\Support\Traits\HasTranslatableFields;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
 
 class ProgramResource extends JsonResource
 {
+    use HasTranslatableFields;
+
     /**
      * Transform the resource into an array.
      *
@@ -14,16 +17,20 @@ class ProgramResource extends JsonResource
      */
     public function toArray(Request $request): array
     {
+        $locale = app()->getLocale();
+
         return [
             'id' => $this->id,
-            'name' => $this->name, // JSON object with ar/en
-            'description' => $this->description, // JSON object with ar/en or null
+            'name' => $this->getTranslatedValue($this->name, $locale), // Auto-translate
+            'description' => $this->getTranslatedValue($this->description, $locale), // Auto-translate
             'active' => $this->is_active,
             'branch_id' => $this->branch_id,
-            'branch' => [
-                'id' => $this->whenLoaded('branch')?->id,
-                'name' => $this->whenLoaded('branch')?->name,
-            ],
+            'branch' => $this->whenLoaded('branch', function () {
+                return [
+                    'id' => $this->branch->id,
+                    'name' => $this->branch->name, // Branch name is not JSON
+                ];
+            }),
             'code' => $this->code,
             'parent_id' => $this->parent_id,
             'courses' => CourseListResource::collection($this->whenLoaded('courses')),

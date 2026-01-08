@@ -17,7 +17,7 @@ class CourseService
      */
     public function getPaginated(array $filters = [], int $perPage = 15): LengthAwarePaginator
     {
-        $query = Course::query();
+        $query = Course::with(['branch', 'program']);
 
         // Filter by search query (title in ar/en - stored as 'name' in DB)
         if (isset($filters['q']) && !empty($filters['q'])) {

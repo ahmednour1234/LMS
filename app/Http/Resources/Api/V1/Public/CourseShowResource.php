@@ -2,11 +2,14 @@
 
 namespace App\Http\Resources\Api\V1\Public;
 
+use App\Support\Traits\HasTranslatableFields;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
 
 class CourseShowResource extends JsonResource
 {
+    use HasTranslatableFields;
+
     /**
      * Transform the resource into an array.
      *
@@ -14,28 +17,36 @@ class CourseShowResource extends JsonResource
      */
     public function toArray(Request $request): array
     {
+        $locale = app()->getLocale();
+
         return [
             'id' => $this->id,
-            'title' => $this->name, // Transform name to title (JSON object with ar/en)
-            'description' => $this->description, // JSON object with ar/en or null
+            'title' => $this->getTranslatedValue($this->name, $locale), // Auto-translate
+            'description' => $this->getTranslatedValue($this->description, $locale), // Auto-translate
             'active' => $this->is_active, // Transform is_active to active
             'program_id' => $this->program_id,
-            'program' => [
-                'id' => $this->whenLoaded('program')?->id,
-                'name' => $this->whenLoaded('program')?->name,
-                'code' => $this->whenLoaded('program')?->code,
-            ],
+            'program' => $this->whenLoaded('program', function () use ($locale) {
+                return [
+                    'id' => $this->program->id,
+                    'name' => $this->getTranslatedValue($this->program->name, $locale),
+                    'code' => $this->program->code,
+                ];
+            }),
             'branch_id' => $this->branch_id,
-            'branch' => [
-                'id' => $this->whenLoaded('branch')?->id,
-                'name' => $this->whenLoaded('branch')?->name,
-            ],
+            'branch' => $this->whenLoaded('branch', function () {
+                return [
+                    'id' => $this->branch->id,
+                    'name' => $this->branch->name, // Branch name is not JSON
+                ];
+            }),
             'owner_teacher_id' => $this->owner_teacher_id,
-            'owner_teacher' => [
-                'id' => $this->whenLoaded('ownerTeacher')?->id,
-                'name' => $this->whenLoaded('ownerTeacher')?->name,
-                'email' => $this->whenLoaded('ownerTeacher')?->email,
-            ],
+            'owner_teacher' => $this->whenLoaded('ownerTeacher', function () {
+                return [
+                    'id' => $this->ownerTeacher->id,
+                    'name' => $this->ownerTeacher->name,
+                    'email' => $this->ownerTeacher->email,
+                ];
+            }),
             'teachers' => $this->whenLoaded('teachers', function () {
                 return $this->teachers->map(function ($teacher) {
                     return [
