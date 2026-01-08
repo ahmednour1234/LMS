@@ -57,6 +57,7 @@ Route::prefix('v1')->group(function () {
         Route::get('/courses/{course}/prices', [App\Http\Controllers\Api\V1\Public\CourseController::class, 'prices']);
 
         // Lessons
+        Route::get('/lessons', [App\Http\Controllers\Api\V1\Public\LessonController::class, 'index']);
         Route::get('/lessons/{lesson}', [App\Http\Controllers\Api\V1\Public\LessonController::class, 'show']);
     });
 });
