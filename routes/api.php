@@ -62,3 +62,17 @@ Route::prefix('v1')->group(function () {
     });
 });
 
+Route::prefix('teacher')->group(function () {
+    Route::post('/register', [App\Http\Controllers\Api\Teacher\TeacherAuthController::class, 'register']);
+    Route::post('/login', [App\Http\Controllers\Api\Teacher\TeacherAuthController::class, 'login']);
+    Route::post('/forgot-password', [App\Http\Controllers\Api\Teacher\TeacherPasswordController::class, 'forgotPassword']);
+    Route::post('/reset-password', [App\Http\Controllers\Api\Teacher\TeacherPasswordController::class, 'resetPassword']);
+
+    Route::middleware('auth:teacher')->group(function () {
+        Route::post('/logout', [App\Http\Controllers\Api\Teacher\TeacherAuthController::class, 'logout']);
+        Route::get('/me', [App\Http\Controllers\Api\Teacher\TeacherAuthController::class, 'me']);
+        Route::post('/refresh', [App\Http\Controllers\Api\Teacher\TeacherAuthController::class, 'refresh']);
+        Route::put('/profile', [App\Http\Controllers\Api\Teacher\TeacherAuthController::class, 'updateProfile']);
+    });
+});
+
