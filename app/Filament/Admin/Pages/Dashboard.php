@@ -28,7 +28,10 @@ class Dashboard extends BaseDashboard
     protected function getFooterWidgets(): array
     {
         return [
-
+            OverdueInstallmentsTableWidget::class,
+            LatestCoursesTableWidget::class,
+            LatestStudentsTableWidget::class,
+            LatestTeachersTableWidget::class,
         ];
     }
 }
