@@ -17,7 +17,7 @@ class CourseService
      */
     public function getPaginated(array $filters = [], int $perPage = 15): LengthAwarePaginator
     {
-        $query = Course::with(['branch', 'program']);
+        $query = Course::with(['program.branch']);
 
         // Filter by search query (title in ar/en - stored as 'name' in DB)
         if (isset($filters['q']) && !empty($filters['q'])) {
@@ -39,9 +39,11 @@ class CourseService
             $query->where('is_active', (bool) $active);
         }
 
-        // Filter by branch_id (optional)
+        // Filter by branch_id (optional) - through program relationship
         if (isset($filters['branch_id']) && $filters['branch_id'] !== null) {
-            $query->where('branch_id', $filters['branch_id']);
+            $query->whereHas('program', function (Builder $q) use ($filters) {
+                $q->where('programs.branch_id', $filters['branch_id']);
+            });
         }
 
         // Filter by delivery_type (optional)
