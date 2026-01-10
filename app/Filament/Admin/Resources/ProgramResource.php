@@ -55,10 +55,7 @@ class ProgramResource extends Resource
                 Forms\Components\TextInput::make('code')
                     ->required()
                     ->maxLength(255)
-                    ->unique(ignoreRecord: true, modifyRuleUsing: function ($rule, $get) {
-                        $branchId = auth()->user()->isSuperAdmin() ? $get('branch_id') : auth()->user()->branch_id;
-                        return $rule->where('branch_id', $branchId);
-                    })
+                    ->unique(ignoreRecord: true)
                     ->label(__('programs.code')),
                 Forms\Components\TextInput::make('name.ar')
                     ->label(__('programs.name_ar'))
@@ -80,13 +77,6 @@ class ProgramResource extends Resource
                     ->visibility('public')
                     ->nullable()
                     ->label(__('programs.image')),
-                Forms\Components\Select::make('branch_id')
-                    ->relationship('branch', 'name')
-                    ->searchable()
-                    ->preload()
-                    ->required()
-                    ->label(__('programs.branch'))
-                    ->visible(fn () => auth()->user()->isSuperAdmin()),
                 Forms\Components\Toggle::make('is_active')
                     ->label(__('programs.is_active'))
                     ->default(true),
@@ -96,12 +86,6 @@ class ProgramResource extends Resource
     public static function table(Table $table): Table
     {
         return $table
-            ->modifyQueryUsing(function (Builder $query) {
-                $user = auth()->user();
-                if (!$user->isSuperAdmin()) {
-                    $query->where('branch_id', $user->branch_id);
-                }
-            })
             ->columns([
                 Tables\Columns\TextColumn::make('code')
                     ->searchable()
@@ -119,10 +103,6 @@ class ProgramResource extends Resource
                     ->sortable()
                     ->label(__('programs.parent'))
                     ->placeholder('-'),
-                Tables\Columns\TextColumn::make('branch.name')
-                    ->sortable()
-                    ->label(__('programs.branch'))
-                    ->visible(fn () => auth()->user()->isSuperAdmin()),
                 Tables\Columns\TextColumn::make('courses_count')
                     ->counts('courses')
                     ->label(__('programs.courses_count')),
@@ -142,10 +122,6 @@ class ProgramResource extends Resource
                 Tables\Filters\SelectFilter::make('parent_id')
                     ->relationship('parent', 'code')
                     ->label(__('programs.parent')),
-                Tables\Filters\SelectFilter::make('branch_id')
-                    ->relationship('branch', 'name')
-                    ->label(__('programs.branch'))
-                    ->visible(fn () => auth()->user()->isSuperAdmin()),
                 Tables\Filters\TernaryFilter::make('is_active')
                     ->label(__('programs.is_active')),
             ])

@@ -48,15 +48,6 @@ class CourseShowResource extends JsonResource
                     'email' => $this->ownerTeacher->email,
                 ];
             }),
-            'teachers' => $this->whenLoaded('teachers', function () {
-                return $this->teachers->map(function ($teacher) {
-                    return [
-                        'id' => $teacher->id,
-                        'name' => $teacher->name,
-                        'email' => $teacher->email,
-                    ];
-                });
-            }),
             'delivery_type' => $this->delivery_type?->value,
             'duration_hours' => $this->duration_hours,
             'code' => $this->code,

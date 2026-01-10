@@ -2,7 +2,6 @@
 
 namespace App\Domain\Training\Models;
 
-use App\Domain\Branch\Models\Branch;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -14,7 +13,6 @@ class Program extends Model
 
     protected $fillable = [
         'parent_id',
-        'branch_id',
         'code',
         'name',
         'description',
@@ -39,11 +37,6 @@ class Program extends Model
     public function children(): HasMany
     {
         return $this->hasMany(Program::class, 'parent_id');
-    }
-
-    public function branch(): BelongsTo
-    {
-        return $this->belongsTo(Branch::class);
     }
 
     public function courses(): HasMany

@@ -96,19 +96,6 @@ class CourseResource extends Resource
                     ->preload()
                     ->required()
                     ->label(__('Owner Teacher')),
-                Forms\Components\Select::make('teachers')
-                    ->relationship('teachers', 'name')
-                    ->multiple()
-                    ->searchable()
-                    ->preload()
-                    ->label(__('Additional Teachers')),
-                // Trainers functionality removed - use teachers() relationship instead
-                // Forms\Components\Select::make('trainers')
-                //     ->relationship('trainers', 'name', fn (Builder $query) => $query->whereHas('roles', fn ($q) => $q->where('name', 'trainer')))
-                //     ->multiple()
-                //     ->searchable()
-                //     ->preload()
-                //     ->label(__('courses.trainers')),
                 Forms\Components\Toggle::make('is_active')
                     ->label(__('courses.is_active'))
                     ->default(true),
@@ -147,10 +134,6 @@ class CourseResource extends Resource
                 Tables\Columns\TextColumn::make('ownerTeacher.name')
                     ->sortable()
                     ->label(__('Owner Teacher')),
-                Tables\Columns\TextColumn::make('teachers_count')
-                    ->counts('teachers')
-                    ->label(__('Additional Teachers'))
-                    ->toggleable(),
                 Tables\Columns\IconColumn::make('is_active')
                     ->boolean()
                     ->label(__('courses.is_active')),

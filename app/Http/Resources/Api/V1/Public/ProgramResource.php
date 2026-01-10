@@ -25,13 +25,6 @@ class ProgramResource extends JsonResource
             'name' => $this->getTranslatedValue($this->name, $locale), // Auto-translate
             'description' => $this->getTranslatedValue($this->description, $locale), // Auto-translate
             'active' => $this->is_active,
-            'branch_id' => $this->branch_id,
-            'branch' => $this->whenLoaded('branch', function () {
-                return [
-                    'id' => $this->branch->id,
-                    'name' => $this->branch->name, // Branch name is not JSON
-                ];
-            }),
             'code' => $this->code,
             'image' => ImageHelper::getFullImageUrl($this->image),
             'parent_id' => $this->parent_id,

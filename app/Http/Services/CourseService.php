@@ -17,7 +17,7 @@ class CourseService
      */
     public function getPaginated(array $filters = [], int $perPage = 15): LengthAwarePaginator
     {
-        $query = Course::with(['program.branch']);
+        $query = Course::with(['program']);
 
         // Filter by search query (title in ar/en - stored as 'name' in DB)
         if (isset($filters['q']) && !empty($filters['q'])) {
@@ -56,15 +56,9 @@ class CourseService
             $query->where('owner_teacher_id', $filters['owner_teacher_id']);
         }
 
-        // Filter by teacher_id (optional) - courses where teacher is assigned or owner
+        // Filter by teacher_id (optional) - courses where teacher is owner
         if (isset($filters['teacher_id']) && $filters['teacher_id'] !== null) {
-            $teacherId = $filters['teacher_id'];
-            $query->where(function (Builder $q) use ($teacherId) {
-                $q->where('owner_teacher_id', $teacherId)
-                  ->orWhereHas('teachers', function (Builder $teacherQuery) use ($teacherId) {
-                      $teacherQuery->where('teachers.id', $teacherId);
-                  });
-            });
+            $query->where('owner_teacher_id', $filters['teacher_id']);
         }
 
         // Filter by has_price (only courses with active prices)
@@ -94,9 +88,8 @@ class CourseService
     public function findByIdWithContent(int $id): ?Course
     {
         return Course::with([
-            'program.branch',
+            'program',
             'ownerTeacher',
-            'teachers',
             'sections' => function ($query) {
                 $query->where('is_active', true)
                       ->orderBy('order')
@@ -131,7 +124,7 @@ class CourseService
     public function getCoursePrices(int $courseId, array $filters = [])
     {
         $course = $this->findById($courseId);
-        
+
         if (!$course) {
             return collect([]);
         }
@@ -146,7 +139,7 @@ class CourseService
 
         // Filter by branch_id (optional)
         $branchId = $filters['branch_id'] ?? null;
-        
+
         // Filter by delivery_type (optional)
         $deliveryType = $filters['delivery_type'] ?? null;
 

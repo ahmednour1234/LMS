@@ -31,7 +31,6 @@ class ProgramController extends ApiController
      *
      * @queryParam q string optional Search programs by name (ar/en). Example: Programming
      * @queryParam active integer optional Filter by active status (1 for active, 0 for inactive). Default: 1. Example: 1
-     * @queryParam branch_id integer optional Filter by branch ID. Example: 1
      * @queryParam sort string optional Sort order: newest, oldest, or name. Default: newest. Example: newest
      * @queryParam per_page integer optional Number of items per page. Default: 15. Example: 15
      * @queryParam page integer optional Page number. Example: 1
@@ -50,7 +49,6 @@ class ProgramController extends ApiController
         $filters = [
             'q' => $request->input('q'),
             'active' => $request->input('active', 1),
-            'branch_id' => $request->input('branch_id'),
             'sort' => $request->input('sort', 'newest'),
         ];
 
@@ -79,7 +77,6 @@ class ProgramController extends ApiController
      *     "name": {"ar": "...", "en": "..."},
      *     "description": {"ar": "...", "en": "..."},
      *     "active": true,
-     *     "branch_id": 1,
      *     "code": "PROG001",
      *     "courses": [...],
      *     "created_at": "2026-01-15T12:00:00+00:00"
@@ -121,7 +118,6 @@ class ProgramController extends ApiController
      * @urlParam program integer required The ID of the program. Example: 1
      * @queryParam q string optional Search courses by title (ar/en). Example: PHP
      * @queryParam active integer optional Filter by active status (1 for active, 0 for inactive). Default: 1. Example: 1
-     * @queryParam branch_id integer optional Filter by branch ID. Example: 1
      * @queryParam delivery_type string optional Filter by delivery type: online, onsite, hybrid. Example: online
      * @queryParam owner_teacher_id integer optional Filter by owner teacher ID. Example: 1
      * @queryParam teacher_id integer optional Filter by teacher ID (owner or assigned). Example: 1
@@ -161,7 +157,6 @@ class ProgramController extends ApiController
         $filters = [
             'q' => $request->input('q'),
             'active' => $request->input('active', 1),
-            'branch_id' => $request->input('branch_id'),
             'delivery_type' => $request->input('delivery_type'),
             'owner_teacher_id' => $request->input('owner_teacher_id'),
             'teacher_id' => $request->input('teacher_id'),

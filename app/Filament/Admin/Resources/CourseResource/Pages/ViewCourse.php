@@ -60,15 +60,6 @@ class ViewCourse extends ViewRecord
                     ->schema([
                         Infolists\Components\TextEntry::make('ownerTeacher.name')
                             ->label(__('Owner Teacher')),
-                        Infolists\Components\RepeatableEntry::make('teachers')
-                            ->schema([
-                                Infolists\Components\TextEntry::make('name')
-                                    ->label(__('Name')),
-                                Infolists\Components\TextEntry::make('email')
-                                    ->label(__('Email')),
-                            ])
-                            ->columns(2)
-                            ->label(__('Additional Teachers')),
                     ])
                     ->columns(1)
                     ->collapsible(),

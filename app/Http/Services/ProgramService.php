@@ -34,11 +34,6 @@ class ProgramService
             $query->where('is_active', (bool) $active);
         }
 
-        // Filter by branch_id (optional)
-        if (isset($filters['branch_id']) && $filters['branch_id'] !== null) {
-            $query->where('branch_id', $filters['branch_id']);
-        }
-
         // Sorting
         $sort = $filters['sort'] ?? 'newest';
         match ($sort) {
@@ -60,22 +55,18 @@ class ProgramService
     public function findById(int $id, bool $withCourses = false): ?Program
     {
         $query = Program::query();
-        
+
         if ($withCourses) {
             $query->with([
-                'branch',
                 'courses' => function ($query) {
                     $query->where('is_active', true)
                           ->orderBy('created_at', 'desc')
                           ->orderBy('id', 'desc');
                 },
                 'courses.ownerTeacher',
-                'courses.teachers',
             ]);
-        } else {
-            $query->with('branch');
         }
-        
+
         return $query->find($id);
     }
 
@@ -90,7 +81,7 @@ class ProgramService
     public function getProgramCourses(int $programId, array $filters = [], int $perPage = 15): LengthAwarePaginator
     {
         $program = $this->findById($programId);
-        
+
         if (!$program) {
             return \Illuminate\Pagination\LengthAwarePaginator::make([], 0, $perPage);
         }
@@ -113,11 +104,6 @@ class ProgramService
             $query->where('is_active', (bool) $active);
         }
 
-        // Filter by branch_id (optional)
-        if (isset($filters['branch_id']) && $filters['branch_id'] !== null) {
-            $query->where('branch_id', $filters['branch_id']);
-        }
-
         // Filter by delivery_type (optional)
         if (isset($filters['delivery_type']) && !empty($filters['delivery_type'])) {
             $query->where('delivery_type', $filters['delivery_type']);
@@ -128,15 +114,9 @@ class ProgramService
             $query->where('owner_teacher_id', $filters['owner_teacher_id']);
         }
 
-        // Filter by teacher_id (optional) - courses where teacher is assigned or owner
+        // Filter by teacher_id (optional) - courses where teacher is owner
         if (isset($filters['teacher_id']) && $filters['teacher_id'] !== null) {
-            $teacherId = $filters['teacher_id'];
-            $query->where(function (Builder $q) use ($teacherId) {
-                $q->where('owner_teacher_id', $teacherId)
-                  ->orWhereHas('teachers', function (Builder $teacherQuery) use ($teacherId) {
-                      $teacherQuery->where('teachers.id', $teacherId);
-                  });
-            });
+            $query->where('owner_teacher_id', $filters['teacher_id']);
         }
 
         // Filter by has_price (only courses with active prices)
