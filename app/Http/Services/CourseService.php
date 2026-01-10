@@ -94,8 +94,7 @@ class CourseService
     public function findByIdWithContent(int $id): ?Course
     {
         return Course::with([
-            'program',
-            'branch',
+            'program.branch',
             'ownerTeacher',
             'teachers',
             'sections' => function ($query) {
