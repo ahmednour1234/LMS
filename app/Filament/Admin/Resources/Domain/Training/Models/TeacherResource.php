@@ -61,6 +61,12 @@ class TeacherResource extends Resource
                     ->unique(ignoreRecord: true)
                     ->maxLength(255)
                     ->label(__('teachers.email')),
+                Forms\Components\TextInput::make('password')
+                    ->password()
+                    ->required(fn ($livewire) => $livewire instanceof \App\Filament\Admin\Resources\Domain\Training\Models\TeacherResource\Pages\CreateTeacher)
+                    ->dehydrated(fn ($livewire) => $livewire instanceof \App\Filament\Admin\Resources\Domain\Training\Models\TeacherResource\Pages\CreateTeacher)
+                    ->maxLength(255)
+                    ->label(__('teachers.password')),
                 Forms\Components\Select::make('sex')
                     ->options([
                         'male' => __('teachers.sex_options.male'),
