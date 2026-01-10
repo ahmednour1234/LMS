@@ -13,7 +13,7 @@ use Illuminate\Http\Request;
 
 /**
  * @group Public Courses
- * 
+ *
  * Public API for browsing courses. No authentication required.
  */
 class CourseController extends ApiController
@@ -27,12 +27,11 @@ class CourseController extends ApiController
 
     /**
      * List Courses
-     * 
+     *
      * Get a paginated list of courses with optional filtering and sorting.
-     * 
+     *
      * @queryParam q string optional Search courses by title (ar/en). Example: PHP
      * @queryParam program_id integer optional Filter by program ID. Example: 1
-     * @queryParam branch_id integer optional Filter by branch ID. Example: 1
      * @queryParam delivery_type string optional Filter by delivery type: online, onsite, hybrid. Example: online
      * @queryParam owner_teacher_id integer optional Filter by owner teacher ID. Example: 1
      * @queryParam teacher_id integer optional Filter by teacher ID (owner or assigned). Example: 1
@@ -41,7 +40,7 @@ class CourseController extends ApiController
      * @queryParam sort string optional Sort order: newest, oldest, or title. Default: newest. Example: newest
      * @queryParam per_page integer optional Number of items per page. Default: 15. Example: 15
      * @queryParam page integer optional Page number. Example: 1
-     * 
+     *
      * @response 200 {
      *   "success": true,
      *   "message": "Courses retrieved successfully.",
@@ -56,7 +55,6 @@ class CourseController extends ApiController
         $filters = [
             'q' => $request->input('q'),
             'program_id' => $request->input('program_id'),
-            'branch_id' => $request->input('branch_id'),
             'delivery_type' => $request->input('delivery_type'),
             'owner_teacher_id' => $request->input('owner_teacher_id'),
             'teacher_id' => $request->input('teacher_id'),
@@ -76,11 +74,11 @@ class CourseController extends ApiController
 
     /**
      * Show Course
-     * 
+     *
      * Get a single course by ID with sections and lessons.
-     * 
+     *
      * @urlParam course integer required The ID of the course. Example: 1
-     * 
+     *
      * @response 200 {
      *   "success": true,
      *   "message": "Course retrieved successfully.",
@@ -90,7 +88,6 @@ class CourseController extends ApiController
      *     "description": {"ar": "...", "en": "..."},
      *     "active": true,
      *     "program_id": 1,
-     *     "branch_id": 1,
      *     "delivery_type": "online",
      *     "sections": [...]
      *   }
@@ -124,16 +121,16 @@ class CourseController extends ApiController
 
     /**
      * Get Course Prices
-     * 
+     *
      * Get price list for a specific course with optional filtering.
      * Prices are ordered by: exact match branch_id first, then null (global);
      * same logic for delivery_type.
-     * 
+     *
      * @urlParam course integer required The ID of the course. Example: 1
      * @queryParam branch_id integer optional Filter by branch ID. Example: 1
      * @queryParam delivery_type string optional Filter by delivery type: online, onsite, hybrid. Example: online
      * @queryParam active integer optional Filter by active status (1 for active, 0 for inactive). Default: 1. Example: 1
-     * 
+     *
      * @response 200 {
      *   "success": true,
      *   "message": "Course prices retrieved successfully.",

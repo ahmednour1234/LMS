@@ -21,11 +21,6 @@ class CreateEnrollment extends CreateRecord
             $data['enrolled_at'] = now();
         }
 
-        // Set branch_id from user if not provided and user is not super admin
-        if (empty($data['branch_id']) && !auth()->user()->isSuperAdmin()) {
-            $data['branch_id'] = auth()->user()->branch_id;
-        }
-
         // Set delivery_type based on course if not set (for non-hybrid courses)
         if (!empty($data['course_id']) && empty($data['delivery_type'])) {
             $course = \App\Domain\Training\Models\Course::find($data['course_id']);
@@ -61,9 +56,19 @@ class CreateEnrollment extends CreateRecord
 
         // Validate branch_id required when delivery_type is onsite
         if ($deliveryType === 'onsite' && empty($data['branch_id'])) {
-            throw \Illuminate\Validation\ValidationException::withMessages([
-                'branch_id' => 'Branch is required for onsite enrollment.',
-            ]);
+            // For onsite, set branch_id from user if not provided and user is not super admin
+            if (!auth()->user()->isSuperAdmin()) {
+                $data['branch_id'] = auth()->user()->branch_id;
+            }
+
+            if (empty($data['branch_id'])) {
+                throw \Illuminate\Validation\ValidationException::withMessages([
+                    'branch_id' => 'Branch is required for onsite enrollment.',
+                ]);
+            }
+        } else {
+            // For online, ensure branch_id is null
+            $data['branch_id'] = null;
         }
 
         // Resolve price using PricingService
@@ -84,7 +89,7 @@ class CreateEnrollment extends CreateRecord
         // Validate enrollment mode is allowed by pricing mode
         $calculator = app(EnrollmentPriceCalculator::class);
         $enrollmentMode = EnrollmentMode::from($data['enrollment_mode']);
-        
+
         if (!$calculator->validateMode($coursePrice, $enrollmentMode)) {
             throw \Illuminate\Validation\ValidationException::withMessages([
                 'enrollment_mode' => 'This enrollment mode is not allowed for this course pricing configuration.',
@@ -144,7 +149,7 @@ class CreateEnrollment extends CreateRecord
     {
         // Refresh the enrollment to ensure all relationships and attributes are loaded
         $this->record->refresh();
-        
+
         // Fire EnrollmentCreated event to trigger AR invoice creation and other listeners
         event(new \App\Domain\Enrollment\Events\EnrollmentCreated($this->record));
     }

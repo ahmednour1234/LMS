@@ -61,8 +61,8 @@ class EnrollmentResource extends Resource
     protected static function resolveAndUpdatePrice(Forms\Set $set, Forms\Get $get): void
     {
         $courseId = $get('course_id');
-        $branchId = $get('branch_id');
         $deliveryType = $get('delivery_type') ?? 'online';
+        $branchId = $deliveryType === 'online' ? null : $get('branch_id');
         $enrollmentMode = $get('enrollment_mode');
         $sessionsPurchased = $get('sessions_purchased');
 
@@ -192,6 +192,7 @@ class EnrollmentResource extends Resource
                             ->default('online')
                             ->required()
                             ->reactive()
+                            ->dehydrated()
                             ->visible(fn (Forms\Get $get) => !empty($get('course_id')))
                             ->disabled(function (Forms\Get $get) {
                                 $courseId = $get('course_id');
@@ -205,9 +206,8 @@ class EnrollmentResource extends Resource
                                 // Disable for non-hybrid courses (auto-set, not user-selectable)
                                 return $course->delivery_type !== \App\Domain\Training\Enums\DeliveryType::Hybrid;
                             })
-                            ->afterStateUpdated(function (Forms\Set $set, Forms\Get $get) {
-                                $deliveryType = $get('delivery_type');
-                                if ($deliveryType === 'online') {
+                            ->afterStateUpdated(function (Forms\Set $set, Forms\Get $get, $state) {
+                                if ($state === 'online') {
                                     $set('branch_id', null);
                                 }
                                 self::resolveAndUpdatePrice($set, $get);
@@ -287,11 +287,16 @@ class EnrollmentResource extends Resource
                             ->preload()
                             ->reactive()
                             ->nullable()
+                            ->dehydrated()
                             ->disabled(function (Forms\Get $get) {
                                 // Disable when delivery_type is 'online'
                                 return $get('delivery_type') === 'online';
                             })
                             ->afterStateUpdated(function (Forms\Set $set, Forms\Get $get) {
+                                $deliveryType = $get('delivery_type');
+                                if ($deliveryType === 'online') {
+                                    $set('branch_id', null);
+                                }
                                 self::resolveAndUpdatePrice($set, $get);
                             })
                             ->visible(function (Forms\Get $get) {
@@ -478,10 +483,10 @@ class EnrollmentResource extends Resource
 
                                 $precision = config('money.precision', 3);
                                 $symbol = 'OMR';
-                                
+
                                 $html = '<div class="space-y-2">';
                                 $html .= '<div class="grid grid-cols-2 gap-4">';
-                                
+
                                 // Show enrollment mode
                                 $modeLabel = match($enrollmentMode) {
                                     'course_full' => 'Full Course',
@@ -490,15 +495,15 @@ class EnrollmentResource extends Resource
                                     default => $enrollmentMode,
                                 };
                                 $html .= '<div><strong>Enrollment Mode:</strong> ' . htmlspecialchars($modeLabel) . '</div>';
-                                
+
                                 // Show sessions if applicable
                                 if (in_array($enrollmentMode, ['per_session', 'trial'])) {
                                     $html .= '<div><strong>Sessions:</strong> ' . ($sessionsPurchased ?? 1) . '</div>';
                                 }
-                                
+
                                 // Show total amount
                                 $html .= '<div><strong>Total Amount:</strong> ' . number_format((float) $totalAmount, $precision) . ' ' . $symbol . '</div>';
-                                
+
                                 // Show course price details
                                 if ($enrollmentMode === 'course_full') {
                                     $html .= '<div><strong>Course Price:</strong> ' . number_format((float) $coursePrice->price, $precision) . ' ' . $symbol . '</div>';
@@ -795,7 +800,7 @@ class EnrollmentResource extends Resource
                         \Illuminate\Support\Facades\DB::transaction(function () use ($record) {
                             // Check if AR invoice already exists
                             $existingInvoice = \App\Domain\Accounting\Models\ArInvoice::where('enrollment_id', $record->id)->first();
-                            
+
                             if ($existingInvoice) {
                                 \Filament\Notifications\Notification::make()
                                     ->title(__('ar_invoices.invoice_already_exists') ?? 'AR Invoice already exists')
