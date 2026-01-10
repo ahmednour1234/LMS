@@ -331,7 +331,17 @@ class EnrollmentResource extends Resource
                             ])
                             ->nullable()
                             ->reactive()
-                            ->visible(fn (Forms\Get $get) => !empty($get('course_id')) && !empty($get('_allowed_modes')))
+                            ->dehydrated()
+                            ->visible(function (Forms\Get $get) {
+                                $courseId = $get('course_id');
+                                $deliveryType = $get('delivery_type');
+                                $allowedModes = $get('_allowed_modes') ?? [];
+
+                                // Show for both online and onsite when course is selected and allowed modes are available
+                                return !empty($courseId) &&
+                                       !empty($allowedModes) &&
+                                       in_array($deliveryType, ['online', 'onsite']);
+                            })
                             ->options(function (Forms\Get $get) {
                                 $allowedModes = $get('_allowed_modes') ?? [];
                                 $allOptions = [
@@ -352,7 +362,13 @@ class EnrollmentResource extends Resource
                             ->label(__('enrollments.enrollment_mode') ?? 'Enrollment Mode')
                             ->helperText(__('enrollments.enrollment_mode_helper') ?? 'Select how the student will enroll in this course.'),
                     ])
-                    ->visible(fn (Forms\Get $get) => !empty($get('course_id')))
+                    ->visible(function (Forms\Get $get) {
+                        $courseId = $get('course_id');
+                        $deliveryType = $get('delivery_type');
+
+                        // Show section for both online and onsite when course is selected
+                        return !empty($courseId) && in_array($deliveryType, ['online', 'onsite']);
+                    })
                     ->collapsible(),
 
                 Forms\Components\Section::make(__('enrollments.sessions') ?? 'Sessions')
