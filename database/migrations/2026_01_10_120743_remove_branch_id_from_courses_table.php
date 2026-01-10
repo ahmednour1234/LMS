@@ -32,11 +32,12 @@ return new class extends Migration
     {
         if (Schema::hasColumn('courses', 'branch_id')) {
             $this->dropIndexIfExists('courses', 'courses_code_branch_unique');
-            $this->dropIndexIfExists('courses', 'courses_branch_id_is_active_index');
             
             Schema::table('courses', function (Blueprint $table) {
-                $table->dropForeign(['courses_branch_id_foreign']);
+                $table->dropForeign(['branch_id']);
             });
+            
+            $this->dropIndexIfExists('courses', 'courses_branch_id_is_active_index');
             
             Schema::table('courses', function (Blueprint $table) {
                 $table->dropColumn('branch_id');
