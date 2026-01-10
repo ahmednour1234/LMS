@@ -63,6 +63,27 @@ return new class extends Migration
             });
             
             $this->dropIndexIfExists('programs', 'programs_code_unique');
+            
+            $duplicates = DB::select("
+                SELECT code, COUNT(*) as count, GROUP_CONCAT(id ORDER BY id) as ids
+                FROM programs
+                GROUP BY code
+                HAVING count > 1
+            ");
+            
+            foreach ($duplicates as $dup) {
+                $ids = explode(',', $dup->ids);
+                $keepId = array_shift($ids);
+                
+                foreach ($ids as $index => $id) {
+                    $newCode = $dup->code . '-' . ($index + 1);
+                    while (DB::table('programs')->where('code', $newCode)->exists()) {
+                        $newCode = $dup->code . '-' . (++$index + 1);
+                    }
+                    DB::table('programs')->where('id', $id)->update(['code' => $newCode]);
+                }
+            }
+            
             if (!$this->indexExists('programs', 'programs_code_unique')) {
                 Schema::table('programs', function (Blueprint $table) {
                     $table->unique('code', 'programs_code_unique');
