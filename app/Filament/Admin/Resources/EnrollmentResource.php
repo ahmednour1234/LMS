@@ -400,7 +400,7 @@ class EnrollmentResource extends Resource
                                 'installment' => __('enrollments.pricing_type_options.installment'),
                             ])
                             ->default('full')
-                            ->required()
+                            ->nullable()
                             ->reactive()
                             ->disabled(function (Forms\Get $get) {
                                 // Disable installment option if not allowed or for per-session/trial
