@@ -27,18 +27,21 @@ class EditEnrollment extends EditRecord
             ]);
         }
 
-        $registrationType = $data['registration_type'] ?? 'online';
-        if (!in_array($registrationType, ['onsite', 'online'])) {
+        $deliveryType = $data['delivery_type'] ?? 'online';
+        if (!in_array($deliveryType, ['onsite', 'online'])) {
             throw \Illuminate\Validation\ValidationException::withMessages([
-                'registration_type' => 'Registration type must be either "onsite" or "online".',
+                'delivery_type' => 'Delivery type must be either "onsite" or "online".',
             ]);
         }
 
-        // Validate branch_id required when registration_type is onsite
-        if ($registrationType === 'onsite' && empty($data['branch_id'])) {
+        // Validate branch_id required when delivery_type is onsite
+        if ($deliveryType === 'onsite' && empty($data['branch_id'])) {
             throw \Illuminate\Validation\ValidationException::withMessages([
                 'branch_id' => 'Branch is required for onsite enrollment.',
             ]);
+        } else {
+            // For online, ensure branch_id is null
+            $data['branch_id'] = null;
         }
 
         // Resolve price using PricingService and override total_amount
@@ -47,7 +50,7 @@ class EditEnrollment extends EditRecord
         $coursePrice = $pricingService->resolveCoursePrice(
             $data['course_id'],
             $branchId,
-            $registrationType
+            $deliveryType
         );
 
         if (!$coursePrice) {

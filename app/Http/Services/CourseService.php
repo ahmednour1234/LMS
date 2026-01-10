@@ -39,13 +39,6 @@ class CourseService
             $query->where('is_active', (bool) $active);
         }
 
-        // Filter by branch_id (optional) - through program relationship
-        if (isset($filters['branch_id']) && $filters['branch_id'] !== null) {
-            $query->whereHas('program', function (Builder $q) use ($filters) {
-                $q->where('programs.branch_id', $filters['branch_id']);
-            });
-        }
-
         // Filter by delivery_type (optional)
         if (isset($filters['delivery_type']) && !empty($filters['delivery_type'])) {
             $query->where('delivery_type', $filters['delivery_type']);
