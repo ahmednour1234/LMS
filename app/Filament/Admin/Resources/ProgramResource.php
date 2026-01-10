@@ -74,6 +74,12 @@ class ProgramResource extends Resource
                 Forms\Components\Textarea::make('description.en')
                     ->label(__('programs.description_en'))
                     ->rows(3),
+                Forms\Components\FileUpload::make('image')
+                    ->image()
+                    ->directory('programs')
+                    ->visibility('public')
+                    ->nullable()
+                    ->label(__('programs.image')),
                 Forms\Components\Select::make('branch_id')
                     ->relationship('branch', 'name')
                     ->searchable()
@@ -106,6 +112,9 @@ class ProgramResource extends Resource
                     ->searchable()
                     ->sortable()
                     ->label(__('programs.name')),
+                Tables\Columns\ImageColumn::make('image')
+                    ->label(__('programs.image'))
+                    ->circular(),
                 Tables\Columns\TextColumn::make('parent.code')
                     ->sortable()
                     ->label(__('programs.parent'))

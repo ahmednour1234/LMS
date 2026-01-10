@@ -73,6 +73,12 @@ class CourseResource extends Resource
                 Forms\Components\Textarea::make('description.en')
                     ->label(__('courses.description_en'))
                     ->rows(3),
+                Forms\Components\FileUpload::make('image')
+                    ->image()
+                    ->directory('courses')
+                    ->visibility('public')
+                    ->nullable()
+                    ->label(__('courses.image')),
                 Forms\Components\Select::make('delivery_type')
                     ->options([
                         DeliveryType::Onsite->value => __('courses.delivery_type_options.onsite'),
@@ -122,6 +128,9 @@ class CourseResource extends Resource
                     ->searchable()
                     ->sortable()
                     ->label(__('courses.name')),
+                Tables\Columns\ImageColumn::make('image')
+                    ->label(__('courses.image'))
+                    ->circular(),
                 Tables\Columns\TextColumn::make('program.code')
                     ->sortable()
                     ->label(__('courses.program')),

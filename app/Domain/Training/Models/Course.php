@@ -20,6 +20,7 @@ class Course extends Model
         'code',
         'name',
         'description',
+        'image',
         'delivery_type',
         'duration_hours',
         'is_active',

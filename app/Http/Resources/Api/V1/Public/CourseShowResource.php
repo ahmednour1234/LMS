@@ -2,6 +2,7 @@
 
 namespace App\Http\Resources\Api\V1\Public;
 
+use App\Support\Helpers\ImageHelper;
 use App\Support\Traits\HasTranslatableFields;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
@@ -59,6 +60,7 @@ class CourseShowResource extends JsonResource
             'delivery_type' => $this->delivery_type?->value,
             'duration_hours' => $this->duration_hours,
             'code' => $this->code,
+            'image' => ImageHelper::getFullImageUrl($this->image),
             'created_at' => $this->created_at?->toIso8601String(),
             'updated_at' => $this->updated_at?->toIso8601String(),
             'sections' => CourseSectionResource::collection($this->whenLoaded('sections')),

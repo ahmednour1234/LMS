@@ -18,6 +18,7 @@ class Program extends Model
         'code',
         'name',
         'description',
+        'image',
         'is_active',
     ];
 
