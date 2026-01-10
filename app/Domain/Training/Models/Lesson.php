@@ -40,7 +40,7 @@ class Lesson extends Model
 
     public function section(): BelongsTo
     {
-        return $this->belongsTo(CourseSection::class);
+        return $this->belongsTo(CourseSection::class, 'section_id');
     }
 
     public function items(): HasMany
