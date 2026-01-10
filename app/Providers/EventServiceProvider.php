@@ -15,6 +15,7 @@ use App\Domain\Accounting\Listeners\LogPaymentPaid;
 use App\Domain\Accounting\Listeners\LogRefundCreated;
 use App\Domain\Accounting\Listeners\PostCashReceipt;
 use App\Domain\Accounting\Listeners\UpdateArInvoiceStatus;
+use App\Domain\Accounting\Listeners\UpdateEnrollmentStatus;
 use App\Domain\Accounting\Listeners\PostRefundEntry;
 use App\Domain\Accounting\Listeners\PostDeferredRevenue;
 use App\Domain\Accounting\Listeners\RecognizeRevenue;
@@ -32,6 +33,7 @@ class EventServiceProvider extends ServiceProvider
         ],
         PaymentPaid::class => [
             UpdateArInvoiceStatus::class, // Update status immediately (synchronous)
+            UpdateEnrollmentStatus::class, // Update enrollment status automatically
             PostCashReceipt::class, // Post accounting entry (queued)
             LogPaymentPaid::class,
         ],
