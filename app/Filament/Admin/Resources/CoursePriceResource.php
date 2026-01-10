@@ -65,7 +65,9 @@ class CoursePriceResource extends Resource
                     ->preload()
                     ->label(__('course_prices.branch'))
                     ->helperText(__('course_prices.branch_helper'))
-                    ->visible(fn () => auth()->user()->isSuperAdmin()),
+                    ->nullable()
+                    ->default(null)
+                    ->visible(false),
                 Forms\Components\Select::make('delivery_type')
                     ->options([
                         DeliveryType::Onsite->value => __('course_prices.delivery_type_options.onsite'),
