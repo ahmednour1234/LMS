@@ -13,6 +13,11 @@ class Dashboard extends BaseDashboard
 {
     protected static ?string $navigationIcon = 'heroicon-o-document-chart-bar';
 
+    protected function getWidgets(): array
+    {
+        return [];
+    }
+
     protected function getHeaderWidgets(): array
     {
         return [
