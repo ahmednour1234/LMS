@@ -108,10 +108,11 @@ class ExamQuestionResource extends Resource
                 if (!$user->isSuperAdmin()) {
                     $query->whereHas('exam.course', fn ($q) => $q->where('branch_id', $user->branch_id));
                 }
+                $query->with('exam');
             })
             ->columns([
                 Tables\Columns\TextColumn::make('exam.title')
-                    ->formatStateUsing(fn ($state) => $state[app()->getLocale()] ?? $state['ar'] ?? '')
+                    ->formatStateUsing(fn ($state) => is_array($state) ? ($state[app()->getLocale()] ?? $state['ar'] ?? '') : ($state ?? ''))
                     ->sortable()
                     ->label(__('exam_questions.exam')),
                 Tables\Columns\TextColumn::make('type')
@@ -119,7 +120,7 @@ class ExamQuestionResource extends Resource
                     ->formatStateUsing(fn ($state) => __('exam_questions.type_options.' . $state))
                     ->label(__('exam_questions.type')),
                 Tables\Columns\TextColumn::make('question')
-                    ->formatStateUsing(fn ($state) => $state[app()->getLocale()] ?? $state['ar'] ?? '')
+                    ->formatStateUsing(fn ($state) => is_array($state) ? ($state[app()->getLocale()] ?? $state['ar'] ?? '') : ($state ?? ''))
                     ->searchable()
                     ->label(__('exam_questions.question'))
                     ->limit(50),

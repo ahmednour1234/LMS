@@ -118,17 +118,18 @@ class ExamResource extends Resource
                 if (!$user->isSuperAdmin()) {
                     $query->whereHas('course', fn ($q) => $q->where('branch_id', $user->branch_id));
                 }
+                $query->with(['course', 'lesson']);
             })
             ->columns([
                 Tables\Columns\TextColumn::make('course.code')
                     ->sortable()
                     ->label(__('exams.course')),
                 Tables\Columns\TextColumn::make('lesson.title')
-                    ->formatStateUsing(fn ($state) => $state ? ($state[app()->getLocale()] ?? $state['ar'] ?? '') : '-')
+                    ->formatStateUsing(fn ($state, $record) => $state ? MultilingualHelper::formatMultilingualField($state) : ($record && $record->lesson ? MultilingualHelper::formatMultilingualField($record->lesson->title) : '-'))
                     ->sortable()
                     ->label(__('exams.lesson')),
                 Tables\Columns\TextColumn::make('title')
-                    ->formatStateUsing(fn ($state) => $state[app()->getLocale()] ?? $state['ar'] ?? '')
+                    ->formatStateUsing(fn ($state, $record) => $state ? MultilingualHelper::formatMultilingualField($state) : ($record && $record->title ? MultilingualHelper::formatMultilingualField($record->title) : ''))
                     ->searchable()
                     ->sortable()
                     ->label(__('exams.title')),
