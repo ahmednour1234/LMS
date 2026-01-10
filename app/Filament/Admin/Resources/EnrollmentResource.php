@@ -324,7 +324,7 @@ class EnrollmentResource extends Resource
                                 'per_session' => __('enrollments.enrollment_mode_options.per_session') ?? 'Per Session',
                                 'trial' => __('enrollments.enrollment_mode_options.trial') ?? 'Trial',
                             ])
-                            ->required()
+                            ->nullable()
                             ->reactive()
                             ->visible(fn (Forms\Get $get) => !empty($get('course_id')) && !empty($get('_allowed_modes')))
                             ->options(function (Forms\Get $get) {
