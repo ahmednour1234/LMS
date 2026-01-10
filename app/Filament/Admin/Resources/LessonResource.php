@@ -57,55 +57,60 @@ class LessonResource extends Resource
             ->schema([
                 Forms\Components\Select::make('section_id')
                     ->relationship('section', 'id', fn (Builder $query) => $query->whereHas('course.program', fn ($q) => $q->where('programs.branch_id', auth()->user()->branch_id ?? null))->orderBy('order'))
-                    ->getOptionLabelUsing(function ($record): string {
-                        if (is_object($record)) {
-                            return MultilingualHelper::formatMultilingualField($record->title) ?: 'N/A';
+                    ->getOptionLabelUsing(function ($value): string {
+                        if (is_object($value)) {
+                            return MultilingualHelper::formatMultilingualField($value->title) ?: 'N/A';
                         }
-                        $section = CourseSection::find($record);
+                        $section = CourseSection::find($value);
                         return $section ? (MultilingualHelper::formatMultilingualField($section->title) ?: 'N/A') : 'N/A';
                     })
-                    ->searchable()
+                    ->searchable(query: function (Builder $query, string $search): Builder {
+                        return $query->where(function (Builder $q) use ($search) {
+                            $q->whereRaw("JSON_UNQUOTE(JSON_EXTRACT(title, '$.ar')) LIKE ?", ["%{$search}%"])
+                              ->orWhereRaw("JSON_UNQUOTE(JSON_EXTRACT(title, '$.en')) LIKE ?", ["%{$search}%"]);
+                        });
+                    })
                     ->preload()
                     ->required()
-                    ->label(__('Section')),
+                    ->label(__('lessons.section')),
                 Forms\Components\TextInput::make('title.ar')
-                    ->label(__('Title (Arabic)'))
+                    ->label(__('lessons.title_ar'))
                     ->required()
                     ->maxLength(255),
                 Forms\Components\TextInput::make('title.en')
-                    ->label(__('Title (English)'))
+                    ->label(__('lessons.title_en'))
                     ->required()
                     ->maxLength(255),
                 Forms\Components\Textarea::make('description.ar')
-                    ->label(__('Description (Arabic)'))
+                    ->label(__('lessons.description_ar'))
                     ->rows(3),
                 Forms\Components\Textarea::make('description.en')
-                    ->label(__('Description (English)'))
+                    ->label(__('lessons.description_en'))
                     ->rows(3),
                 Forms\Components\Select::make('lesson_type')
                     ->options([
-                        LessonType::RECORDED->value => __('Recorded'),
-                        LessonType::LIVE->value => __('Live'),
-                        LessonType::MIXED->value => __('Mixed'),
+                        LessonType::RECORDED->value => __('lessons.lesson_type_options.recorded'),
+                        LessonType::LIVE->value => __('lessons.lesson_type_options.live'),
+                        LessonType::MIXED->value => __('lessons.lesson_type_options.mixed'),
                     ])
                     ->default(LessonType::RECORDED->value)
                     ->required()
-                    ->label(__('Lesson Type')),
+                    ->label(__('lessons.lesson_type')),
                 Forms\Components\TextInput::make('sort_order')
                     ->numeric()
                     ->default(0)
-                    ->label(__('Sort Order')),
+                    ->label(__('lessons.sort_order')),
                 Forms\Components\Toggle::make('is_preview')
-                    ->label(__('Is Preview'))
+                    ->label(__('lessons.is_preview'))
                     ->default(false),
                 Forms\Components\Toggle::make('is_active')
-                    ->label(__('Is Active'))
+                    ->label(__('lessons.is_active'))
                     ->default(true),
                 Forms\Components\TextInput::make('estimated_minutes')
                     ->numeric()
-                    ->label(__('Estimated Minutes')),
+                    ->label(__('lessons.estimated_minutes')),
                 Forms\Components\DateTimePicker::make('published_at')
-                    ->label(__('Published At')),
+                    ->label(__('lessons.published_at')),
             ]);
     }
 
