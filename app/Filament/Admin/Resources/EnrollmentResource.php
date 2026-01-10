@@ -73,13 +73,6 @@ class EnrollmentResource extends Resource
             return;
         }
 
-        // For onsite courses, branch_id is required before resolving price
-        if ($deliveryType === 'onsite' && !$branchId) {
-            $set('total_amount', 0);
-            $set('_course_price', null);
-            $set('_allowed_modes', []);
-            return;
-        }
 
         $pricingService = app(\App\Services\PricingService::class);
         $coursePrice = $pricingService->resolveCoursePrice($courseId, $branchId, $deliveryType);
@@ -293,10 +286,7 @@ class EnrollmentResource extends Resource
                             ->searchable()
                             ->preload()
                             ->reactive()
-                            ->required(function (Forms\Get $get) {
-                                // Required when delivery_type is 'onsite'
-                                return $get('delivery_type') === 'onsite';
-                            })
+                            ->nullable()
                             ->disabled(function (Forms\Get $get) {
                                 // Disable when delivery_type is 'online'
                                 return $get('delivery_type') === 'online';
@@ -313,14 +303,7 @@ class EnrollmentResource extends Resource
                                 // Only visible when delivery_type is 'onsite'
                                 return $deliveryType === 'onsite';
                             })
-                            ->label(__('enrollments.branch'))
-                            ->helperText(function (Forms\Get $get) {
-                                $deliveryType = $get('delivery_type') ?? 'online';
-                                if ($deliveryType === 'onsite') {
-                                    return __('enrollments.branch_required_onsite') ?? 'Branch selection is required for onsite enrollment.';
-                                }
-                                return null;
-                            }),
+                            ->label(__('enrollments.branch')),
                     ])
                     ->visible(function (Forms\Get $get) {
                         $courseId = $get('course_id');
@@ -475,10 +458,6 @@ class EnrollmentResource extends Resource
                                     return new \Illuminate\Support\HtmlString('<p class="text-gray-500">Select a course to see pricing information.</p>');
                                 }
 
-                                // For onsite, branch is required
-                                if ($deliveryType === 'onsite' && !$branchId) {
-                                    return new \Illuminate\Support\HtmlString('<p class="text-yellow-600">Please select a branch to see pricing information for onsite enrollment.</p>');
-                                }
 
                                 if (!$enrollmentMode) {
                                     return new \Illuminate\Support\HtmlString('<p class="text-gray-500">Select enrollment mode to see pricing information.</p>');
