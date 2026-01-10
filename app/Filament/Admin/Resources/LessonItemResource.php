@@ -91,7 +91,7 @@ class LessonItemResource extends Resource
                         $user = auth()->user();
 
                         if ($user && method_exists($user, 'isSuperAdmin') && !$user->isSuperAdmin()) {
-                            $query->whereHas('section.course', fn ($q) => $q->where('branch_id', $user->branch_id));
+                            $query->whereHas('section.course.program', fn ($q) => $q->where('programs.branch_id', $user->branch_id));
                         }
 
                         return $query->orderBy('id');
@@ -180,7 +180,7 @@ class LessonItemResource extends Resource
 
                 // Apply branch filter if user is not super admin
                 if ($user && method_exists($user, 'isSuperAdmin') && !$user->isSuperAdmin()) {
-                    $query->whereHas('lesson.section.course', fn ($q) => $q->where('branch_id', $user->branch_id));
+                    $query->whereHas('lesson.section.course.program', fn ($q) => $q->where('programs.branch_id', $user->branch_id));
                 }
 
                 return $query;

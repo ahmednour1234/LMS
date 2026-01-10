@@ -192,7 +192,7 @@ class CoursePriceResource extends Resource
             ->modifyQueryUsing(function (Builder $query) {
                 $user = auth()->user();
                 if (!$user->isSuperAdmin()) {
-                    $query->whereHas('course', fn ($q) => $q->where('branch_id', $user->branch_id));
+                    $query->whereHas('course.program', fn ($q) => $q->where('programs.branch_id', $user->branch_id));
                 }
             })
             ->columns([

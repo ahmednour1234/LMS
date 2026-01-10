@@ -50,7 +50,7 @@ class TaskSubmissionResource extends Resource
         return $form
             ->schema([
                 Forms\Components\Select::make('task_id')
-                    ->relationship('task', 'id', fn (Builder $query) => $query->whereHas('course', fn ($q) => $q->where('branch_id', Auth::user()?->branch_id ?? null))->orderBy('id'))
+                    ->relationship('task', 'id', fn (Builder $query) => $query->whereHas('course.program', fn ($q) => $q->where('programs.branch_id', Auth::user()?->branch_id ?? null))->orderBy('id'))
                     ->getOptionLabelUsing(function ($record): string {
                         if (is_object($record)) {
                             return MultilingualHelper::formatMultilingualField($record->title) ?: 'N/A';
@@ -103,7 +103,7 @@ class TaskSubmissionResource extends Resource
             ->modifyQueryUsing(function (Builder $query) {
                 $user = Auth::user();
                 if ($user && !$user->isSuperAdmin()) {
-                    $query->whereHas('task.course', fn ($q) => $q->where('branch_id', $user->branch_id));
+                    $query->whereHas('task.course.program', fn ($q) => $q->where('programs.branch_id', $user->branch_id));
                 }
                 $query->with(['task', 'student']);
             })

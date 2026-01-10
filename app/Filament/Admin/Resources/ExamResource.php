@@ -50,7 +50,7 @@ class ExamResource extends Resource
         return $form
             ->schema([
                 Forms\Components\Select::make('course_id')
-                    ->relationship('course', 'code', fn (Builder $query) => $query->where('branch_id', Auth::user()?->branch_id ?? null))
+                    ->relationship('course', 'code', fn (Builder $query) => $query->whereHas('program', fn ($q) => $q->where('programs.branch_id', Auth::user()?->branch_id ?? null)))
                     ->searchable()
                     ->preload()
                     ->required()
@@ -117,7 +117,7 @@ class ExamResource extends Resource
             ->modifyQueryUsing(function (Builder $query) {
                 $user = Auth::user();
                 if ($user && !$user->isSuperAdmin()) {
-                    $query->whereHas('course', fn ($q) => $q->where('branch_id', $user->branch_id));
+                    $query->whereHas('course.program', fn ($q) => $q->where('programs.branch_id', $user->branch_id));
                 }
                 $query->with(['course', 'lesson']);
             })

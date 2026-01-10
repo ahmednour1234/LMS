@@ -48,7 +48,7 @@ class ExamQuestionResource extends Resource
         return $form
             ->schema([
                 Forms\Components\Select::make('exam_id')
-                    ->relationship('exam', 'id', fn (Builder $query) => $query->whereHas('course', fn ($q) => $q->where('branch_id', auth()->user()->branch_id ?? null))->orderBy('id'))
+                    ->relationship('exam', 'id', fn (Builder $query) => $query->whereHas('course.program', fn ($q) => $q->where('programs.branch_id', auth()->user()?->branch_id ?? null))->orderBy('id'))
                     ->getOptionLabelUsing(function ($record): string {
                         if (is_object($record)) {
                             return MultilingualHelper::formatMultilingualField($record->title) ?: 'N/A';
@@ -105,8 +105,8 @@ class ExamQuestionResource extends Resource
         return $table
             ->modifyQueryUsing(function (Builder $query) {
                 $user = auth()->user();
-                if (!$user->isSuperAdmin()) {
-                    $query->whereHas('exam.course', fn ($q) => $q->where('branch_id', $user->branch_id));
+                if ($user && !$user->isSuperAdmin()) {
+                    $query->whereHas('exam.course.program', fn ($q) => $q->where('programs.branch_id', $user->branch_id));
                 }
                 $query->with('exam');
             })

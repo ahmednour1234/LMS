@@ -56,7 +56,7 @@ class LessonResource extends Resource
         return $form
             ->schema([
                 Forms\Components\Select::make('section_id')
-                    ->relationship('section', 'id', fn (Builder $query) => $query->whereHas('course', fn ($q) => $q->where('branch_id', auth()->user()->branch_id ?? null))->orderBy('order'))
+                    ->relationship('section', 'id', fn (Builder $query) => $query->whereHas('course.program', fn ($q) => $q->where('programs.branch_id', auth()->user()->branch_id ?? null))->orderBy('order'))
                     ->getOptionLabelUsing(function ($record): string {
                         if (is_object($record)) {
                             return MultilingualHelper::formatMultilingualField($record->title) ?: 'N/A';
@@ -115,7 +115,7 @@ class LessonResource extends Resource
             ->modifyQueryUsing(function (Builder $query) {
                 $user = auth()->user();
                 if (!$user->isSuperAdmin()) {
-                    $query->whereHas('section.course', fn ($q) => $q->where('branch_id', $user->branch_id));
+                    $query->whereHas('section.course.program', fn ($q) => $q->where('programs.branch_id', $user->branch_id));
                 }
             })
             ->columns([
@@ -163,7 +163,7 @@ class LessonResource extends Resource
             ])
             ->filters([
                 Tables\Filters\SelectFilter::make('section_id')
-                    ->relationship('section', 'title', fn (Builder $query) => $query->whereHas('course', fn ($q) => $q->where('branch_id', auth()->user()->branch_id ?? null)))
+                    ->relationship('section', 'title', fn (Builder $query) => $query->whereHas('course.program', fn ($q) => $q->where('programs.branch_id', auth()->user()->branch_id ?? null)))
                     ->getOptionLabelUsing(function ($record): string {
                         if (is_object($record)) {
                             return MultilingualHelper::formatMultilingualField($record->title) ?: 'N/A';
