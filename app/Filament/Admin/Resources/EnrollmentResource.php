@@ -804,8 +804,32 @@ class EnrollmentResource extends Resource
                                 return;
                             }
 
-                            // Ensure enrollment has user_id
-                            if (empty($record->user_id)) {
+                            // Load relationships
+                            $record->loadMissing(['student', 'user']);
+
+                            // Determine user_id with explicit checks
+                            $userId = null;
+
+                            // Try enrollment user_id first
+                            if (!empty($record->user_id)) {
+                                $userId = $record->user_id;
+                            }
+                            // Try student's user_id
+                            elseif ($record->student && !empty($record->student->user_id)) {
+                                $userId = $record->student->user_id;
+                            }
+                            // Fallback to current user
+                            else {
+                                $userId = auth()->id();
+                            }
+
+                            // Update enrollment if user_id was missing but we found one
+                            if (empty($record->user_id) && !empty($userId)) {
+                                $record->update(['user_id' => $userId]);
+                            }
+
+                            // Final safety check - must have a user_id
+                            if (empty($userId)) {
                                 \Filament\Notifications\Notification::make()
                                     ->title(__('ar_invoices.missing_user_id') ?? 'Cannot create AR invoice')
                                     ->body(__('ar_invoices.missing_user_id_description') ?? 'Enrollment is missing user_id. Please update the enrollment with a user.')
@@ -816,10 +840,10 @@ class EnrollmentResource extends Resource
 
                             // Create AR invoice
                             // Note: due_amount is guarded, so we use unguarded to set it initially
-                            $invoice = \App\Domain\Accounting\Models\ArInvoice::unguarded(function () use ($record) {
+                            $invoice = \App\Domain\Accounting\Models\ArInvoice::unguarded(function () use ($record, $userId) {
                                 return \App\Domain\Accounting\Models\ArInvoice::create([
                                     'enrollment_id' => $record->id,
-                                    'user_id' => $record->user_id,
+                                    'user_id' => $userId,
                                     'branch_id' => $record->branch_id,
                                     'total_amount' => $record->total_amount,
                                     'due_amount' => $record->total_amount, // Initially equals total_amount
