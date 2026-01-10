@@ -11,11 +11,6 @@ class CreateCourse extends CreateRecord
 
     protected function mutateFormDataBeforeCreate(array $data): array
     {
-        $user = auth()->user();
-        if (!$user->isSuperAdmin() && !isset($data['branch_id'])) {
-            $data['branch_id'] = $user->branch_id;
-        }
-
         $data['name'] = [
             'ar' => $data['name']['ar'] ?? '',
             'en' => $data['name']['en'] ?? '',

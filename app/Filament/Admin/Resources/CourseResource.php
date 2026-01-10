@@ -49,7 +49,7 @@ class CourseResource extends Resource
         return $form
             ->schema([
                 Forms\Components\Select::make('program_id')
-                    ->relationship('program', 'code', fn (Builder $query) => $query->where('branch_id', auth()->user()->branch_id ?? null))
+                    ->relationship('program', 'code')
                     ->searchable()
                     ->preload()
                     ->required()
@@ -57,10 +57,7 @@ class CourseResource extends Resource
                 Forms\Components\TextInput::make('code')
                     ->required()
                     ->maxLength(255)
-                    ->unique(ignoreRecord: true, modifyRuleUsing: function ($rule, $get) {
-                        $branchId = auth()->user()->isSuperAdmin() ? $get('branch_id') : auth()->user()->branch_id;
-                        return $rule->where('branch_id', $branchId);
-                    })
+                    ->unique(ignoreRecord: true)
                     ->label(__('courses.code')),
                 Forms\Components\TextInput::make('name.ar')
                     ->label(__('courses.name_ar'))
@@ -87,13 +84,6 @@ class CourseResource extends Resource
                 Forms\Components\TextInput::make('duration_hours')
                     ->numeric()
                     ->label(__('courses.duration_hours')),
-                Forms\Components\Select::make('branch_id')
-                    ->relationship('branch', 'name')
-                    ->searchable()
-                    ->preload()
-                    ->required()
-                    ->label(__('courses.branch'))
-                    ->visible(fn () => auth()->user()->isSuperAdmin()),
                 Forms\Components\Select::make('owner_teacher_id')
                     ->relationship('ownerTeacher', 'name')
                     ->searchable()
@@ -122,12 +112,6 @@ class CourseResource extends Resource
     public static function table(Table $table): Table
     {
         return $table
-            ->modifyQueryUsing(function (Builder $query) {
-                $user = auth()->user();
-                if (!$user->isSuperAdmin()) {
-                    $query->where('branch_id', $user->branch_id);
-                }
-            })
             ->columns([
                 Tables\Columns\TextColumn::make('code')
                     ->searchable()
@@ -151,10 +135,6 @@ class CourseResource extends Resource
                 Tables\Columns\TextColumn::make('duration_hours')
                     ->label(__('courses.duration_hours'))
                     ->suffix(' ' . __('courses.hours')),
-                Tables\Columns\TextColumn::make('branch.name')
-                    ->sortable()
-                    ->label(__('courses.branch'))
-                    ->visible(fn () => auth()->user()->isSuperAdmin()),
                 Tables\Columns\TextColumn::make('ownerTeacher.name')
                     ->sortable()
                     ->label(__('Owner Teacher')),
@@ -185,10 +165,6 @@ class CourseResource extends Resource
                         DeliveryType::Hybrid->value => __('courses.delivery_type_options.hybrid'),
                     ])
                     ->label(__('courses.delivery_type')),
-                Tables\Filters\SelectFilter::make('branch_id')
-                    ->relationship('branch', 'name')
-                    ->label(__('courses.branch'))
-                    ->visible(fn () => auth()->user()->isSuperAdmin()),
                 Tables\Filters\TernaryFilter::make('is_active')
                     ->label(__('courses.is_active')),
             ])

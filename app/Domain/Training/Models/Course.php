@@ -2,7 +2,6 @@
 
 namespace App\Domain\Training\Models;
 
-use App\Domain\Branch\Models\Branch;
 use App\Domain\Training\Enums\DeliveryType;
 use App\Models\User;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -17,7 +16,6 @@ class Course extends Model
 
     protected $fillable = [
         'program_id',
-        'branch_id',
         'owner_teacher_id',
         'code',
         'name',
@@ -40,11 +38,6 @@ class Course extends Model
     public function program(): BelongsTo
     {
         return $this->belongsTo(Program::class);
-    }
-
-    public function branch(): BelongsTo
-    {
-        return $this->belongsTo(Branch::class);
     }
 
     public function ownerTeacher(): BelongsTo
