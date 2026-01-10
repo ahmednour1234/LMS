@@ -13,6 +13,7 @@ use Filament\Resources\Resource;
 use Filament\Tables;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Support\Facades\Auth;
 
 class TaskSubmissionResource extends Resource
 {
@@ -49,7 +50,7 @@ class TaskSubmissionResource extends Resource
         return $form
             ->schema([
                 Forms\Components\Select::make('task_id')
-                    ->relationship('task', 'id', fn (Builder $query) => $query->whereHas('course', fn ($q) => $q->where('branch_id', auth()->user()->branch_id ?? null))->orderBy('id'))
+                    ->relationship('task', 'id', fn (Builder $query) => $query->whereHas('course', fn ($q) => $q->where('branch_id', Auth::user()?->branch_id ?? null))->orderBy('id'))
                     ->getOptionLabelUsing(function ($record): string {
                         if (is_object($record)) {
                             return MultilingualHelper::formatMultilingualField($record->title) ?: 'N/A';
@@ -100,8 +101,8 @@ class TaskSubmissionResource extends Resource
     {
         return $table
             ->modifyQueryUsing(function (Builder $query) {
-                $user = auth()->user();
-                if (!$user->isSuperAdmin()) {
+                $user = Auth::user();
+                if ($user && !$user->isSuperAdmin()) {
                     $query->whereHas('task.course', fn ($q) => $q->where('branch_id', $user->branch_id));
                 }
             })

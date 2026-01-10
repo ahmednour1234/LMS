@@ -13,6 +13,7 @@ use Filament\Resources\Resource;
 use Filament\Tables;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Support\Facades\Auth;
 
 class TaskResource extends Resource
 {
@@ -49,7 +50,7 @@ class TaskResource extends Resource
         return $form
             ->schema([
                 Forms\Components\Select::make('course_id')
-                    ->relationship('course', 'code', fn (Builder $query) => $query->where('branch_id', auth()->user()->branch_id ?? null))
+                    ->relationship('course', 'code', fn (Builder $query) => $query->where('branch_id', Auth::user()?->branch_id ?? null))
                     ->searchable()
                     ->preload()
                     ->required()
@@ -112,8 +113,8 @@ class TaskResource extends Resource
     {
         return $table
             ->modifyQueryUsing(function (Builder $query) {
-                $user = auth()->user();
-                if (!$user->isSuperAdmin()) {
+                $user = Auth::user();
+                if ($user && !$user->isSuperAdmin()) {
                     $query->whereHas('course', fn ($q) => $q->where('branch_id', $user->branch_id));
                 }
             })
