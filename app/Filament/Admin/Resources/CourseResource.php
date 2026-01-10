@@ -73,22 +73,12 @@ class CourseResource extends Resource
                 Forms\Components\Textarea::make('description.en')
                     ->label(__('courses.description_en'))
                     ->rows(3),
-                Forms\Components\Section::make(__('courses.image'))
-                    ->schema([
-                        Forms\Components\FileUpload::make('image.ar')
-                            ->image()
-                            ->directory('courses')
-                            ->visibility('public')
-                            ->nullable()
-                            ->label(__('courses.image_ar')),
-                        Forms\Components\FileUpload::make('image.en')
-                            ->image()
-                            ->directory('courses')
-                            ->visibility('public')
-                            ->nullable()
-                            ->label(__('courses.image_en')),
-                    ])
-                    ->collapsible(),
+                Forms\Components\FileUpload::make('image')
+                    ->image()
+                    ->directory('courses')
+                    ->visibility('public')
+                    ->nullable()
+                    ->label(__('courses.image')),
                 Forms\Components\Select::make('delivery_type')
                     ->options([
                         DeliveryType::Onsite->value => __('courses.delivery_type_options.onsite'),
@@ -139,10 +129,6 @@ class CourseResource extends Resource
                     ->sortable()
                     ->label(__('courses.name')),
                 Tables\Columns\ImageColumn::make('image')
-                    ->getStateUsing(function ($record) {
-                        $locale = app()->getLocale();
-                        return $record->image[$locale] ?? $record->image['ar'] ?? $record->image['en'] ?? null;
-                    })
                     ->label(__('courses.image'))
                     ->circular(),
                 Tables\Columns\TextColumn::make('program.code')

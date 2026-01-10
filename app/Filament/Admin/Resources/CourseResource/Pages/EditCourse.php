@@ -29,11 +29,6 @@ class EditCourse extends EditRecord
             'en' => $data['description']['en'] ?? null,
         ];
 
-        $data['image'] = [
-            'ar' => $data['image']['ar'] ?? null,
-            'en' => $data['image']['en'] ?? null,
-        ];
-
         return $data;
     }
 }
