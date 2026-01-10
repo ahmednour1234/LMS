@@ -105,10 +105,11 @@ class TaskSubmissionResource extends Resource
                 if ($user && !$user->isSuperAdmin()) {
                     $query->whereHas('task.course', fn ($q) => $q->where('branch_id', $user->branch_id));
                 }
+                $query->with(['task', 'student']);
             })
             ->columns([
                 Tables\Columns\TextColumn::make('task.title')
-                    ->formatStateUsing(fn ($state) => $state[app()->getLocale()] ?? $state['ar'] ?? '')
+                    ->formatStateUsing(fn ($state, $record) => $state ? MultilingualHelper::formatMultilingualField($state) : ($record && $record->task ? MultilingualHelper::formatMultilingualField($record->task->title) : ''))
                     ->sortable()
                     ->label(__('task_submissions.task')),
                 Tables\Columns\TextColumn::make('student.student_code')
