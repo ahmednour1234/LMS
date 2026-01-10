@@ -17,7 +17,8 @@
         .table { width: 100%; border-collapse: collapse; margin-bottom: 20px; }
         .table th { background-color: #555; color: #fff; padding: 8px; border: 1px solid #000; text-align: center; }
         .table td { padding: 6px; border: 1px solid #ddd; }
-        .table td:nth-child(4), .table td:nth-child(5), .table td:nth-child(6) { text-align: right; }
+        .table td:nth-child(5), .table td:nth-child(6), .table td:nth-child(7) { text-align: right; }
+        .payment-method { font-size: 11px; color: #555; }
         .footer { margin-top: 30px; padding-top: 10px; border-top: 1px solid #ddd; font-size: 12px; color: #666; }
     </style>
 </head>
@@ -37,7 +38,7 @@
     @foreach($grouped as $accountId => $lines)
         @php
             $firstLine = $lines->first();
-            $openingBalance = $lines->first()->openingBalance ?? 0;
+            $openingBalance = $firstLine->runningBalance - $firstLine->debit + $firstLine->credit;
         @endphp
         <div class="account-section">
             <div class="account-header">
@@ -50,6 +51,7 @@
                         <th>{{ __('pdf.date') }}</th>
                         <th>{{ __('journals.reference') }}</th>
                         <th>{{ __('pdf.description') }}</th>
+                        <th>{{ __('payments.method') }}</th>
                         <th>{{ __('pdf.debit') }}</th>
                         <th>{{ __('pdf.credit') }}</th>
                         <th>{{ __('pdf.balance') }}</th>
@@ -63,8 +65,9 @@
                         @endphp
                         <tr>
                             <td>{{ $line->journalDate->format('Y-m-d') }}</td>
-                            <td>{{ $line->journalReference }}</td>
+                            <td>{{ $line->paymentReference ?? $line->journalReference }}</td>
                             <td>{{ $line->lineDescription ?? $line->journalDescription }}</td>
+                            <td class="payment-method">{{ $line->paymentMethod ? ucfirst($line->paymentMethod) : '-' }}</td>
                             <td>{{ number_format($line->debit, config('money.precision', 3)) }}</td>
                             <td>{{ number_format($line->credit, config('money.precision', 3)) }}</td>
                             <td>{{ number_format($runningBalance, config('money.precision', 3)) }}</td>

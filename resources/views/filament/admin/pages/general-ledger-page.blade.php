@@ -110,6 +110,9 @@
                                             <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-gray-700 dark:text-gray-300">
                                                 {{ __('pdf.description') }}
                                             </th>
+                                            <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-gray-700 dark:text-gray-300">
+                                                {{ __('payments.method') }}
+                                            </th>
                                             <th class="px-4 py-3 text-right text-xs font-semibold uppercase tracking-wider text-gray-700 dark:text-gray-300">
                                                 {{ __('pdf.debit') }}
                                             </th>
@@ -128,10 +131,19 @@
                                                     {{ $row->journalDate->format('d/m/Y') }}
                                                 </td>
                                                 <td class="whitespace-nowrap px-4 py-3 text-sm font-medium text-gray-900 dark:text-gray-100">
-                                                    {{ $row->journalReference }}
+                                                    {{ $row->paymentReference ?? $row->journalReference }}
                                                 </td>
                                                 <td class="px-4 py-3 text-sm text-gray-700 dark:text-gray-300">
                                                     {{ $row->lineDescription ?: $row->journalDescription }}
+                                                </td>
+                                                <td class="whitespace-nowrap px-4 py-3 text-sm text-gray-700 dark:text-gray-300">
+                                                    @if($row->paymentMethod)
+                                                        <span class="inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200">
+                                                            {{ ucfirst($row->paymentMethod) }}
+                                                        </span>
+                                                    @else
+                                                        <span class="text-gray-400">-</span>
+                                                    @endif
                                                 </td>
                                                 <td class="whitespace-nowrap px-4 py-3 text-right text-sm font-medium text-green-600 dark:text-green-400">
                                                     {{ $row->debit > 0 ? number_format($row->debit, 2) : '-' }}

@@ -71,12 +71,18 @@ class ReportService
         $query = JournalLine::query()
             ->join('journals', 'journal_lines.journal_id', '=', 'journals.id')
             ->join('accounts', 'journal_lines.account_id', '=', 'accounts.id')
+            ->leftJoin('payments', function ($join) {
+                $join->where('journals.reference_type', '=', 'payment')
+                     ->whereColumn('journals.reference_id', 'payments.id');
+            })
             ->where('journals.status', JournalStatus::POSTED)
             ->whereBetween('journals.journal_date', [$startDate, $endDate])
             ->where('accounts.is_active', true)
             ->select([
                 'journals.id as journal_id',
                 'journals.reference',
+                'journals.reference_type',
+                'journals.reference_id',
                 'journals.journal_date as date',
                 'journals.description as journal_description',
                 'journal_lines.id as journal_line_id',
@@ -87,6 +93,9 @@ class ReportService
                 'journal_lines.credit',
                 'journal_lines.memo as line_description',
                 'journal_lines.cost_center_id',
+                'payments.id as payment_id',
+                'payments.method as payment_method',
+                DB::raw("CASE WHEN journals.reference_type = 'payment' THEN CONCAT('PAY-', payments.id) ELSE NULL END as payment_reference"),
             ])
             ->orderBy('journals.journal_date')
             ->orderBy('journals.id')
@@ -152,7 +161,10 @@ class ReportService
                 credit: (float) $row->credit,
                 lineDescription: $row->line_description,
                 costCenterId: $row->cost_center_id,
-                runningBalance: $runningBalances[$accountId]
+                runningBalance: $runningBalances[$accountId],
+                paymentId: $row->payment_id ? (int) $row->payment_id : null,
+                paymentMethod: $row->payment_method ?? null,
+                paymentReference: $row->payment_reference ?? null
             );
         });
     }

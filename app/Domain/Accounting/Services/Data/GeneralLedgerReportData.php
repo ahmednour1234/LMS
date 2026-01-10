@@ -19,7 +19,10 @@ readonly class GeneralLedgerReportData
         public float $credit,
         public ?string $lineDescription,
         public ?int $costCenterId,
-        public float $runningBalance
+        public float $runningBalance,
+        public ?int $paymentId = null,
+        public ?string $paymentMethod = null,
+        public ?string $paymentReference = null
     ) {
     }
 }
