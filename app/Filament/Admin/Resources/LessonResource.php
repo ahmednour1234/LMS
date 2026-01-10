@@ -64,11 +64,20 @@ class LessonResource extends Resource
                         $section = CourseSection::find($value);
                         return $section ? (MultilingualHelper::formatMultilingualField($section->title) ?: 'N/A') : 'N/A';
                     })
-                    ->searchable(query: function (Builder $query, string $search): Builder {
-                        return $query->where(function (Builder $q) use ($search) {
-                            $q->whereRaw("JSON_UNQUOTE(JSON_EXTRACT(title, '$.ar')) LIKE ?", ["%{$search}%"])
-                              ->orWhereRaw("JSON_UNQUOTE(JSON_EXTRACT(title, '$.en')) LIKE ?", ["%{$search}%"]);
-                        });
+                    ->searchable()
+                    ->getSearchResultsUsing(function (string $search): array {
+                        return CourseSection::whereHas('course.program', fn ($q) => $q->where('programs.branch_id', auth()->user()->branch_id ?? null))
+                            ->where(function (Builder $query) use ($search) {
+                                $query->whereRaw("JSON_UNQUOTE(JSON_EXTRACT(title, '$.ar')) LIKE ?", ["%{$search}%"])
+                                      ->orWhereRaw("JSON_UNQUOTE(JSON_EXTRACT(title, '$.en')) LIKE ?", ["%{$search}%"]);
+                            })
+                            ->orderBy('order')
+                            ->limit(50)
+                            ->get()
+                            ->mapWithKeys(function ($section) {
+                                return [$section->id => MultilingualHelper::formatMultilingualField($section->title)];
+                            })
+                            ->toArray();
                     })
                     ->preload()
                     ->required()
