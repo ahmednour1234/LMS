@@ -8,7 +8,17 @@ return [
     'description' => 'Description',
     'description_ar' => 'Description (Arabic)',
     'description_en' => 'Description (English)',
-    'order' => 'Order',
+    'lesson_type' => 'Lesson Type',
+    'lesson_type_options' => [
+        'recorded' => 'Recorded',
+        'live' => 'Live',
+        'mixed' => 'Mixed',
+    ],
+    'sort_order' => 'Sort Order',
+    'is_preview' => 'Is Preview',
     'is_active' => 'Active',
+    'estimated_minutes' => 'Estimated Minutes',
+    'published_at' => 'Published At',
+    'order' => 'Order',
 ];
 
