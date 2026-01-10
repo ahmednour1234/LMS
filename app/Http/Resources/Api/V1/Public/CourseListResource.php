@@ -43,7 +43,7 @@ class CourseListResource extends JsonResource
             'delivery_type' => $this->delivery_type?->value,
             'duration_hours' => $this->duration_hours,
             'code' => $this->code,
-            'image' => ImageHelper::getFullImageUrl($this->image),
+            'image' => ImageHelper::getFullImageUrl($this->image, $locale),
             'created_at' => $this->created_at?->toIso8601String(),
         ];
     }

@@ -31,6 +31,7 @@ class Course extends Model
         return [
             'name' => 'array',
             'description' => 'array',
+            'image' => 'array',
             'delivery_type' => DeliveryType::class,
             'is_active' => 'boolean',
         ];
