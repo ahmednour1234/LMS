@@ -61,7 +61,10 @@ class AccountingAccountSeeder extends Seeder
 
         $createdParents = [];
         foreach ($parentAccounts as $account) {
-            $createdParents[] = Account::create($account);
+            $createdParents[] = Account::firstOrCreate(
+                ['code' => $account['code']],
+                $account
+            );
         }
 
         // Create child accounts for Assets
@@ -88,7 +91,10 @@ class AccountingAccountSeeder extends Seeder
 
         $createdAssetParents = [];
         foreach ($assetAccounts as $account) {
-            $createdAssetParents[] = Account::create($account);
+            $createdAssetParents[] = Account::firstOrCreate(
+                ['code' => $account['code']],
+                $account
+            );
         }
 
         // Create specific asset accounts
@@ -141,7 +147,10 @@ class AccountingAccountSeeder extends Seeder
         ];
 
         foreach ($specificAssets as $account) {
-            Account::create($account);
+            Account::firstOrCreate(
+                ['code' => $account['code']],
+                $account
+            );
         }
 
         // Create child accounts for Liabilities
@@ -168,7 +177,10 @@ class AccountingAccountSeeder extends Seeder
 
         $createdLiabilityParents = [];
         foreach ($liabilityAccounts as $account) {
-            $createdLiabilityParents[] = Account::create($account);
+            $createdLiabilityParents[] = Account::firstOrCreate(
+                ['code' => $account['code']],
+                $account
+            );
         }
 
         // Create specific liability accounts
@@ -203,7 +215,10 @@ class AccountingAccountSeeder extends Seeder
         ];
 
         foreach ($specificLiabilities as $account) {
-            Account::create($account);
+            Account::firstOrCreate(
+                ['code' => $account['code']],
+                $account
+            );
         }
 
         // Create equity accounts
@@ -229,7 +244,10 @@ class AccountingAccountSeeder extends Seeder
         ];
 
         foreach ($equityAccounts as $account) {
-            Account::create($account);
+            Account::firstOrCreate(
+                ['code' => $account['code']],
+                $account
+            );
         }
 
         // Create revenue accounts
@@ -273,7 +291,10 @@ class AccountingAccountSeeder extends Seeder
         ];
 
         foreach ($revenueAccounts as $account) {
-            Account::create($account);
+            Account::firstOrCreate(
+                ['code' => $account['code']],
+                $account
+            );
         }
 
         // Create expense accounts
@@ -326,7 +347,10 @@ class AccountingAccountSeeder extends Seeder
         ];
 
         foreach ($expenseAccounts as $account) {
-            Account::create($account);
+            Account::firstOrCreate(
+                ['code' => $account['code']],
+                $account
+            );
         }
     }
 }
