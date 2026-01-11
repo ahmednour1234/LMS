@@ -34,6 +34,11 @@ class Voucher extends Model
         'approved_by',
         'approved_at',
         'attachments',
+        'cash_bank_account_id',
+        'counterparty_account_id',
+        'amount',
+        'cost_center_id',
+        'line_description',
     ];
 
     protected function casts(): array
@@ -45,6 +50,7 @@ class Voucher extends Model
             'exchange_rate' => 'decimal:6',
             'approved_at' => 'datetime',
             'attachments' => 'array',
+            'amount' => 'decimal:3',
         ];
     }
 
@@ -77,6 +83,21 @@ class Voucher extends Model
         return $this->belongsTo(User::class, 'approved_by');
     }
 
+    public function cashBankAccount(): BelongsTo
+    {
+        return $this->belongsTo(Account::class, 'cash_bank_account_id');
+    }
+
+    public function counterpartyAccount(): BelongsTo
+    {
+        return $this->belongsTo(Account::class, 'counterparty_account_id');
+    }
+
+    public function costCenter(): BelongsTo
+    {
+        return $this->belongsTo(CostCenter::class);
+    }
+
     public function voucherLines(): HasMany
     {
         return $this->hasMany(VoucherLine::class);
@@ -105,22 +126,5 @@ class Voucher extends Model
     public function canBeEdited(): bool
     {
         return $this->isDraft();
-    }
-
-    public function getTotalDebitAttribute(): float
-    {
-        return (float) $this->voucherLines()->sum('debit');
-    }
-
-    public function getTotalCreditAttribute(): float
-    {
-        return (float) $this->voucherLines()->sum('credit');
-    }
-
-    public function isBalanced(): bool
-    {
-        $debit = $this->total_debit;
-        $credit = $this->total_credit;
-        return abs($debit - $credit) < 0.01;
     }
 }

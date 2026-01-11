@@ -84,42 +84,37 @@ class ReceiptVoucherResource extends Resource
                             ->visible(fn () => auth()->user()->isSuperAdmin()),
                     ])
                     ->columns(2),
-                Forms\Components\Repeater::make('voucherLines')
-                    ->relationship()
+                Forms\Components\Section::make(__('vouchers.voucher_lines'))
                     ->schema([
-                        Forms\Components\Select::make('account_id')
-                            ->relationship('account', 'name', fn (Builder $query) => $query->where('is_active', true))
+                        Forms\Components\Select::make('cash_bank_account_id')
+                            ->relationship('cashBankAccount', 'name', fn (Builder $query) => $query->where('is_active', true))
                             ->searchable()
                             ->preload()
                             ->required()
-                            ->label(__('vouchers.account'))
-                            ->reactive(),
+                            ->label(__('vouchers.cash_bank_account')),
+                        Forms\Components\Select::make('counterparty_account_id')
+                            ->relationship('counterpartyAccount', 'name', fn (Builder $query) => $query->where('is_active', true))
+                            ->searchable()
+                            ->preload()
+                            ->required()
+                            ->label(__('vouchers.counterparty_account')),
                         Forms\Components\Select::make('cost_center_id')
                             ->relationship('costCenter', 'name')
                             ->searchable()
                             ->preload()
                             ->label(__('vouchers.cost_center')),
-                        Forms\Components\Textarea::make('description')
+                        Forms\Components\Textarea::make('line_description')
                             ->rows(2)
                             ->columnSpanFull()
-                            ->label(__('vouchers.description')),
-                        Forms\Components\TextInput::make('debit')
+                            ->label(__('vouchers.line_description')),
+                        Forms\Components\TextInput::make('amount')
                             ->numeric()
-                            ->default(0)
-                            ->label(__('vouchers.debit'))
-                            ->reactive(),
-                        Forms\Components\TextInput::make('credit')
-                            ->numeric()
-                            ->default(0)
-                            ->label(__('vouchers.credit'))
-                            ->reactive(),
+                            ->required()
+                            ->minValue(0.01)
+                            ->label(__('vouchers.amount'))
+                            ->helperText(__('vouchers.helper_text')),
                     ])
                     ->columns(2)
-                    ->defaultItems(2)
-                    ->minItems(2)
-                    ->collapsible()
-                    ->itemLabel(fn (array $state): ?string => $state['account_id'] ? Account::find($state['account_id'])?->name : null)
-                    ->label(__('vouchers.voucher_lines'))
                     ->disabled(fn ($record) => $record && !$record->canBeEdited()),
                 Forms\Components\FileUpload::make('attachments')
                     ->multiple()
@@ -150,10 +145,10 @@ class ReceiptVoucherResource extends Resource
                 Tables\Columns\TextColumn::make('payee_name')
                     ->searchable()
                     ->label(__('vouchers.payee_name')),
-                Tables\Columns\TextColumn::make('total_debit')
+                Tables\Columns\TextColumn::make('amount')
                     ->money()
                     ->sortable()
-                    ->label(__('vouchers.total_debit')),
+                    ->label(__('vouchers.amount')),
                 Tables\Columns\TextColumn::make('status')
                     ->badge()
                     ->formatStateUsing(fn (VoucherStatus $state): string => __('vouchers.status_options.' . $state->value))

@@ -7,6 +7,7 @@ use App\Domain\Accounting\Models\JournalLine;
 use App\Domain\Accounting\Models\Voucher;
 use App\Enums\JournalStatus;
 use App\Enums\VoucherStatus;
+use App\Enums\VoucherType;
 use App\Models\User;
 use Illuminate\Support\Facades\DB;
 
@@ -18,8 +19,12 @@ class VoucherPostingService
             throw new \RuntimeException('Only draft vouchers can be posted.');
         }
 
-        if (!$voucher->isBalanced()) {
-            throw new \RuntimeException('Voucher is not balanced. Debit total must equal Credit total.');
+        if (!$voucher->cash_bank_account_id || !$voucher->counterparty_account_id) {
+            throw new \RuntimeException('Cash/Bank account and Counterparty account are required.');
+        }
+
+        if (!$voucher->amount || $voucher->amount <= 0) {
+            throw new \RuntimeException('Amount must be greater than zero.');
         }
 
         DB::transaction(function () use ($voucher, $user) {
@@ -37,14 +42,44 @@ class VoucherPostingService
                 'created_by' => $user->id,
             ]);
 
-            foreach ($voucher->voucherLines as $line) {
+            $amount = $voucher->amount;
+            $memo = $voucher->line_description ?? $voucher->description;
+
+            if ($voucher->voucher_type === VoucherType::RECEIPT) {
                 JournalLine::create([
                     'journal_id' => $journal->id,
-                    'account_id' => $line->account_id,
-                    'cost_center_id' => $line->cost_center_id,
-                    'debit' => $line->debit,
-                    'credit' => $line->credit,
-                    'memo' => $line->description,
+                    'account_id' => $voucher->cash_bank_account_id,
+                    'cost_center_id' => $voucher->cost_center_id,
+                    'debit' => $amount,
+                    'credit' => 0,
+                    'memo' => $memo,
+                ]);
+
+                JournalLine::create([
+                    'journal_id' => $journal->id,
+                    'account_id' => $voucher->counterparty_account_id,
+                    'cost_center_id' => $voucher->cost_center_id,
+                    'debit' => 0,
+                    'credit' => $amount,
+                    'memo' => $memo,
+                ]);
+            } else {
+                JournalLine::create([
+                    'journal_id' => $journal->id,
+                    'account_id' => $voucher->cash_bank_account_id,
+                    'cost_center_id' => $voucher->cost_center_id,
+                    'debit' => 0,
+                    'credit' => $amount,
+                    'memo' => $memo,
+                ]);
+
+                JournalLine::create([
+                    'journal_id' => $journal->id,
+                    'account_id' => $voucher->counterparty_account_id,
+                    'cost_center_id' => $voucher->cost_center_id,
+                    'debit' => $amount,
+                    'credit' => 0,
+                    'memo' => $memo,
                 ]);
             }
 

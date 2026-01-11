@@ -22,22 +22,24 @@ class CreatePaymentVoucher extends CreateRecord
         }
         $data['created_by'] = $user->id;
 
-        if (isset($data['voucherLines'])) {
-            $debitSum = collect($data['voucherLines'])->sum('debit');
-            $creditSum = collect($data['voucherLines'])->sum('credit');
+        if (empty($data['cash_bank_account_id']) || empty($data['counterparty_account_id'])) {
+            Notification::make()
+                ->danger()
+                ->title(__('validation.required'))
+                ->body(__('vouchers.errors.accounts_required'))
+                ->send();
 
-            if (abs($debitSum - $creditSum) > 0.01) {
-                Notification::make()
-                    ->danger()
-                    ->title(__('vouchers.errors.imbalanced'))
-                    ->body(__('vouchers.errors.debit_credit_mismatch', [
-                        'debit' => number_format($debitSum, 2),
-                        'credit' => number_format($creditSum, 2),
-                    ]))
-                    ->send();
+            throw new \Filament\Support\Exceptions\Halt();
+        }
 
-                throw new \Filament\Support\Exceptions\Halt();
-            }
+        if (empty($data['amount']) || (float) $data['amount'] <= 0) {
+            Notification::make()
+                ->danger()
+                ->title(__('validation.required'))
+                ->body(__('vouchers.errors.amount_required'))
+                ->send();
+
+            throw new \Filament\Support\Exceptions\Halt();
         }
 
         return $data;
