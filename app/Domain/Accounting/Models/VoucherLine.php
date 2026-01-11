@@ -10,6 +10,8 @@ class VoucherLine extends Model
 {
     use HasFactory;
 
+    protected $table = 'account_voucher_lines';
+
     protected $fillable = [
         'voucher_id',
         'account_id',
