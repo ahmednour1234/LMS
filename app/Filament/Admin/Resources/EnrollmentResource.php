@@ -163,10 +163,27 @@ class EnrollmentResource extends Resource
                                             default => 'online',
                                         };
                                         $set('delivery_type', $deliveryType);
-                                        $set('branch_id', null);
+                                        $set('branch_id', $deliveryType === 'online' ? null : $get('branch_id'));
                                         $set('enrollment_mode', null);
                                         $set('sessions_purchased', null);
                                         $set('total_amount', 0);
+
+                                        // Resolve price immediately with the new values
+                                        // Use branch_id = null for online, or existing branch_id for onsite
+                                        $branchId = $deliveryType === 'online' ? null : $get('branch_id');
+                                        $pricingService = app(\App\Services\PricingService::class);
+                                        $coursePrice = $pricingService->resolveCoursePrice($state, $branchId, $deliveryType);
+
+                                        if ($coursePrice) {
+                                            $calculator = app(EnrollmentPriceCalculator::class);
+                                            $allowedModes = $calculator->getAllowedModes($coursePrice);
+                                            $set('_course_price', $coursePrice->id);
+                                            $set('_allowed_modes', array_map(fn($mode) => $mode->value, $allowedModes));
+                                            $set('_sessions_count', $coursePrice->sessions_count);
+                                        } else {
+                                            $set('_course_price', null);
+                                            $set('_allowed_modes', []);
+                                        }
                                     }
                                 } else {
                                     $set('delivery_type', null);
@@ -178,6 +195,7 @@ class EnrollmentResource extends Resource
                                     $set('_allowed_modes', []);
                                 }
                             })
+                            ->live(onBlur: false)
                             ->label(__('enrollments.course')),
                     ])
                     ->columns(2),
@@ -335,15 +353,20 @@ class EnrollmentResource extends Resource
                             ->visible(function (Forms\Get $get) {
                                 $courseId = $get('course_id');
                                 $deliveryType = $get('delivery_type');
-                                $allowedModes = $get('_allowed_modes') ?? [];
 
-                                // Show for both online and onsite when course is selected and allowed modes are available
-                                return !empty($courseId) &&
-                                       !empty($allowedModes) &&
-                                       in_array($deliveryType, ['online', 'onsite']);
+                                // Show for both online and onsite when course and delivery type are selected
+                                return !empty($courseId) && in_array($deliveryType, ['online', 'onsite']);
                             })
                             ->options(function (Forms\Get $get) {
                                 $allowedModes = $get('_allowed_modes') ?? [];
+                                if (empty($allowedModes)) {
+                                    // If no allowed modes yet, show all options (they'll be filtered by pricing)
+                                    return [
+                                        'course_full' => __('enrollments.enrollment_mode_options.course_full') ?? 'Full Course',
+                                        'per_session' => __('enrollments.enrollment_mode_options.per_session') ?? 'Per Session',
+                                        'trial' => __('enrollments.enrollment_mode_options.trial') ?? 'Trial',
+                                    ];
+                                }
                                 $allOptions = [
                                     'course_full' => __('enrollments.enrollment_mode_options.course_full') ?? 'Full Course',
                                     'per_session' => __('enrollments.enrollment_mode_options.per_session') ?? 'Per Session',
@@ -369,7 +392,8 @@ class EnrollmentResource extends Resource
                         // Show section for both online and onsite when course is selected
                         return !empty($courseId) && in_array($deliveryType, ['online', 'onsite']);
                     })
-                    ->collapsible(),
+                    ->collapsible()
+                    ->collapsed(false),
 
                 Forms\Components\Section::make(__('enrollments.sessions') ?? 'Sessions')
                     ->schema([
