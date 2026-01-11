@@ -192,7 +192,7 @@ class EditExam extends EditRecord
                                                 Forms\Components\Placeholder::make('correct_answer_tf')
                                                     ->label(__('exam_questions.correct_answer'))
                                                     ->visible(fn ($get) => ($get('../../type') ?? '') === 'true_false')
-                                                    ->content(fn ($state, $get) => {
+                                                    ->content(function ($state, $get) {
                                                         $correct = $get('../../correct_answer');
                                                         if ($correct === '1' || $correct === 1) {
                                                             return __('exam_questions.true_false_true');
