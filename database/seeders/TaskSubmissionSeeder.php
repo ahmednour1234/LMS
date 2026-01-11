@@ -55,7 +55,7 @@ class TaskSubmissionSeeder extends Seeder
             $selectedStudents = $enrolledStudents->random(min($submissionCount, $enrolledStudents->count()));
 
             foreach ($selectedStudents as $student) {
-                $statuses = ['submitted', 'graded', 'pending'];
+                $statuses = ['pending', 'reviewed'];
                 $status = $statuses[array_rand($statuses)];
 
                 $submissionData = [
@@ -68,8 +68,8 @@ class TaskSubmissionSeeder extends Seeder
                     $submissionData['submission_text'] = 'Sample submission text';
                 }
 
-                // If graded, add score and reviewer
-                if ($status === 'graded') {
+                // If reviewed, add score and reviewer
+                if ($status === 'reviewed') {
                     $submissionData['score'] = rand(0, (int) $task->max_score);
                     $submissionData['feedback'] = [
                         'ar' => 'ملاحظات التقييم',
