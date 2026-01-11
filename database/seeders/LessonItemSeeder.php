@@ -24,7 +24,7 @@ class LessonItemSeeder extends Seeder
             $itemsPerLesson = rand(2, 5);
             
             for ($i = 1; $i <= $itemsPerLesson; $i++) {
-                $itemTypes = ['video', 'document', 'text', 'link'];
+                $itemTypes = ['video', 'pdf', 'file', 'link'];
                 $type = $itemTypes[array_rand($itemTypes)];
 
                 $itemData = [
