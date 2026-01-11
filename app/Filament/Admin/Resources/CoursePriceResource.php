@@ -43,6 +43,11 @@ class CoursePriceResource extends Resource
         return __('navigation.groups.training');
     }
 
+    public static function shouldRegisterNavigation(): bool
+    {
+        return false;
+    }
+
     public static function form(Form $form): Form
     {
         return $form
