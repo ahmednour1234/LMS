@@ -9,6 +9,7 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 
 class Course extends Model
 {
@@ -49,6 +50,11 @@ class Course extends Model
     public function prices(): HasMany
     {
         return $this->hasMany(CoursePrice::class);
+    }
+
+    public function currentPrice(): HasOne
+    {
+        return $this->hasOne(CoursePrice::class)->latestOfMany();
     }
 
     public function sections(): HasMany

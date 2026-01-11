@@ -107,121 +107,125 @@ class CourseResource extends Resource
                     Forms\Components\Wizard\Step::make('pricing')
                         ->label(__('course_prices.pricing'))
                         ->schema([
-                            Forms\Components\Select::make('price_delivery_type')
-                                ->options([
-                                    DeliveryType::Onsite->value => __('course_prices.delivery_type_options.onsite'),
-                                    DeliveryType::Online->value => __('course_prices.delivery_type_options.online'),
-                                ])
-                                ->label(__('course_prices.delivery_type'))
-                                ->helperText(__('course_prices.delivery_type_helper'))
-                                ->nullable(),
-                            Forms\Components\Select::make('pricing_mode')
-                                ->options([
-                                    'course_total' => __('course_prices.pricing_mode_options.course_total'),
-                                    'per_session' => __('course_prices.pricing_mode_options.per_session'),
-                                    'both' => __('course_prices.pricing_mode_options.both'),
-                                ])
-                                ->label(__('course_prices.pricing_mode'))
-                                ->default('course_total')
-                                ->live(),
-                            Forms\Components\TextInput::make('price')
-                                ->numeric()
-                                ->prefix(config('money.symbol', 'ر.ع'))
-                                ->label(__('course_prices.price'))
-                                ->minValue(0.001)
-                                ->step(0.001)
-                                ->visible(fn (Forms\Get $get) => in_array($get('pricing_mode'), ['course_total', 'both']))
-                                ->required(fn (Forms\Get $get) => in_array($get('pricing_mode'), ['course_total', 'both']))
-                                ->live(onBlur: true),
-                            Forms\Components\TextInput::make('session_price')
-                                ->numeric()
-                                ->prefix(config('money.symbol', 'ر.ع'))
-                                ->label(__('course_prices.session_price'))
-                                ->helperText(__('course_prices.session_price_helper'))
-                                ->minValue(0.001)
-                                ->step(0.001)
-                                ->visible(fn (Forms\Get $get) => in_array($get('pricing_mode'), ['per_session', 'both']))
-                                ->required(fn (Forms\Get $get) => in_array($get('pricing_mode'), ['per_session', 'both'])),
-                            Forms\Components\TextInput::make('sessions_count')
-                                ->numeric()
-                                ->integer()
-                                ->label(__('course_prices.sessions_count'))
-                                ->visible(fn (Forms\Get $get) => in_array($get('pricing_mode'), ['per_session', 'both']))
-                                ->minValue(1)
-                                ->required(fn (Forms\Get $get) => in_array($get('pricing_mode'), ['per_session', 'both']))
-                                ->helperText(__('course_prices.sessions_count_helper'))
-                                ->live(onBlur: true),
-                            Forms\Components\Toggle::make('allow_installments')
-                                ->label(__('course_prices.allow_installments'))
-                                ->default(false)
-                                ->live()
-                                ->disabled(fn (Forms\Get $get) => $get('pricing_mode') === 'per_session')
-                                ->helperText(fn (Forms\Get $get) => $get('pricing_mode') === 'per_session' 
-                                    ? __('course_prices.installments_disabled_for_per_session')
-                                    : null),
-                            Forms\Components\TextInput::make('min_down_payment')
-                                ->numeric()
-                                ->prefix(config('money.symbol', 'ر.ع'))
-                                ->label(__('course_prices.min_down_payment'))
-                                ->minValue(0)
-                                ->step(0.001)
-                                ->visible(fn (Forms\Get $get) => $get('allow_installments'))
-                                ->rules([
-                                    fn (Forms\Get $get): \Closure => function (string $attribute, $value, \Closure $fail) use ($get) {
-                                        $price = (float) $get('price');
-                                        if ($value !== null && $price > 0 && (float) $value > $price) {
-                                            $fail(__('course_prices.min_down_payment_exceeds_price'));
-                                        }
-                                    },
-                                ])
-                                ->helperText(__('course_prices.min_down_payment_helper')),
-                            Forms\Components\TextInput::make('max_installments')
-                                ->numeric()
-                                ->integer()
-                                ->label(__('course_prices.max_installments'))
-                                ->minValue(1)
-                                ->maxValue(function (Forms\Get $get): int {
-                                    $pricingMode = $get('pricing_mode') ?? 'course_total';
-                                    if (in_array($pricingMode, ['per_session', 'both'])) {
-                                        return (int) ($get('sessions_count') ?? 1);
-                                    }
-                                    return config('money.max_installments_limit', 36);
-                                })
-                                ->visible(fn (Forms\Get $get) => $get('allow_installments'))
-                                ->required(fn (Forms\Get $get) => $get('allow_installments'))
-                                ->helperText(function (Forms\Get $get): string {
-                                    $pricingMode = $get('pricing_mode') ?? 'course_total';
-                                    if (in_array($pricingMode, ['per_session', 'both'])) {
-                                        $sessionsCount = (int) ($get('sessions_count') ?? 1);
-                                        return __('course_prices.max_installments_helper_session_based', ['count' => $sessionsCount]);
-                                    }
-                                    $limit = config('money.max_installments_limit', 36);
-                                    return __('course_prices.max_installments_helper_course_total', ['limit' => $limit]);
-                                })
-                                ->rules([
-                                    fn (Forms\Get $get): \Closure => function (string $attribute, $value, \Closure $fail) use ($get) {
-                                        if ($value === null) {
-                                            return;
-                                        }
-                                        $pricingMode = $get('pricing_mode') ?? 'course_total';
-                                        $maxInstallments = (int) $value;
-                                        
-                                        if (in_array($pricingMode, ['per_session', 'both'])) {
-                                            $sessionsCount = (int) ($get('sessions_count') ?? 1);
-                                            if ($maxInstallments > $sessionsCount) {
-                                                $fail(__('course_prices.max_installments_exceeds_sessions', ['count' => $sessionsCount]));
+                            Forms\Components\Group::make()
+                                ->relationship('currentPrice')
+                                ->schema([
+                                    Forms\Components\Select::make('delivery_type')
+                                        ->options([
+                                            DeliveryType::Onsite->value => __('course_prices.delivery_type_options.onsite'),
+                                            DeliveryType::Online->value => __('course_prices.delivery_type_options.online'),
+                                        ])
+                                        ->label(__('course_prices.delivery_type'))
+                                        ->helperText(__('course_prices.delivery_type_helper'))
+                                        ->nullable(),
+                                    Forms\Components\Select::make('pricing_mode')
+                                        ->options([
+                                            'course_total' => __('course_prices.pricing_mode_options.course_total'),
+                                            'per_session' => __('course_prices.pricing_mode_options.per_session'),
+                                            'both' => __('course_prices.pricing_mode_options.both'),
+                                        ])
+                                        ->label(__('course_prices.pricing_mode'))
+                                        ->default('course_total')
+                                        ->live(),
+                                    Forms\Components\TextInput::make('price')
+                                        ->numeric()
+                                        ->prefix(config('money.symbol', 'ر.ع'))
+                                        ->label(__('course_prices.price'))
+                                        ->minValue(0.001)
+                                        ->step(0.001)
+                                        ->visible(fn (Forms\Get $get) => in_array($get('pricing_mode'), ['course_total', 'both']))
+                                        ->required(fn (Forms\Get $get) => in_array($get('pricing_mode'), ['course_total', 'both']))
+                                        ->live(onBlur: true),
+                                    Forms\Components\TextInput::make('session_price')
+                                        ->numeric()
+                                        ->prefix(config('money.symbol', 'ر.ع'))
+                                        ->label(__('course_prices.session_price'))
+                                        ->helperText(__('course_prices.session_price_helper'))
+                                        ->minValue(0.001)
+                                        ->step(0.001)
+                                        ->visible(fn (Forms\Get $get) => in_array($get('pricing_mode'), ['per_session', 'both']))
+                                        ->required(fn (Forms\Get $get) => in_array($get('pricing_mode'), ['per_session', 'both'])),
+                                    Forms\Components\TextInput::make('sessions_count')
+                                        ->numeric()
+                                        ->integer()
+                                        ->label(__('course_prices.sessions_count'))
+                                        ->visible(fn (Forms\Get $get) => in_array($get('pricing_mode'), ['per_session', 'both']))
+                                        ->minValue(1)
+                                        ->required(fn (Forms\Get $get) => in_array($get('pricing_mode'), ['per_session', 'both']))
+                                        ->helperText(__('course_prices.sessions_count_helper'))
+                                        ->live(onBlur: true),
+                                    Forms\Components\Toggle::make('allow_installments')
+                                        ->label(__('course_prices.allow_installments'))
+                                        ->default(false)
+                                        ->live()
+                                        ->disabled(fn (Forms\Get $get) => $get('pricing_mode') === 'per_session')
+                                        ->helperText(fn (Forms\Get $get) => $get('pricing_mode') === 'per_session' 
+                                            ? __('course_prices.installments_disabled_for_per_session')
+                                            : null),
+                                    Forms\Components\TextInput::make('min_down_payment')
+                                        ->numeric()
+                                        ->prefix(config('money.symbol', 'ر.ع'))
+                                        ->label(__('course_prices.min_down_payment'))
+                                        ->minValue(0)
+                                        ->step(0.001)
+                                        ->visible(fn (Forms\Get $get) => $get('allow_installments'))
+                                        ->rules([
+                                            fn (Forms\Get $get): \Closure => function (string $attribute, $value, \Closure $fail) use ($get) {
+                                                $price = (float) $get('price');
+                                                if ($value !== null && $price > 0 && (float) $value > $price) {
+                                                    $fail(__('course_prices.min_down_payment_exceeds_price'));
+                                                }
+                                            },
+                                        ])
+                                        ->helperText(__('course_prices.min_down_payment_helper')),
+                                    Forms\Components\TextInput::make('max_installments')
+                                        ->numeric()
+                                        ->integer()
+                                        ->label(__('course_prices.max_installments'))
+                                        ->minValue(1)
+                                        ->maxValue(function (Forms\Get $get): int {
+                                            $pricingMode = $get('pricing_mode') ?? 'course_total';
+                                            if (in_array($pricingMode, ['per_session', 'both'])) {
+                                                return (int) ($get('sessions_count') ?? 1);
                                             }
-                                        } else {
+                                            return config('money.max_installments_limit', 36);
+                                        })
+                                        ->visible(fn (Forms\Get $get) => $get('allow_installments'))
+                                        ->required(fn (Forms\Get $get) => $get('allow_installments'))
+                                        ->helperText(function (Forms\Get $get): string {
+                                            $pricingMode = $get('pricing_mode') ?? 'course_total';
+                                            if (in_array($pricingMode, ['per_session', 'both'])) {
+                                                $sessionsCount = (int) ($get('sessions_count') ?? 1);
+                                                return __('course_prices.max_installments_helper_session_based', ['count' => $sessionsCount]);
+                                            }
                                             $limit = config('money.max_installments_limit', 36);
-                                            if ($maxInstallments > $limit) {
-                                                $fail(__('course_prices.max_installments_exceeds_limit', ['limit' => $limit]));
-                                            }
-                                        }
-                                    },
+                                            return __('course_prices.max_installments_helper_course_total', ['limit' => $limit]);
+                                        })
+                                        ->rules([
+                                            fn (Forms\Get $get): \Closure => function (string $attribute, $value, \Closure $fail) use ($get) {
+                                                if ($value === null) {
+                                                    return;
+                                                }
+                                                $pricingMode = $get('pricing_mode') ?? 'course_total';
+                                                $maxInstallments = (int) $value;
+                                                
+                                                if (in_array($pricingMode, ['per_session', 'both'])) {
+                                                    $sessionsCount = (int) ($get('sessions_count') ?? 1);
+                                                    if ($maxInstallments > $sessionsCount) {
+                                                        $fail(__('course_prices.max_installments_exceeds_sessions', ['count' => $sessionsCount]));
+                                                    }
+                                                } else {
+                                                    $limit = config('money.max_installments_limit', 36);
+                                                    if ($maxInstallments > $limit) {
+                                                        $fail(__('course_prices.max_installments_exceeds_limit', ['limit' => $limit]));
+                                                    }
+                                                }
+                                            },
+                                        ]),
+                                    Forms\Components\Toggle::make('is_active')
+                                        ->label(__('course_prices.is_active'))
+                                        ->default(true),
                                 ]),
-                            Forms\Components\Toggle::make('price_is_active')
-                                ->label(__('course_prices.is_active'))
-                                ->default(true),
                         ]),
                 ])
                 ->submitAction(Forms\Components\Actions\Action::make('create')
