@@ -56,7 +56,7 @@ class LessonResource extends Resource
         return $form
             ->schema([
                 Forms\Components\Select::make('section_id')
-                    ->relationship('section', 'id', fn (Builder $query) => $query->whereHas('course.program', fn ($q) => $q->where('programs.branch_id', auth()->user()->branch_id ?? null))->orderBy('order'))
+                    ->relationship('section', 'id', fn (Builder $query) => $query->orderBy('order'))
                     ->getOptionLabelUsing(function ($value): string {
                         if (is_object($value)) {
                             return MultilingualHelper::formatMultilingualField($value->title) ?: 'N/A';
@@ -66,8 +66,7 @@ class LessonResource extends Resource
                     })
                     ->searchable()
                     ->getSearchResultsUsing(function (string $search): array {
-                        return CourseSection::whereHas('course.program', fn ($q) => $q->where('programs.branch_id', auth()->user()->branch_id ?? null))
-                            ->where(function (Builder $query) use ($search) {
+                        return CourseSection::where(function (Builder $query) use ($search) {
                                 $query->whereRaw("JSON_UNQUOTE(JSON_EXTRACT(title, '$.ar')) LIKE ?", ["%{$search}%"])
                                       ->orWhereRaw("JSON_UNQUOTE(JSON_EXTRACT(title, '$.en')) LIKE ?", ["%{$search}%"]);
                             })
@@ -127,10 +126,6 @@ class LessonResource extends Resource
     {
         return $table
             ->modifyQueryUsing(function (Builder $query) {
-                $user = auth()->user();
-                if (!$user->isSuperAdmin()) {
-                    $query->whereHas('section.course.program', fn ($q) => $q->where('programs.branch_id', $user->branch_id));
-                }
             })
             ->columns([
                 Tables\Columns\TextColumn::make('section.course.code')
@@ -177,7 +172,7 @@ class LessonResource extends Resource
             ])
             ->filters([
                 Tables\Filters\SelectFilter::make('section_id')
-                    ->relationship('section', 'title', fn (Builder $query) => $query->whereHas('course.program', fn ($q) => $q->where('programs.branch_id', auth()->user()->branch_id ?? null)))
+                    ->relationship('section', 'title')
                     ->getOptionLabelUsing(function ($record): string {
                         if (is_object($record)) {
                             return MultilingualHelper::formatMultilingualField($record->title) ?: 'N/A';
