@@ -16,14 +16,6 @@ class EditExam extends EditRecord
 {
     protected static string $resource = ExamResource::class;
 
-    public ?string $activeTab = null;
-
-    public function mount(int | string $record): void
-    {
-        parent::mount($record);
-        
-        $this->activeTab = request()->query('activeTab', 'details');
-    }
 
     protected function getHeaderActions(): array
     {
@@ -233,7 +225,7 @@ class EditExam extends EditRecord
                                         ->action(function ($record) {
                                             $questionsCount = $record->questions()->count();
                                             $totalPoints = $record->questions()->sum('points');
-                                            
+
                                             if ($questionsCount < 1) {
                                                 \Filament\Notifications\Notification::make()
                                                     ->title(__('exams.publish_error'))
@@ -242,7 +234,7 @@ class EditExam extends EditRecord
                                                     ->send();
                                                 return;
                                             }
-                                            
+
                                             if ($totalPoints <= 0) {
                                                 \Filament\Notifications\Notification::make()
                                                     ->title(__('exams.publish_error'))
@@ -251,7 +243,7 @@ class EditExam extends EditRecord
                                                     ->send();
                                                 return;
                                             }
-                                            
+
                                             $record->update(['is_active' => true]);
                                             \Filament\Notifications\Notification::make()
                                                 ->title(__('exams.published'))
@@ -261,8 +253,7 @@ class EditExam extends EditRecord
                                 ]),
                             ]),
                     ])
-                    ->activeTab(fn () => $this->activeTab ?? 'details')
-                    ->persistTabInQueryString(),
+                    ->persistTabInQueryString('activeTab'),
             ]);
     }
 }
