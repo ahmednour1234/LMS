@@ -56,6 +56,15 @@ class RolePermissionSeeder extends Seeder
             'accounting.update.branch',
             'accounting.delete',
 
+            // Vouchers
+            'account.vouchers.view',
+            'account.vouchers.create',
+            'account.vouchers.update',
+            'account.vouchers.post',
+            'account.vouchers.cancel',
+            'account.vouchers.print',
+            'account.vouchers.export',
+
             // Journals
             'journals.view',
             'journals.view.global',
