@@ -2,7 +2,6 @@
 
 namespace Database\Seeders;
 
-use App\Domain\Branch\Models\Branch;
 use App\Domain\Training\Models\Program;
 use Illuminate\Database\Seeder;
 
@@ -13,13 +12,6 @@ class ProgramSeeder extends Seeder
      */
     public function run(): void
     {
-        $branches = Branch::all();
-        
-        if ($branches->isEmpty()) {
-            $this->command->warn('No branches found. Please seed branches first.');
-            return;
-        }
-
         $programs = [
             [
                 'code' => 'PROG-001',
@@ -71,19 +63,11 @@ class ProgramSeeder extends Seeder
             ],
         ];
 
-        foreach ($branches as $branch) {
-            foreach ($programs as $programData) {
-                $programData['branch_id'] = $branch->id;
-                $programData['code'] = $programData['code'] . '-' . $branch->id; // Make unique per branch
-                
-                Program::firstOrCreate(
-                    [
-                        'code' => $programData['code'],
-                        'branch_id' => $branch->id,
-                    ],
-                    $programData
-                );
-            }
+        foreach ($programs as $programData) {
+            Program::firstOrCreate(
+                ['code' => $programData['code']],
+                $programData
+            );
         }
 
         $this->command->info('Programs seeded successfully!');
