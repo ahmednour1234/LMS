@@ -4,7 +4,6 @@ namespace Database\Seeders;
 
 use App\Domain\Branch\Models\Branch;
 use App\Domain\Enrollment\Models\Student;
-use App\Models\User;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\Hash;
 
@@ -32,7 +31,6 @@ class StudentSeeder extends Seeder
                 'password' => Hash::make('password'),
                 'sex' => 'male',
                 'status' => 'active',
-                'active' => true,
             ],
             [
                 'name' => 'Fatima Hassan',
@@ -43,7 +41,6 @@ class StudentSeeder extends Seeder
                 'password' => Hash::make('password'),
                 'sex' => 'female',
                 'status' => 'active',
-                'active' => true,
             ],
             [
                 'name' => 'Ahmed Ibrahim',
@@ -54,7 +51,6 @@ class StudentSeeder extends Seeder
                 'password' => Hash::make('password'),
                 'sex' => 'male',
                 'status' => 'active',
-                'active' => true,
             ],
             [
                 'name' => 'Sara Mohamed',
@@ -65,7 +61,6 @@ class StudentSeeder extends Seeder
                 'password' => Hash::make('password'),
                 'sex' => 'female',
                 'status' => 'active',
-                'active' => true,
             ],
             [
                 'name' => 'Omar Khalid',
@@ -76,7 +71,6 @@ class StudentSeeder extends Seeder
                 'password' => Hash::make('password'),
                 'sex' => 'male',
                 'status' => 'inactive',
-                'active' => false,
             ],
             [
                 'name' => 'Layla Nour',
@@ -87,7 +81,6 @@ class StudentSeeder extends Seeder
                 'password' => Hash::make('password'),
                 'sex' => 'female',
                 'status' => 'active',
-                'active' => true,
             ],
             [
                 'name' => 'Khaled Mostafa',
@@ -97,8 +90,7 @@ class StudentSeeder extends Seeder
                 'email' => 'khaled.student@example.com',
                 'password' => Hash::make('password'),
                 'sex' => 'male',
-                'status' => 'suspended',
-                'active' => false,
+                'status' => 'inactive',
             ],
             [
                 'name' => 'Nour Hamed',
@@ -109,7 +101,6 @@ class StudentSeeder extends Seeder
                 'password' => Hash::make('password'),
                 'sex' => 'female',
                 'status' => 'active',
-                'active' => true,
             ],
         ];
 
@@ -119,26 +110,11 @@ class StudentSeeder extends Seeder
             
             // Make student_code unique per branch
             $studentCode = $studentData['student_code'] . '-' . $branch->id;
-            
-            // Create or get user for student
-            $user = User::firstOrCreate(
-                ['email' => $studentData['email']],
-                [
-                    'name' => $studentData['name'],
-                    'email' => $studentData['email'],
-                    'password' => $studentData['password'],
-                    'branch_id' => $branch->id,
-                    'email_verified_at' => now(),
-                ]
-            );
 
             // Create student record
             Student::firstOrCreate(
+                ['email' => $studentData['email']],
                 [
-                    'user_id' => $user->id,
-                ],
-                [
-                    'user_id' => $user->id,
                     'branch_id' => $branch->id,
                     'name' => $studentData['name'],
                     'student_code' => $studentCode,
@@ -148,7 +124,7 @@ class StudentSeeder extends Seeder
                     'password' => $studentData['password'],
                     'sex' => $studentData['sex'],
                     'status' => $studentData['status'],
-                    'active' => $studentData['active'],
+                    'email_verified_at' => now(),
                 ]
             );
 
