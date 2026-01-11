@@ -6,6 +6,7 @@ return [
     'type_options' => [
         'mcq' => 'اختيار من متعدد',
         'essay' => 'مقال',
+        'true_false' => 'صح/خطأ',
     ],
     'question' => 'السؤال',
     'question_ar' => 'السؤال (عربي)',
@@ -14,5 +15,11 @@ return [
     'correct_answer' => 'الإجابة الصحيحة',
     'points' => 'النقاط',
     'order' => 'الترتيب',
+    'sort_order' => 'ترتيب العرض',
+    'is_active' => 'نشط',
+    'option' => 'خيار',
+    'order_helper' => 'سيتم عرض الأسئلة بهذا الترتيب',
+    'true_false_true' => 'صحيح',
+    'true_false_false' => 'خطأ',
 ];
 

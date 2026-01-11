@@ -6,6 +6,7 @@ use App\Domain\Training\Models\Course;
 use App\Domain\Training\Models\Exam;
 use App\Domain\Training\Models\Lesson;
 use App\Filament\Admin\Resources\ExamResource\Pages;
+use App\Filament\Admin\Resources\ExamResource\RelationManagers\QuestionsRelationManager;
 use App\Support\Helpers\MultilingualHelper;
 use Filament\Forms;
 use Filament\Forms\Form;
@@ -101,7 +102,15 @@ class ExamResource extends Resource
                 Forms\Components\TextInput::make('total_score')
                     ->numeric()
                     ->default(0)
-                    ->label(__('exams.total_score')),
+                    ->label(__('exams.total_grade'))
+                    ->dehydrated(false)
+                    ->disabled()
+                    ->afterStateHydrated(function (Forms\Components\TextInput $component, $state, $record) {
+                        if ($record) {
+                            $totalPoints = $record->questions()->sum('points');
+                            $component->state($totalPoints);
+                        }
+                    }),
                 Forms\Components\TextInput::make('duration_minutes')
                     ->numeric()
                     ->label(__('exams.duration_minutes')),
@@ -164,6 +173,13 @@ class ExamResource extends Resource
                     Tables\Actions\DeleteBulkAction::make(),
                 ]),
             ]);
+    }
+
+    public static function getRelations(): array
+    {
+        return [
+            QuestionsRelationManager::class,
+        ];
     }
 
     public static function getPages(): array

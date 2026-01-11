@@ -18,6 +18,7 @@ class ExamQuestion extends Model
         'correct_answer',
         'points',
         'order',
+        'is_active',
     ];
 
     protected function casts(): array
@@ -27,6 +28,7 @@ class ExamQuestion extends Model
             'options' => 'array',
             'points' => 'decimal:2',
             'order' => 'integer',
+            'is_active' => 'boolean',
         ];
     }
 
