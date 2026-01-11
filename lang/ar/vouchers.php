@@ -34,6 +34,7 @@ return [
     'amount' => 'المبلغ',
     'line_description' => 'وصف البند',
     'helper_text' => 'المبلغ يُسجّل تلقائيًا مدين/دائن حسب نوع السند',
+    'accounting_effect' => 'الأثر المحاسبي',
     'cost_center' => 'مركز التكلفة',
     'debit' => 'مدين',
     'credit' => 'دائن',

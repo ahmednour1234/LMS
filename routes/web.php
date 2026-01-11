@@ -57,6 +57,10 @@ Route::middleware(['web', 'auth'])->group(function () {
         ->name('filament.admin.exports.print');
     Route::get('/admin/journals/{journal}/print', [App\Http\Controllers\JournalController::class, 'print'])
         ->name('journals.print');
+    Route::get('/admin/receipt-vouchers/{voucher}/print', [App\Http\Controllers\VoucherController::class, 'printReceipt'])
+        ->name('filament.admin.resources.receipt-vouchers.print');
+    Route::get('/admin/payment-vouchers/{voucher}/print', [App\Http\Controllers\VoucherController::class, 'printPayment'])
+        ->name('filament.admin.resources.payment-vouchers.print');
     Route::get('/admin/enrollments/{enrollment}/print', [App\Http\Controllers\EnrollmentController::class, 'print'])
         ->name('enrollments.print');
     Route::get('/admin/invoices/{invoice}/print', [App\Http\Controllers\InvoiceController::class, 'print'])

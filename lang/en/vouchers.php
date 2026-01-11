@@ -34,6 +34,7 @@ return [
     'amount' => 'Amount',
     'line_description' => 'Line Description',
     'helper_text' => 'Amount is automatically recorded as debit/credit based on voucher type',
+    'accounting_effect' => 'Accounting Effect',
     'cost_center' => 'Cost Center',
     'debit' => 'Debit',
     'credit' => 'Credit',
