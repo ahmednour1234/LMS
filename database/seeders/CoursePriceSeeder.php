@@ -59,6 +59,11 @@ class CoursePriceSeeder extends Seeder
                         $priceData['sessions_count'] = rand(5, 20);
                     }
 
+                    // Set price to 0 when pricing_mode is per_session (price is required but not used)
+                    if ($pricingMode === 'per_session') {
+                        $priceData['price'] = 0;
+                    }
+
                     CoursePrice::firstOrCreate(
                         [
                             'course_id' => $course->id,
@@ -96,6 +101,11 @@ class CoursePriceSeeder extends Seeder
                 if (in_array($pricingMode, ['per_session', 'both'])) {
                     $priceData['session_price'] = rand(50, 500);
                     $priceData['sessions_count'] = rand(5, 20);
+                }
+
+                // Set price to 0 when pricing_mode is per_session (price is required but not used)
+                if ($pricingMode === 'per_session') {
+                    $priceData['price'] = 0;
                 }
 
                 CoursePrice::firstOrCreate(
