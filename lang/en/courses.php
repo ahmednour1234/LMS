@@ -21,5 +21,6 @@ return [
     'trainers' => 'Trainers',
     'trainers_count' => 'Trainers Count',
     'is_active' => 'Active',
+    'details' => 'Course Details',
 ];
 

@@ -32,6 +32,11 @@ return [
     'max_installments_helper_session_based' => 'الحد الأقصى :count قسط (بناءً على عدد الجلسات)',
     'max_installments_exceeds_sessions' => 'لا يمكن أن يتجاوز الحد الأقصى للأقساط عدد الجلسات (:count)',
     'max_installments_exceeds_limit' => 'لا يمكن أن يتجاوز الحد الأقصى للأقساط :limit',
+    'min_down_payment_exceeds_price' => 'الحد الأدنى للدفعة الأولى لا يمكن أن يتجاوز السعر',
+    'min_down_payment_helper' => 'الحد الأدنى للدفعة الأولى المطلوبة',
+    'sessions_count_helper' => 'عدد الجلسات في الدورة',
+    'installments_disabled_for_per_session' => 'الأقساط غير متاحة لوضع التسعير لكل جلسة',
     'is_active' => 'نشط',
+    'pricing' => 'التسعير',
 ];
 

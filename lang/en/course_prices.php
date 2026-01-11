@@ -32,6 +32,11 @@ return [
     'max_installments_helper_session_based' => 'Maximum :count installments (based on sessions count)',
     'max_installments_exceeds_sessions' => 'Maximum installments cannot exceed the number of sessions (:count)',
     'max_installments_exceeds_limit' => 'Maximum installments cannot exceed :limit',
+    'min_down_payment_exceeds_price' => 'Minimum down payment cannot exceed the price',
+    'min_down_payment_helper' => 'Minimum down payment required',
+    'sessions_count_helper' => 'Number of sessions in the course',
+    'installments_disabled_for_per_session' => 'Installments are not available for per-session pricing mode',
     'is_active' => 'Active',
+    'pricing' => 'Pricing',
 ];
 
