@@ -42,6 +42,8 @@ return [
     'installment' => 'Installment',
     'audit_logs' => 'Audit Logs',
     'audit_log' => 'Audit Log',
+    'receipt_vouchers' => 'Receipt Vouchers',
+    'payment_vouchers' => 'Payment Vouchers',
     'menu' => 'Menu',
 ];
 

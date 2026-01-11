@@ -2,6 +2,7 @@
 
 namespace App\Domain\Accounting\Models;
 
+use App\Domain\Accounting\Models\Voucher;
 use App\Domain\Branch\Models\Branch;
 use App\Enums\JournalStatus;
 use App\Models\User;
@@ -19,6 +20,7 @@ class Journal extends Model
         'reference',
         'reference_type',
         'reference_id',
+        'voucher_id',
         'journal_date',
         'description',
         'status',

@@ -9,12 +9,14 @@ use App\Domain\Accounting\Models\CostCenter;
 use App\Domain\Accounting\Models\Journal;
 use App\Domain\Accounting\Models\JournalLine;
 use App\Domain\Accounting\Models\PaymentMethod;
+use App\Domain\Accounting\Models\Voucher;
 use App\Domain\Accounting\Policies\AccountPolicy;
 use App\Domain\Accounting\Policies\ArInvoicePolicy;
 use App\Domain\Accounting\Policies\CategoryPolicy;
 use App\Domain\Accounting\Policies\CostCenterPolicy;
 use App\Domain\Accounting\Policies\JournalLinePolicy;
 use App\Domain\Accounting\Policies\JournalPolicy;
+use App\Domain\Accounting\Policies\VoucherPolicy;
 use App\Domain\Accounting\Policies\PaymentMethodPolicy;
 use App\Domain\Branch\Models\Branch;
 use App\Domain\Media\Models\MediaFile;
@@ -44,6 +46,7 @@ class AuthServiceProvider extends ServiceProvider
         CostCenter::class => CostCenterPolicy::class,
         PaymentMethod::class => PaymentMethodPolicy::class,
         ArInvoice::class => ArInvoicePolicy::class,
+        Voucher::class => VoucherPolicy::class,
         MediaFile::class => MediaFilePolicy::class,
         Setting::class => SettingPolicy::class,
     ];

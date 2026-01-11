@@ -42,6 +42,8 @@ return [
     'installment' => 'قسط',
     'audit_logs' => 'سجلات التدقيق',
     'audit_log' => 'سجل التدقيق',
+    'receipt_vouchers' => 'سندات القبض',
+    'payment_vouchers' => 'سندات الصرف',
     'menu' => 'القائمة',
 ];
 
