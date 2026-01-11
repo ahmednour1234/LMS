@@ -36,7 +36,10 @@ class CostCenterSeeder extends Seeder
 
         $createdParents = [];
         foreach ($parentCostCenters as $costCenter) {
-            $createdParents[] = CostCenter::create($costCenter);
+            $createdParents[] = CostCenter::firstOrCreate(
+                ['code' => $costCenter['code']],
+                $costCenter
+            );
         }
 
         // Create child cost centers
@@ -86,7 +89,10 @@ class CostCenterSeeder extends Seeder
         ];
 
         foreach ($childCostCenters as $costCenter) {
-            CostCenter::create($costCenter);
+            CostCenter::firstOrCreate(
+                ['code' => $costCenter['code']],
+                $costCenter
+            );
         }
     }
 }
