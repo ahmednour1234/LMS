@@ -7,6 +7,7 @@ use App\Domain\Training\Models\Task;
 use App\Domain\Training\Models\TaskSubmission;
 use App\Models\User;
 use Illuminate\Database\Seeder;
+use Spatie\Permission\Models\Role;
 
 class TaskSubmissionSeeder extends Seeder
 {
@@ -28,7 +29,13 @@ class TaskSubmissionSeeder extends Seeder
             return;
         }
 
-        $teachers = User::role('teacher')->get();
+        $teachers = collect();
+        try {
+            $role = Role::findByName('trainer', 'web');
+            $teachers = User::role($role)->get();
+        } catch (\Exception $e) {
+            // Role doesn't exist, fall back to all users
+        }
         if ($teachers->isEmpty()) {
             $teachers = User::all();
         }
