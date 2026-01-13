@@ -45,10 +45,7 @@ class LatestTeachersTableWidget extends BaseWidget
                 ->formatStateUsing(fn ($state) => $state ? __('dashboard.status.active') : __('dashboard.status.inactive'))
                 ->color(fn ($state) => $state ? 'success' : 'danger')
                 ->sortable(),
-            TextColumn::make('ownedCourses')
-                ->label(__('teachers.owned_courses'))
-                ->counts('ownedCourses')
-                ->sortable(),
+
             TextColumn::make('created_at')
                 ->label(__('dashboard.tables.created_at'))
                 ->dateTime()
