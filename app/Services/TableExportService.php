@@ -2,13 +2,12 @@
 
 namespace App\Services;
 
-use Filament\Tables\Contracts\HasTable;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\Response;
 use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\File;
 use Rap2hpoutre\FastExcel\FastExcel;
 use Symfony\Component\HttpFoundation\BinaryFileResponse;
-use Illuminate\Support\Facades\File;
 
 class TableExportService
 {
@@ -17,96 +16,42 @@ class TableExportService
     ) {}
 
     /**
-     * Build query from Filament table state (filters, search, sort)
+     * Normalize column label (avoid N/A duplicates)
      */
-    public function buildQueryFromTableState(HasTable $livewireComponent): Builder
+    protected function normalizeLabel(string $label, int $index): string
     {
-        // Filament v3: includes filters/search/sort
-        return $livewireComponent->getFilteredTableQuery();
+        $label = trim($label);
+        return $label !== '' ? $label : ('Column ' . ($index + 1));
     }
 
     /**
-     * Get visible columns from table (skip hidden / unnamed columns)
+     * Get record value by column "name" (supports relations: course.code)
      */
-    public function getVisibleColumns(HasTable $livewireComponent): Collection
+    protected function getValueFromRecord($record, string $name)
     {
-        $table = $livewireComponent->getTable();
-
-        return collect($table->getColumns())
-            ->filter(fn ($column) => method_exists($column, 'isHidden') ? ! $column->isHidden() : true)
-            ->filter(fn ($column) => method_exists($column, 'getName') && filled($column->getName()));
+        return data_get($record, $name);
     }
 
     /**
-     * ✅ Get raw value for a given table column from record.
-     * Uses Filament column state so it works with relations + formatStateUsing + accessors.
+     * Format values for export (dates/arrays/bool/objects)
      */
-    protected function getColumnState($column, $record)
+    protected function formatValue($value): mixed
     {
-        // Preferred: Filament column state
-        if (method_exists($column, 'getState')) {
-            return $column->getState($record);
-        }
+        if ($value === null) return '';
 
-        // Fallback: try name via data_get
-        $name = method_exists($column, 'getName') ? $column->getName() : null;
-        return $name ? data_get($record, $name) : null;
-    }
-
-    /**
-     * Get column label safely
-     */
-    protected function getColumnLabel($column): string
-    {
-        $name = method_exists($column, 'getName') ? (string) $column->getName() : '';
-
-        if (method_exists($column, 'getLabel')) {
-            $label = $column->getLabel();
-            if (is_string($label) && $label !== '') {
-                return $label;
-            }
-        }
-
-        return $name ?: 'N/A';
-    }
-
-    /**
-     * Format value for export
-     */
-    protected function formatColumnValue($value, $column)
-    {
-        if ($value === null) {
-            return '';
-        }
-
-        // Arrays (e.g. multilingual JSON)
         if (is_array($value)) {
             $locale = app()->getLocale();
             return $value[$locale] ?? $value['ar'] ?? $value['en'] ?? json_encode($value, JSON_UNESCAPED_UNICODE);
         }
 
-        // Dates
         if ($value instanceof \DateTimeInterface) {
-            // if column has dateTime() it may still pass DateTime
             return $value->format('Y-m-d H:i:s');
         }
 
-        // Money columns (Filament has getCurrency in some column types)
-        if (method_exists($column, 'getCurrency')) {
-            $currency = $column->getCurrency();
-            if ($currency) {
-                $locale = app()->getLocale();
-                $formatter = new \NumberFormatter($locale . '@currency=' . $currency, \NumberFormatter::CURRENCY);
-                return $formatter->formatCurrency((float) $value, $currency);
-            }
-        }
-
-        // Boolean
         if (is_bool($value)) {
             return $value ? __('Yes') : __('No');
         }
 
-        // Objects
         if (is_object($value) && !($value instanceof \DateTimeInterface)) {
             return method_exists($value, '__toString')
                 ? (string) $value
@@ -117,46 +62,56 @@ class TableExportService
     }
 
     /**
-     * Export to Excel (XLSX)
+     * ✅ Export Excel from cached structure:
+     * columns: [{name: "course.code", label: "Course"}, ...]
      */
-    public function exportXlsx(Builder|Collection $query, Collection $columns, string $filename): BinaryFileResponse
+    public function exportXlsxFromCached(Builder|Collection $records, Collection $columns, string $filename): BinaryFileResponse
     {
-        $records = $query instanceof Collection ? $query : $query->get();
+        $records = $records instanceof Collection ? $records : $records->get();
 
-        // If columns were not passed correctly, fail loudly (better than empty file)
         if ($columns->isEmpty()) {
-            abort(422, 'No visible columns found for export.');
+            abort(422, 'No columns found for export.');
         }
 
         $exportData = $records->map(function ($record) use ($columns) {
             $row = [];
+            $usedHeaders = [];
 
-            foreach ($columns as $column) {
-                $label = $this->getColumnLabel($column);
+            foreach ($columns->values() as $i => $col) {
+                $name  = $col['name']  ?? '';
+                $label = $col['label'] ?? $name;
 
-                // ✅ get value using Filament state (fix empty excel issue)
-                $value = $this->getColumnState($column, $record);
+                $header = $this->normalizeLabel((string) $label, $i);
 
-                $value = $this->formatColumnValue($value, $column);
+                // avoid duplicate headers
+                $base = $header;
+                $n = 2;
+                while (isset($usedHeaders[$header])) {
+                    $header = $base . " ($n)";
+                    $n++;
+                }
+                $usedHeaders[$header] = true;
+
+                $value = $name ? $this->getValueFromRecord($record, $name) : '';
+                $value = $this->formatValue($value);
 
                 if (is_string($value)) {
                     $value = mb_convert_encoding($value, 'UTF-8', 'UTF-8');
                     $value = mb_convert_encoding($value, 'UTF-8', 'auto');
                 }
 
-                $row[$label] = $value ?? '';
+                $row[$header] = $value ?? '';
             }
 
             return $row;
         });
 
         $dir = storage_path('app/temp');
-        if (! File::exists($dir)) {
+        if (!File::exists($dir)) {
             File::makeDirectory($dir, 0755, true);
         }
 
         $filePath = $dir . '/' . $filename . '.xlsx';
-
         (new FastExcel($exportData))->export($filePath);
 
         return response()
@@ -165,19 +120,19 @@ class TableExportService
     }
 
     /**
-     * Export to PDF
+     * ✅ Export PDF from cached structure
      */
-    public function exportPdf(Builder|Collection $query, Collection $columns, string $filename, ?string $title = null): Response
+    public function exportPdfFromCached(Builder|Collection $records, Collection $columns, string $filename, ?string $title = null): Response
     {
-        $records = $query instanceof Collection ? $query : $query->get();
+        $records = $records instanceof Collection ? $records : $records->get();
         $locale = app()->getLocale();
 
         $html = view('exports.pdf-table', [
             'records' => $records,
-            'columns' => $columns,
-            'title' => $title ?? $filename,
-            'locale' => $locale,
-            'isRtl' => $locale === 'ar',
+            'columns' => $columns, // array columns
+            'title'   => $title ?? $filename,
+            'locale'  => $locale,
+            'isRtl'   => $locale === 'ar',
         ])->render();
 
         $response = $this->pdfService->renderFromHtml($html, [
@@ -190,19 +145,19 @@ class TableExportService
     }
 
     /**
-     * Render print view
+     * ✅ Print from cached structure
      */
-    public function renderPrint(Builder|Collection $query, Collection $columns, ?string $title = null)
+    public function renderPrintFromCached(Builder|Collection $records, Collection $columns, ?string $title = null)
     {
-        $records = $query instanceof Collection ? $query : $query->get();
+        $records = $records instanceof Collection ? $records : $records->get();
         $locale = app()->getLocale();
 
         return view('exports.print-table', [
             'records' => $records,
             'columns' => $columns,
-            'title' => $title,
-            'locale' => $locale,
-            'isRtl' => $locale === 'ar',
+            'title'   => $title,
+            'locale'  => $locale,
+            'isRtl'   => $locale === 'ar',
         ]);
     }
 }
