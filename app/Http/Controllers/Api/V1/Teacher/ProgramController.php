@@ -5,7 +5,7 @@ namespace App\Http\Controllers\Api\V1\Teacher;
 use App\Http\Controllers\ApiController;
 use App\Http\Requests\Teacher\StoreProgramRequest;
 use App\Http\Requests\Teacher\UpdateProgramRequest;
-use App\Http\Resources\Api\V1\Teacher\ProgramResource;
+use App\Http\Resources\Api\V1\Public\ProgramResource;
 use App\Http\Services\ProgramService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\Auth;
