@@ -159,7 +159,7 @@ class CreateEnrollment extends CreateRecord
                 'total_amount'  => $total,
                 'due_amount'    => $total,
 
-                'status'        => 'unpaid',
+                'status'        => 'open',
                 'issued_at'     => now(),
                 'created_by'    => auth()->id(),
             ])->save();
