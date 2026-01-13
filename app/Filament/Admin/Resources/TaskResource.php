@@ -114,9 +114,6 @@ class TaskResource extends Resource
         return $table
             ->modifyQueryUsing(function (Builder $query) {
                 $user = Auth::user();
-                if ($user && !$user->isSuperAdmin()) {
-                    $query->whereHas('course.program', fn ($q) => $q->where('programs.branch_id', $user->branch_id));
-                }
                 $query->with(['course', 'lesson']);
             })
             ->columns([
