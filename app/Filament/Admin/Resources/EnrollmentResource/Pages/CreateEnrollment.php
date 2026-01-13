@@ -15,12 +15,10 @@ class CreateEnrollment extends CreateRecord
 
     protected function mutateFormDataBeforeCreate(array $data): array
     {
-        // enrolled_at default
         if (empty($data['enrolled_at'])) {
             $data['enrolled_at'] = now();
         }
 
-        // set delivery_type based on course if missing
         if (!empty($data['course_id']) && empty($data['delivery_type'])) {
             $course = \App\Domain\Training\Models\Course::find($data['course_id']);
             if ($course) {
@@ -33,7 +31,6 @@ class CreateEnrollment extends CreateRecord
             }
         }
 
-        // validate required
         if (empty($data['course_id'])) {
             throw \Illuminate\Validation\ValidationException::withMessages([
                 'course_id' => 'Course is required.',
@@ -112,15 +109,16 @@ class CreateEnrollment extends CreateRecord
 
         // Calculate totals
         $priceResult = $calculator->calculate($coursePrice, $enrollmentMode, $data['sessions_purchased'] ?? null);
-        $data['total_amount'] = $priceResult['total_amount'];
+
+        $data['total_amount']  = (float) $priceResult['total_amount'];
         $data['currency_code'] = $priceResult['currency_code'];
 
-        // Set status
+        // status
         $data['status'] = $enrollmentMode === EnrollmentMode::TRIAL
             ? EnrollmentStatus::ACTIVE->value
             : EnrollmentStatus::PENDING_PAYMENT->value;
 
-        // Installment validation (optional)
+        // Installment validation
         $pricingType = $data['pricing_type'] ?? 'full';
         if ($pricingType === 'installment' && $enrollmentMode === EnrollmentMode::COURSE_FULL) {
             if (!$coursePrice->allow_installments) {
@@ -140,28 +138,33 @@ class CreateEnrollment extends CreateRecord
         $this->record->refresh();
 
         DB::transaction(function () {
-            // ✅ prevent duplicates
             $exists = \App\Domain\Accounting\Models\ArInvoice::where('enrollment_id', $this->record->id)->exists();
             if ($exists) {
                 return;
             }
 
-            // ✅ create AR invoice automatically
-            \App\Domain\Accounting\Models\ArInvoice::create([
-                'enrollment_id' => $this->record->id,
-                'student_id'    => $this->record->student_id,
-                'branch_id'     => $this->record->branch_id,
-                'user_id'       => auth()->id(),
-                'currency_code' => $this->record->currency_code,
-                'due_amount'    => (float) ($this->record->total_amount ?? 0), // ✅ المطلوب
-                'total_amount'        => $this->record->total_amount,   // لو عندك اسمها total بدل amount عدلها
-                'status'        => 'unpaid',                      // عدلها حسب enum عندك
-                'issued_at'     => now(),
-                'created_by'    => $this->record->created_by,
-            ]);
-        });
+            $total = (float) ($this->record->total_amount ?? 0);
 
-        // لو أنت محتاج event لباقي العمليات (اختياري)
-        // event(new \App\Domain\Enrollment\Events\EnrollmentCreated($this->record));
+            // ✅ branch fallback (لأن SQL كان بيطلع ?)
+            $branchId = $this->record->branch_id ?? auth()->user()->branch_id;
+
+            // ✅ forceFill لتخطي fillable (حل نهائي لمشكلة due_amount)
+            $invoice = new \App\Domain\Accounting\Models\ArInvoice();
+
+            $invoice->forceFill([
+                'enrollment_id' => $this->record->id,
+                'student_id'    => $this->record->student_id ?? null,
+                'branch_id'     => $branchId,
+                'user_id'       => auth()->id(),
+                'currency_code' => $this->record->currency_code ?? null,
+
+                'total_amount'  => $total,
+                'due_amount'    => $total,
+
+                'status'        => 'unpaid',
+                'issued_at'     => now(),
+                'created_by'    => auth()->id(),
+            ])->save();
+        });
     }
 }
