@@ -99,10 +99,10 @@ Route::prefix('v1')->group(function () {
 
         // Teacher Auth (Public)
         Route::prefix('auth')->group(function () {
-            Route::post('/register', [App\Http\Controllers\Api\Teacher\TeacherAuthController::class, 'register']);
-            Route::post('/login', [App\Http\Controllers\Api\Teacher\TeacherAuthController::class, 'login']);
-            Route::post('/forgot-password', [App\Http\Controllers\Api\Teacher\TeacherPasswordController::class, 'forgotPassword']);
-            Route::post('/reset-password', [App\Http\Controllers\Api\Teacher\TeacherPasswordController::class, 'resetPassword']);
+            Route::post('/register', [App\Http\Controllers\Api\V1\Teacher\TeacherAuthController::class, 'register']);
+            Route::post('/login', [App\Http\Controllers\Api\V1\Teacher\TeacherAuthController::class, 'login']);
+            Route::post('/forgot-password', [App\Http\Controllers\Api\V1\Teacher\TeacherPasswordController::class, 'forgotPassword']);
+            Route::post('/reset-password', [App\Http\Controllers\Api\V1\Teacher\TeacherPasswordController::class, 'resetPassword']);
         });
 
         // Teacher Protected (JWT)
@@ -110,19 +110,19 @@ Route::prefix('v1')->group(function () {
 
             // Teacher Session / Profile
             Route::prefix('auth')->group(function () {
-                Route::post('/logout', [App\Http\Controllers\Api\Teacher\TeacherAuthController::class, 'logout']);
-                Route::get('/me', [App\Http\Controllers\Api\Teacher\TeacherAuthController::class, 'me']);
-                Route::post('/refresh', [App\Http\Controllers\Api\Teacher\TeacherAuthController::class, 'refresh']);
-                Route::put('/profile', [App\Http\Controllers\Api\Teacher\TeacherAuthController::class, 'updateProfile']);
+                Route::post('/logout', [App\Http\Controllers\Api\V1\Teacher\TeacherAuthController::class, 'logout']);
+                Route::get('/me', [App\Http\Controllers\Api\V1\Teacher\TeacherAuthController::class, 'me']);
+                Route::post('/refresh', [App\Http\Controllers\Api\V1\Teacher\TeacherAuthController::class, 'refresh']);
+                Route::put('/profile', [App\Http\Controllers\Api\V1\Teacher\TeacherAuthController::class, 'updateProfile']);
             });
 
             // Programs
             Route::prefix('programs')->group(function () {
-                Route::get('/', [App\Http\Controllers\Api\Teacher\ProgramController::class, 'index']);
-                Route::post('/', [App\Http\Controllers\Api\Teacher\ProgramController::class, 'store']);
-                Route::get('/{program}', [App\Http\Controllers\Api\Teacher\ProgramController::class, 'show']);
-                Route::put('/{program}', [App\Http\Controllers\Api\Teacher\ProgramController::class, 'update']);
-                Route::patch('/{program}/toggle-active', [App\Http\Controllers\Api\Teacher\ProgramController::class, 'toggleActive']);
+                Route::get('/', [App\Http\Controllers\Api\V1\Teacher\ProgramController::class, 'index']);
+                Route::post('/', [App\Http\Controllers\Api\V1\Teacher\ProgramController::class, 'store']);
+                Route::get('/{program}', [App\Http\Controllers\Api\V1\Teacher\ProgramController::class, 'show']);
+                Route::put('/{program}', [App\Http\Controllers\Api\V1\Teacher\ProgramController::class, 'update']);
+                Route::patch('/{program}/toggle-active', [App\Http\Controllers\Api\V1\Teacher\ProgramController::class, 'toggleActive']);
             });
 
             // Courses (Teacher CRUD)
