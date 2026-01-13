@@ -6,8 +6,8 @@ use App\Domain\Enrollment\Services\EnrollmentPriceCalculator;
 use App\Enums\EnrollmentMode;
 use App\Enums\EnrollmentStatus;
 use App\Filament\Admin\Resources\EnrollmentResource;
-use Filament\Actions;
 use Filament\Resources\Pages\CreateRecord;
+use Illuminate\Support\Facades\DB;
 
 class CreateEnrollment extends CreateRecord
 {
@@ -15,13 +15,12 @@ class CreateEnrollment extends CreateRecord
 
     protected function mutateFormDataBeforeCreate(array $data): array
     {
-        // Reference will be auto-generated in the model boot method
-        // Set enrolled_at if not provided
+        // enrolled_at default
         if (empty($data['enrolled_at'])) {
             $data['enrolled_at'] = now();
         }
 
-        // Set delivery_type based on course if not set (for non-hybrid courses)
+        // set delivery_type based on course if missing
         if (!empty($data['course_id']) && empty($data['delivery_type'])) {
             $course = \App\Domain\Training\Models\Course::find($data['course_id']);
             if ($course) {
@@ -34,7 +33,7 @@ class CreateEnrollment extends CreateRecord
             }
         }
 
-        // Validate inputs
+        // validate required
         if (empty($data['course_id'])) {
             throw \Illuminate\Validation\ValidationException::withMessages([
                 'course_id' => 'Course is required.',
@@ -54,10 +53,9 @@ class CreateEnrollment extends CreateRecord
             ]);
         }
 
-        // Validate branch_id required when delivery_type is onsite
-        if ($deliveryType === 'onsite' && empty($data['branch_id'])) {
-            // For onsite, set branch_id from user if not provided and user is not super admin
-            if (!auth()->user()->isSuperAdmin()) {
+        // branch rules
+        if ($deliveryType === 'onsite') {
+            if (empty($data['branch_id']) && !auth()->user()->isSuperAdmin()) {
                 $data['branch_id'] = auth()->user()->branch_id;
             }
 
@@ -67,13 +65,13 @@ class CreateEnrollment extends CreateRecord
                 ]);
             }
         } else {
-            // For online, ensure branch_id is null
             $data['branch_id'] = null;
         }
 
-        // Resolve price using PricingService
+        // Resolve course price
         $pricingService = app(\App\Services\PricingService::class);
         $branchId = $data['branch_id'] ?? null;
+
         $coursePrice = $pricingService->resolveCoursePrice(
             $data['course_id'],
             $branchId,
@@ -86,7 +84,7 @@ class CreateEnrollment extends CreateRecord
             ]);
         }
 
-        // Validate enrollment mode is allowed by pricing mode
+        // Validate mode allowed
         $calculator = app(EnrollmentPriceCalculator::class);
         $enrollmentMode = EnrollmentMode::from($data['enrollment_mode']);
 
@@ -96,17 +94,13 @@ class CreateEnrollment extends CreateRecord
             ]);
         }
 
-        // Validate sessions_purchased based on enrollment mode
+        // sessions rules
         if ($enrollmentMode === EnrollmentMode::TRIAL) {
-            if (empty($data['sessions_purchased']) || (int) $data['sessions_purchased'] !== 1) {
-                throw \Illuminate\Validation\ValidationException::withMessages([
-                    'sessions_purchased' => 'Trial enrollment must have exactly 1 session.',
-                ]);
-            }
             $data['sessions_purchased'] = 1;
         } elseif ($enrollmentMode === EnrollmentMode::PER_SESSION) {
             $sessionsPurchased = (int) ($data['sessions_purchased'] ?? 0);
             $sessionsCount = $coursePrice->sessions_count ?? 1;
+
             if ($sessionsPurchased < 1 || $sessionsPurchased > $sessionsCount) {
                 throw \Illuminate\Validation\ValidationException::withMessages([
                     'sessions_purchased' => "Sessions purchased must be between 1 and {$sessionsCount}.",
@@ -116,20 +110,17 @@ class CreateEnrollment extends CreateRecord
             $data['sessions_purchased'] = null;
         }
 
-        // Calculate price using EnrollmentPriceCalculator
-        $sessionsPurchased = $data['sessions_purchased'] ?? null;
-        $priceResult = $calculator->calculate($coursePrice, $enrollmentMode, $sessionsPurchased);
+        // Calculate totals
+        $priceResult = $calculator->calculate($coursePrice, $enrollmentMode, $data['sessions_purchased'] ?? null);
         $data['total_amount'] = $priceResult['total_amount'];
         $data['currency_code'] = $priceResult['currency_code'];
 
-        // Set status based on enrollment mode
-        if ($enrollmentMode === EnrollmentMode::TRIAL) {
-            $data['status'] = EnrollmentStatus::ACTIVE->value;
-        } else {
-            $data['status'] = EnrollmentStatus::PENDING_PAYMENT->value;
-        }
+        // Set status
+        $data['status'] = $enrollmentMode === EnrollmentMode::TRIAL
+            ? EnrollmentStatus::ACTIVE->value
+            : EnrollmentStatus::PENDING_PAYMENT->value;
 
-        // Validate installment constraints if pricing_type is installment (only for course_full)
+        // Installment validation (optional)
         $pricingType = $data['pricing_type'] ?? 'full';
         if ($pricingType === 'installment' && $enrollmentMode === EnrollmentMode::COURSE_FULL) {
             if (!$coursePrice->allow_installments) {
@@ -139,7 +130,6 @@ class CreateEnrollment extends CreateRecord
             }
         }
 
-        // Set created_by
         $data['created_by'] = auth()->id();
 
         return $data;
@@ -147,10 +137,29 @@ class CreateEnrollment extends CreateRecord
 
     protected function afterCreate(): void
     {
-        // Refresh the enrollment to ensure all relationships and attributes are loaded
         $this->record->refresh();
 
-        // Fire EnrollmentCreated event to trigger AR invoice creation and other listeners
-        event(new \App\Domain\Enrollment\Events\EnrollmentCreated($this->record));
+        DB::transaction(function () {
+            // ✅ prevent duplicates
+            $exists = \App\Domain\Accounting\Models\ArInvoice::where('enrollment_id', $this->record->id)->exists();
+            if ($exists) {
+                return;
+            }
+
+            // ✅ create AR invoice automatically
+            \App\Domain\Accounting\Models\ArInvoice::create([
+                'enrollment_id' => $this->record->id,
+                'student_id'    => $this->record->student_id,
+                'branch_id'     => $this->record->branch_id,
+                'currency_code' => $this->record->currency_code,
+                'amount'        => $this->record->total_amount,   // لو عندك اسمها total بدل amount عدلها
+                'status'        => 'unpaid',                      // عدلها حسب enum عندك
+                'issued_at'     => now(),
+                'created_by'    => $this->record->created_by,
+            ]);
+        });
+
+        // لو أنت محتاج event لباقي العمليات (اختياري)
+        // event(new \App\Domain\Enrollment\Events\EnrollmentCreated($this->record));
     }
 }
