@@ -9,13 +9,13 @@ class CoursePriceService
 {
     /**
      * Resolve price for a course based on branch and delivery type.
-     * 
+     *
      * Priority order:
      * 1. Match course + branch + delivery_type
      * 2. Match course + branch + null delivery_type
      * 3. Match course + null branch + delivery_type
      * 4. Match course + null branch + null delivery_type
-     * 
+     *
      * @param int $courseId
      * @param int|null $branchId
      * @param DeliveryType|null $deliveryType
@@ -78,7 +78,7 @@ class CoursePriceService
 
     /**
      * Format price response array.
-     * 
+     *
      * @param CoursePrice $price
      * @return array
      */
@@ -97,5 +97,59 @@ class CoursePriceService
             'delivery_type' => $price->delivery_type?->value,
         ];
     }
+    public function createCourse(int $teacherId, array $data): Course
+{
+    $prices = $data['prices'] ?? null;   // NEW
+    unset($data['prices']);
+
+    $data['owner_teacher_id'] = $teacherId;
+    $data['is_active'] = $data['is_active'] ?? true;
+
+    $course = Course::create($data);
+
+    // create multiple prices in same request
+    if (is_array($prices)) {
+        foreach ($prices as $priceData) {
+            $this->upsertPriceForCourseByType($course, $priceData);
+        }
+    }
+
+    return $course;
+}
+
+/**
+ * Upsert CoursePrice by provided delivery_type (online/onsite/hybrid) for branch_id null
+ */
+public function upsertPriceForCourseByType(Course $course, array $pricingData): CoursePrice
+{
+    $type = $pricingData['delivery_type'] ?? null;
+    if (!$type) {
+        // لو حبيت ترمي exception هنا - لكن request rules already guarantee it
+        $type = $course->delivery_type?->value ?? (string) $course->delivery_type;
+    }
+
+    $deliveryType = $type instanceof \App\Domain\Training\Enums\DeliveryType
+        ? $type
+        : \App\Domain\Training\Enums\DeliveryType::from((string) $type);
+
+    return CoursePrice::updateOrCreate(
+        [
+            'course_id' => $course->id,
+            'branch_id' => null,
+            'delivery_type' => $deliveryType,
+        ],
+        [
+            'pricing_mode' => $pricingData['pricing_mode'] ?? 'course_total',
+            'price' => $pricingData['price'] ?? null,
+            'session_price' => $pricingData['session_price'] ?? null,
+            'sessions_count' => $pricingData['sessions_count'] ?? null,
+            'allow_installments' => $pricingData['allow_installments'] ?? false,
+            'min_down_payment' => $pricingData['min_down_payment'] ?? null,
+            'max_installments' => $pricingData['max_installments'] ?? null,
+            'is_active' => $pricingData['is_active'] ?? true,
+        ]
+    );
+}
+
 }
 
