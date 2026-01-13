@@ -2,84 +2,76 @@
 
 namespace App\Services;
 
-use Filament\Resources\Pages\ListRecords;
 use Filament\Tables\Contracts\HasTable;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\Response;
 use Illuminate\Support\Collection;
 use Rap2hpoutre\FastExcel\FastExcel;
 use Symfony\Component\HttpFoundation\BinaryFileResponse;
+use Illuminate\Support\Facades\File;
 
 class TableExportService
 {
-    protected PdfService $pdfService;
-
-    public function __construct(PdfService $pdfService)
-    {
-        $this->pdfService = $pdfService;
-    }
+    public function __construct(
+        protected PdfService $pdfService
+    ) {}
 
     /**
      * Build query from Filament table state (filters, search, sort)
-     *
-     * @param HasTable $livewireComponent
-     * @return Builder
      */
     public function buildQueryFromTableState(HasTable $livewireComponent): Builder
     {
-        // In Filament v3, getFilteredTableQuery() is available on the HasTable contract
-        // which ListRecords implements. This method already includes filters, search, and sort.
+        // Filament v3: includes filters/search/sort
         return $livewireComponent->getFilteredTableQuery();
     }
 
     /**
-     * Get visible columns from table
-     *
-     * @param HasTable $livewireComponent
-     * @return Collection
+     * Get visible columns from table (skip hidden / unnamed columns)
      */
-    protected function getVisibleColumns(HasTable $livewireComponent): Collection
+    public function getVisibleColumns(HasTable $livewireComponent): Collection
     {
         $table = $livewireComponent->getTable();
-        $columns = $table->getColumns();
 
-        // Filter only visible columns
-        return collect($columns)->filter(function ($column) {
-            return ! $column->isHidden();
-        });
+        return collect($table->getColumns())
+            ->filter(fn ($column) => method_exists($column, 'isHidden') ? ! $column->isHidden() : true)
+            ->filter(fn ($column) => method_exists($column, 'getName') && filled($column->getName()));
     }
 
     /**
-     * Get value from record by column name (handles relationships)
-     *
-     * @param mixed $record
-     * @param string $name
-     * @return mixed
+     * ✅ Get raw value for a given table column from record.
+     * Uses Filament column state so it works with relations + formatStateUsing + accessors.
      */
-    protected function getRecordValue($record, string $name)
+    protected function getColumnState($column, $record)
     {
-        // Handle relationship columns (e.g., 'branch.name')
-        if (str_contains($name, '.')) {
-            $parts = explode('.', $name);
-            $value = $record;
-            foreach ($parts as $part) {
-                if ($value === null) {
-                    return null;
-                }
-                $value = is_object($value) ? $value->getAttribute($part) : ($value[$part] ?? null);
-            }
-            return $value;
+        // Preferred: Filament column state
+        if (method_exists($column, 'getState')) {
+            return $column->getState($record);
         }
 
-        return $record->getAttribute($name);
+        // Fallback: try name via data_get
+        $name = method_exists($column, 'getName') ? $column->getName() : null;
+        return $name ? data_get($record, $name) : null;
     }
 
     /**
-     * Format column value based on column type
-     *
-     * @param mixed $value
-     * @param mixed $column
-     * @return mixed
+     * Get column label safely
+     */
+    protected function getColumnLabel($column): string
+    {
+        $name = method_exists($column, 'getName') ? (string) $column->getName() : '';
+
+        if (method_exists($column, 'getLabel')) {
+            $label = $column->getLabel();
+            if (is_string($label) && $label !== '') {
+                return $label;
+            }
+        }
+
+        return $name ?: 'N/A';
+    }
+
+    /**
+     * Format value for export
      */
     protected function formatColumnValue($value, $column)
     {
@@ -87,124 +79,109 @@ class TableExportService
             return '';
         }
 
-        // Handle arrays (e.g., multilingual course names)
+        // Arrays (e.g. multilingual JSON)
         if (is_array($value)) {
             $locale = app()->getLocale();
-            return $value[$locale] ?? $value['ar'] ?? $value['en'] ?? json_encode($value);
+            return $value[$locale] ?? $value['ar'] ?? $value['en'] ?? json_encode($value, JSON_UNESCAPED_UNICODE);
         }
 
-        // Handle date columns
-        if (method_exists($column, 'getFormat') && $column->getFormat()) {
-            $format = $column->getFormat();
-            if (in_array($format, ['date', 'dateTime', 'time'])) {
-                return $value instanceof \DateTimeInterface
-                    ? $value->format($format === 'date' ? 'Y-m-d' : ($format === 'time' ? 'H:i:s' : 'Y-m-d H:i:s'))
-                    : $value;
+        // Dates
+        if ($value instanceof \DateTimeInterface) {
+            // if column has dateTime() it may still pass DateTime
+            return $value->format('Y-m-d H:i:s');
+        }
+
+        // Money columns (Filament has getCurrency in some column types)
+        if (method_exists($column, 'getCurrency')) {
+            $currency = $column->getCurrency();
+            if ($currency) {
+                $locale = app()->getLocale();
+                $formatter = new \NumberFormatter($locale . '@currency=' . $currency, \NumberFormatter::CURRENCY);
+                return $formatter->formatCurrency((float) $value, $currency);
             }
         }
 
-        // Handle money columns
-        if (method_exists($column, 'getCurrency') && $column->getCurrency()) {
-            $currency = $column->getCurrency();
-            $locale = app()->getLocale();
-            $formatter = new \NumberFormatter($locale . '@currency=' . $currency, \NumberFormatter::CURRENCY);
-            return $formatter->formatCurrency($value, $currency);
-        }
-
-        // Handle boolean columns
+        // Boolean
         if (is_bool($value)) {
             return $value ? __('Yes') : __('No');
         }
 
-        // Handle objects (convert to string representation)
+        // Objects
         if (is_object($value) && !($value instanceof \DateTimeInterface)) {
-            return method_exists($value, '__toString') ? $value->__toString() : json_encode($value);
+            return method_exists($value, '__toString')
+                ? (string) $value
+                : json_encode($value, JSON_UNESCAPED_UNICODE);
         }
 
         return $value;
     }
 
     /**
-     * Export query results to Excel (XLSX)
-     *
-     * @param Builder|Collection $query
-     * @param Collection $columns
-     * @param string $filename
-     * @return BinaryFileResponse
+     * Export to Excel (XLSX)
      */
     public function exportXlsx(Builder|Collection $query, Collection $columns, string $filename): BinaryFileResponse
     {
         $records = $query instanceof Collection ? $query : $query->get();
-        $locale = app()->getLocale();
 
-        // Prepare data for export
+        // If columns were not passed correctly, fail loudly (better than empty file)
+        if ($columns->isEmpty()) {
+            abort(422, 'No visible columns found for export.');
+        }
+
         $exportData = $records->map(function ($record) use ($columns) {
             $row = [];
+
             foreach ($columns as $column) {
-                // Get column name and label - handle both method calls and property access
-                $name = is_callable([$column, 'getName']) ? $column->getName() : ($column->getName ?? '');
-                $label = is_callable([$column, 'getLabel']) ? $column->getLabel() : ($column->getLabel ?? $name);
+                $label = $this->getColumnLabel($column);
 
-                // Get value from record
-                $value = $this->getRecordValue($record, $name);
+                // ✅ get value using Filament state (fix empty excel issue)
+                $value = $this->getColumnState($column, $record);
 
-                // Format the value
                 $value = $this->formatColumnValue($value, $column);
 
-                // Ensure UTF-8 encoding and clean invalid characters
                 if (is_string($value)) {
                     $value = mb_convert_encoding($value, 'UTF-8', 'UTF-8');
                     $value = mb_convert_encoding($value, 'UTF-8', 'auto');
                 }
 
-                // Use translated label as key
                 $row[$label] = $value ?? '';
             }
+
             return $row;
         });
 
-        // Generate file path
-        $filePath = storage_path('app/temp/' . $filename . '.xlsx');
-        $directory = dirname($filePath);
-        if (! is_dir($directory)) {
-            mkdir($directory, 0755, true);
+        $dir = storage_path('app/temp');
+        if (! File::exists($dir)) {
+            File::makeDirectory($dir, 0755, true);
         }
 
-        // Export using FastExcel
+        $filePath = $dir . '/' . $filename . '.xlsx';
+
         (new FastExcel($exportData))->export($filePath);
 
-        return response()->download($filePath, $filename . '.xlsx')->deleteFileAfterSend(true);
+        return response()
+            ->download($filePath, $filename . '.xlsx')
+            ->deleteFileAfterSend(true);
     }
 
     /**
-     * Export query results to PDF
-     *
-     * @param Builder|Collection $query
-     * @param Collection $columns
-     * @param string $filename
-     * @param string|null $title
-     * @return Response
+     * Export to PDF
      */
     public function exportPdf(Builder|Collection $query, Collection $columns, string $filename, ?string $title = null): Response
     {
         $records = $query instanceof Collection ? $query : $query->get();
         $locale = app()->getLocale();
-        $isRtl = $locale === 'ar';
 
-        // Prepare data for PDF
-        $data = [
+        $html = view('exports.pdf-table', [
             'records' => $records,
             'columns' => $columns,
             'title' => $title ?? $filename,
             'locale' => $locale,
-            'isRtl' => $isRtl,
-        ];
-
-        // Render PDF using PdfService
-        $html = view('exports.pdf-table', $data)->render();
+            'isRtl' => $locale === 'ar',
+        ])->render();
 
         $response = $this->pdfService->renderFromHtml($html, [
-            'format' => 'A4-L', // Landscape for tables
+            'format' => 'A4-L',
         ]);
 
         $response->headers->set('Content-Disposition', 'attachment; filename="' . $filename . '.pdf"');
@@ -214,25 +191,18 @@ class TableExportService
 
     /**
      * Render print view
-     *
-     * @param Builder|Collection $query
-     * @param Collection $columns
-     * @param string|null $title
-     * @return \Illuminate\Contracts\View\View
      */
     public function renderPrint(Builder|Collection $query, Collection $columns, ?string $title = null)
     {
         $records = $query instanceof Collection ? $query : $query->get();
         $locale = app()->getLocale();
-        $isRtl = $locale === 'ar';
 
         return view('exports.print-table', [
             'records' => $records,
             'columns' => $columns,
             'title' => $title,
             'locale' => $locale,
-            'isRtl' => $isRtl,
+            'isRtl' => $locale === 'ar',
         ]);
     }
 }
-
