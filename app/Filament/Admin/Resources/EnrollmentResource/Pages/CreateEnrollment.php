@@ -153,6 +153,7 @@ class CreateEnrollment extends CreateRecord
                 'branch_id'     => $this->record->branch_id,
                 'user_id'       => auth()->id(),
                 'currency_code' => $this->record->currency_code,
+                'due_amount'    => (float) ($this->record->total_amount ?? 0), // ✅ المطلوب
                 'total_amount'        => $this->record->total_amount,   // لو عندك اسمها total بدل amount عدلها
                 'status'        => 'unpaid',                      // عدلها حسب enum عندك
                 'issued_at'     => now(),
