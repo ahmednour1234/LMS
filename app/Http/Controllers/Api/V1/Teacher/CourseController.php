@@ -2,8 +2,10 @@
 
 namespace App\Http\Controllers\Api\V1\Teacher;
 
+use App\Domain\Training\Enums\DeliveryType;
 use App\Domain\Training\Services\CoursePriceService;
 use App\Http\Controllers\ApiController;
+use App\Http\Enums\ApiErrorCode;
 use App\Http\Requests\Teacher\StoreCourseRequest;
 use App\Http\Requests\Teacher\UpdateCourseRequest;
 use App\Http\Resources\Api\V1\Public\CourseResource;
@@ -29,7 +31,7 @@ class CourseController extends ApiController
      *
      * @queryParam q string Search by code or name(ar/en). Example: Laravel
      * @queryParam active boolean Filter by active (default 1). Example: 1
-     * @queryParam program_id int Filter by program. Example: 2
+     * @queryParam program_id int Filter by program (must belong to teacher). Example: 2
      * @queryParam delivery_type string Filter by delivery type (onsite, online, hybrid). Example: online
      * @queryParam sort string Sort (newest, oldest, name). Example: newest
      * @queryParam per_page int Items per page. Example: 15
@@ -41,6 +43,7 @@ class CourseController extends ApiController
         $filters = request()->only(['q', 'active', 'program_id', 'delivery_type', 'sort']);
         $perPage = (int) request()->get('per_page', 15);
 
+        // ✅ secure filtering: program_id must belong to teacher (handled in service)
         $courses = $this->teacherCourseService->myCourses($teacher->id, $filters, $perPage);
 
         return $this->successResponse([
@@ -62,13 +65,9 @@ class CourseController extends ApiController
         $teacher = Auth::guard('teacher')->user();
 
         $model = $this->teacherCourseService->findTeacherCourse($teacher->id, $course);
+
         if (!$model) {
-            return $this->errorResponse(
-                \App\Http\Enums\ApiErrorCode::NOT_FOUND,
-                'Course not found.',
-                null,
-                404
-            );
+            return $this->errorResponse(ApiErrorCode::NOT_FOUND, 'Course not found.', null, 404);
         }
 
         return $this->successResponse(new CourseResource($model), 'Course retrieved successfully.');
@@ -76,40 +75,59 @@ class CourseController extends ApiController
 
     /**
      * Store Course (Owned by Teacher)
+     *
+     * ✅ Security:
+     * - program_id MUST belong to the authenticated teacher
+     * - owner_teacher_id is forced to teacher->id (no injection)
+     * - prices created only for this course (no cross-course writes)
      */
     public function store(StoreCourseRequest $request): JsonResponse
     {
         $teacher = Auth::guard('teacher')->user();
         $data = $request->validated();
 
+        // ✅ do not allow client to set owner_teacher_id
+        unset($data['owner_teacher_id']);
+
         // upload image
         if ($request->hasFile('image')) {
             $data['image'] = $request->file('image')->store('courses', 'public');
         }
 
-        $course = $this->teacherCourseService->createCourse($teacher->id, $data);
+        try {
+            $course = $this->teacherCourseService->createCourse($teacher->id, $data);
+        } catch (\Throwable $e) {
+            // if upload happened and create failed, cleanup uploaded file
+            if (!empty($data['image']) && Storage::disk('public')->exists($data['image'])) {
+                Storage::disk('public')->delete($data['image']);
+            }
+            throw $e;
+        }
 
         return $this->successResponse(new CourseResource($course), 'Course created successfully.', 201);
     }
 
     /**
      * Update Course (Owned by Teacher)
+     *
+     * ✅ Security:
+     * - teacher can update ONLY his courses
+     * - teacher cannot change program_id to another teacher program
+     * - teacher cannot change owner_teacher_id
      */
     public function update(UpdateCourseRequest $request, int $course): JsonResponse
     {
         $teacher = Auth::guard('teacher')->user();
-        $model = $this->teacherCourseService->findTeacherCourse($teacher->id, $course);
 
+        $model = $this->teacherCourseService->findTeacherCourse($teacher->id, $course);
         if (!$model) {
-            return $this->errorResponse(
-                \App\Http\Enums\ApiErrorCode::NOT_FOUND,
-                'Course not found.',
-                null,
-                404
-            );
+            return $this->errorResponse(ApiErrorCode::NOT_FOUND, 'Course not found.', null, 404);
         }
 
         $data = $request->validated();
+
+        // ✅ forbid ownership changes
+        unset($data['owner_teacher_id']);
 
         // remove image
         if (!empty($data['remove_image']) && $model->image) {
@@ -129,7 +147,15 @@ class CourseController extends ApiController
 
         unset($data['remove_image']);
 
-        $updated = $this->teacherCourseService->updateCourse($model, $data);
+        try {
+            $updated = $this->teacherCourseService->updateCourse($teacher->id, $model->id, $data);
+        } catch (\Throwable $e) {
+            // if new image uploaded and update failed -> cleanup
+            if (!empty($data['image']) && $data['image'] !== $model->image && Storage::disk('public')->exists($data['image'])) {
+                Storage::disk('public')->delete($data['image']);
+            }
+            throw $e;
+        }
 
         return $this->successResponse(new CourseResource($updated), 'Course updated successfully.');
     }
@@ -143,12 +169,7 @@ class CourseController extends ApiController
 
         $model = $this->teacherCourseService->findTeacherCourse($teacher->id, $course);
         if (!$model) {
-            return $this->errorResponse(
-                \App\Http\Enums\ApiErrorCode::NOT_FOUND,
-                'Course not found.',
-                null,
-                404
-            );
+            return $this->errorResponse(ApiErrorCode::NOT_FOUND, 'Course not found.', null, 404);
         }
 
         $model = $this->teacherCourseService->toggleActive($model);
@@ -159,8 +180,6 @@ class CourseController extends ApiController
     /**
      * Get Course Price (Resolved)
      *
-     * Return resolved price for this course based on branch_id and delivery_type.
-     *
      * @queryParam branch_id int Optional branch id. Example: 1
      * @queryParam delivery_type string Optional delivery type. Example: online
      */
@@ -170,12 +189,7 @@ class CourseController extends ApiController
 
         $model = $this->teacherCourseService->findTeacherCourse($teacher->id, $course);
         if (!$model) {
-            return $this->errorResponse(
-                \App\Http\Enums\ApiErrorCode::NOT_FOUND,
-                'Course not found.',
-                null,
-                404
-            );
+            return $this->errorResponse(ApiErrorCode::NOT_FOUND, 'Course not found.', null, 404);
         }
 
         $branchId = request()->get('branch_id');
@@ -184,7 +198,7 @@ class CourseController extends ApiController
         $resolved = $this->coursePriceService->resolvePrice(
             $model->id,
             $branchId !== null ? (int) $branchId : null,
-            $deliveryType ? \App\Domain\Training\Enums\DeliveryType::from($deliveryType) : null
+            $deliveryType ? DeliveryType::from($deliveryType) : null
         );
 
         return $this->successResponse([
