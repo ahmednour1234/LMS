@@ -61,27 +61,27 @@ Route::prefix('v1')->group(function () {
     */
     Route::prefix('public')->group(function () {
 
-        // Teachers
+        // Teachers (Public)
         Route::prefix('teachers')->group(function () {
             Route::get('/', [App\Http\Controllers\Api\V1\Public\TeacherController::class, 'index']);
             Route::get('/{teacher}', [App\Http\Controllers\Api\V1\Public\TeacherController::class, 'show']);
         });
 
-        // Programs
+        // Programs (Public)
         Route::prefix('programs')->group(function () {
             Route::get('/', [App\Http\Controllers\Api\V1\Public\ProgramController::class, 'index']);
             Route::get('/{program}', [App\Http\Controllers\Api\V1\Public\ProgramController::class, 'show']);
             Route::get('/{program}/courses', [App\Http\Controllers\Api\V1\Public\ProgramController::class, 'courses']);
         });
 
-        // Courses
+        // Courses (Public)
         Route::prefix('courses')->group(function () {
             Route::get('/', [App\Http\Controllers\Api\V1\Public\CourseController::class, 'index']);
             Route::get('/{course}', [App\Http\Controllers\Api\V1\Public\CourseController::class, 'show']);
             Route::get('/{course}/prices', [App\Http\Controllers\Api\V1\Public\CourseController::class, 'prices']);
         });
 
-        // Lessons
+        // Lessons (Public)
         Route::prefix('lessons')->group(function () {
             Route::get('/', [App\Http\Controllers\Api\V1\Public\LessonController::class, 'index']);
             Route::get('/{lesson}', [App\Http\Controllers\Api\V1\Public\LessonController::class, 'show']);
@@ -92,12 +92,17 @@ Route::prefix('v1')->group(function () {
     |--------------------------------------------------------------------------
     | Teacher (Auth + Protected)
     |--------------------------------------------------------------------------
-    | NOTE: You had "teacher" outside v1, we unify it here under /v1/teacher
+    | Base: /api/v1/teacher
     |--------------------------------------------------------------------------
     */
     Route::prefix('teacher')->group(function () {
 
-        // Teacher Auth (Public)
+        /*
+        |----------------------------------------------------------------------
+        | Teacher Auth (Public)
+        | Base: /api/v1/teacher/auth
+        |----------------------------------------------------------------------
+        */
         Route::prefix('auth')->group(function () {
             Route::post('/register', [App\Http\Controllers\Api\V1\Teacher\TeacherAuthController::class, 'register']);
             Route::post('/login', [App\Http\Controllers\Api\V1\Teacher\TeacherAuthController::class, 'login']);
@@ -105,10 +110,19 @@ Route::prefix('v1')->group(function () {
             Route::post('/reset-password', [App\Http\Controllers\Api\V1\Teacher\TeacherPasswordController::class, 'resetPassword']);
         });
 
-        // Teacher Protected (JWT)
+        /*
+        |----------------------------------------------------------------------
+        | Teacher Protected (JWT)
+        |----------------------------------------------------------------------
+        */
         Route::middleware('auth:teacher')->group(function () {
 
-            // Teacher Session / Profile
+            /*
+            |------------------------------------------------------------------
+            | Session / Profile
+            | Base: /api/v1/teacher/auth
+            |------------------------------------------------------------------
+            */
             Route::prefix('auth')->group(function () {
                 Route::post('/logout', [App\Http\Controllers\Api\V1\Teacher\TeacherAuthController::class, 'logout']);
                 Route::get('/me', [App\Http\Controllers\Api\V1\Teacher\TeacherAuthController::class, 'me']);
@@ -116,7 +130,12 @@ Route::prefix('v1')->group(function () {
                 Route::put('/profile', [App\Http\Controllers\Api\V1\Teacher\TeacherAuthController::class, 'updateProfile']);
             });
 
-            // Programs
+            /*
+            |------------------------------------------------------------------
+            | Programs
+            | Base: /api/v1/teacher/programs
+            |------------------------------------------------------------------
+            */
             Route::prefix('programs')->group(function () {
                 Route::get('/', [App\Http\Controllers\Api\V1\Teacher\ProgramController::class, 'index']);
                 Route::post('/', [App\Http\Controllers\Api\V1\Teacher\ProgramController::class, 'store']);
@@ -125,7 +144,12 @@ Route::prefix('v1')->group(function () {
                 Route::patch('/{program}/toggle-active', [App\Http\Controllers\Api\V1\Teacher\ProgramController::class, 'toggleActive']);
             });
 
-            // Courses (Teacher CRUD)
+            /*
+            |------------------------------------------------------------------
+            | Courses (Teacher CRUD)
+            | Base: /api/v1/teacher/courses
+            |------------------------------------------------------------------
+            */
             Route::prefix('courses')->group(function () {
                 Route::get('/', [App\Http\Controllers\Api\V1\Teacher\CourseController::class, 'index']);
                 Route::post('/', [App\Http\Controllers\Api\V1\Teacher\CourseController::class, 'store']);
@@ -136,10 +160,20 @@ Route::prefix('v1')->group(function () {
                 Route::get('/{course}/price', [App\Http\Controllers\Api\V1\Teacher\CourseController::class, 'price']);
             });
 
-            // Media Upload
-            Route::post('media', [App\Http\Controllers\Api\V1\Teacher\TeacherMediaController::class, 'store']);
+            /*
+            |------------------------------------------------------------------
+            | Media Upload
+            | Base: /api/v1/teacher/media
+            |------------------------------------------------------------------
+            */
+            Route::post('/media', [App\Http\Controllers\Api\V1\Teacher\TeacherMediaController::class, 'store']);
 
-            // Sections
+            /*
+            |------------------------------------------------------------------
+            | Sections
+            | Base: /api/v1/teacher/sections
+            |------------------------------------------------------------------
+            */
             Route::prefix('sections')->group(function () {
                 Route::get('/', [App\Http\Controllers\Api\V1\Teacher\CourseSectionController::class, 'index']);
                 Route::post('/', [App\Http\Controllers\Api\V1\Teacher\CourseSectionController::class, 'store']);
@@ -148,7 +182,12 @@ Route::prefix('v1')->group(function () {
                 Route::patch('/{section}/active', [App\Http\Controllers\Api\V1\Teacher\CourseSectionController::class, 'toggleActive']);
             });
 
-            // Lessons
+            /*
+            |------------------------------------------------------------------
+            | Lessons
+            | Base: /api/v1/teacher/lessons
+            |------------------------------------------------------------------
+            */
             Route::prefix('lessons')->group(function () {
                 Route::get('/', [App\Http\Controllers\Api\V1\Teacher\LessonController::class, 'index']);
                 Route::post('/', [App\Http\Controllers\Api\V1\Teacher\LessonController::class, 'store']);
@@ -157,7 +196,12 @@ Route::prefix('v1')->group(function () {
                 Route::patch('/{lesson}/active', [App\Http\Controllers\Api\V1\Teacher\LessonController::class, 'toggleActive']);
             });
 
-            // Lesson Items
+            /*
+            |------------------------------------------------------------------
+            | Lesson Items
+            | Base: /api/v1/teacher/lesson-items
+            |------------------------------------------------------------------
+            */
             Route::prefix('lesson-items')->group(function () {
                 Route::get('/', [App\Http\Controllers\Api\V1\Teacher\LessonItemController::class, 'index']);
                 Route::post('/', [App\Http\Controllers\Api\V1\Teacher\LessonItemController::class, 'store']);
@@ -166,7 +210,12 @@ Route::prefix('v1')->group(function () {
                 Route::patch('/{item}/active', [App\Http\Controllers\Api\V1\Teacher\LessonItemController::class, 'toggleActive']);
             });
 
-            // Exams
+            /*
+            |------------------------------------------------------------------
+            | Exams
+            | Base: /api/v1/teacher/exams
+            |------------------------------------------------------------------
+            */
             Route::prefix('exams')->group(function () {
                 Route::get('/', [App\Http\Controllers\Api\V1\Teacher\ExamController::class, 'index']);
                 Route::post('/', [App\Http\Controllers\Api\V1\Teacher\ExamController::class, 'store']);
@@ -175,7 +224,41 @@ Route::prefix('v1')->group(function () {
                 Route::patch('/{exam}/active', [App\Http\Controllers\Api\V1\Teacher\ExamController::class, 'toggleActive']);
             });
 
-            // Exam Questions
+            /*
+            |------------------------------------------------------------------
+            | Tasks
+            | Base: /api/v1/teacher/tasks
+            |------------------------------------------------------------------
+            */
+            Route::prefix('tasks')->group(function () {
+                Route::get('/', [App\Http\Controllers\Api\V1\Teacher\TaskController::class, 'index']);
+                Route::post('/', [App\Http\Controllers\Api\V1\Teacher\TaskController::class, 'store']);
+                Route::get('/{task}', [App\Http\Controllers\Api\V1\Teacher\TaskController::class, 'show']);
+                Route::put('/{task}', [App\Http\Controllers\Api\V1\Teacher\TaskController::class, 'update']);
+                Route::patch('/{task}/active', [App\Http\Controllers\Api\V1\Teacher\TaskController::class, 'toggleActive']);
+                Route::delete('/{task}', [App\Http\Controllers\Api\V1\Teacher\TaskController::class, 'destroy']);
+
+                // Submissions (per task)
+                Route::get('/{task}/submissions', [App\Http\Controllers\Api\V1\Teacher\TaskSubmissionController::class, 'index']);
+            });
+
+            /*
+            |------------------------------------------------------------------
+            | Task Submissions (single + review)
+            | Base: /api/v1/teacher/task-submissions
+            |------------------------------------------------------------------
+            */
+            Route::prefix('task-submissions')->group(function () {
+                Route::get('/{submission}', [App\Http\Controllers\Api\V1\Teacher\TaskSubmissionController::class, 'show']);
+                Route::patch('/{submission}/review', [App\Http\Controllers\Api\V1\Teacher\TaskSubmissionController::class, 'review']);
+            });
+
+            /*
+            |------------------------------------------------------------------
+            | Exam Questions
+            | Base: /api/v1/teacher/exam-questions
+            |------------------------------------------------------------------
+            */
             Route::prefix('exam-questions')->group(function () {
                 Route::get('/', [App\Http\Controllers\Api\V1\Teacher\ExamQuestionController::class, 'index']);
                 Route::post('/', [App\Http\Controllers\Api\V1\Teacher\ExamQuestionController::class, 'store']); // single OR bulk
@@ -190,13 +273,9 @@ Route::prefix('v1')->group(function () {
 |--------------------------------------------------------------------------
 | Scribe Notes (How to generate docs)
 |--------------------------------------------------------------------------
-| 1) Install (if not installed):
-|    composer require --dev knuckleswtf/scribe
-|
-| 2) Publish config:
-|    php artisan vendor:publish --tag=scribe-config
-|
-| 3) Add this to config/scribe.php (recommended):
+| 1) composer require --dev knuckleswtf/scribe
+| 2) php artisan vendor:publish --tag=scribe-config
+| 3) config/scribe.php:
 |    'routes' => [
 |        [
 |            'match' => [
@@ -214,8 +293,6 @@ Route::prefix('v1')->group(function () {
 |        'name' => 'Authorization',
 |        'use_value' => 'Bearer {YOUR_TOKEN}',
 |    ],
-|
-| 4) Generate:
-|    php artisan scribe:generate
+| 4) php artisan scribe:generate
 |--------------------------------------------------------------------------
 */
