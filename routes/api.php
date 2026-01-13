@@ -1,6 +1,7 @@
 <?php
 
 use Illuminate\Support\Facades\Route;
+use App\Http\Controllers\Api\Teacher\CourseController;
 
 /*
 |--------------------------------------------------------------------------
@@ -74,6 +75,12 @@ Route::prefix('teacher')->group(function () {
         Route::get('programs/{program}', [App\Http\Controllers\Api\Teacher\ProgramController::class, 'show']);
         Route::put('programs/{program}', [App\Http\Controllers\Api\Teacher\ProgramController::class, 'update']);
         Route::patch('programs/{program}/toggle-active', [App\Http\Controllers\Api\Teacher\ProgramController::class, 'toggleActive']);
+        Route::get('courses', [CourseController::class, 'index']);
+        Route::post('courses', [CourseController::class, 'store']);
+        Route::get('courses/{course}', [CourseController::class, 'show']);
+        Route::put('courses/{course}', [CourseController::class, 'update']);
+        Route::patch('courses/{course}/toggle-active', [CourseController::class, 'toggleActive']);
+        Route::get('courses/{course}/price', [CourseController::class, 'price']);
         Route::post('/logout', [App\Http\Controllers\Api\Teacher\TeacherAuthController::class, 'logout']);
         Route::get('/me', [App\Http\Controllers\Api\Teacher\TeacherAuthController::class, 'me']);
         Route::post('/refresh', [App\Http\Controllers\Api\Teacher\TeacherAuthController::class, 'refresh']);
