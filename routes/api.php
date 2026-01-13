@@ -69,6 +69,11 @@ Route::prefix('teacher')->group(function () {
     Route::post('/reset-password', [App\Http\Controllers\Api\Teacher\TeacherPasswordController::class, 'resetPassword']);
 
     Route::middleware('auth:teacher')->group(function () {
+        Route::get('programs', [App\Http\Controllers\Api\Teacher\TeacherAuthController::class, 'index']);
+        Route::post('programs', [App\Http\Controllers\Api\Teacher\TeacherAuthController::class, 'store']);
+        Route::get('programs/{program}', [App\Http\Controllers\Api\Teacher\TeacherAuthController::class, 'show']);
+        Route::put('programs/{program}', [App\Http\Controllers\Api\Teacher\TeacherAuthController::class, 'update']);
+        Route::patch('programs/{program}/toggle-active', [App\Http\Controllers\Api\Teacher\TeacherAuthController::class, 'toggleActive']);
         Route::post('/logout', [App\Http\Controllers\Api\Teacher\TeacherAuthController::class, 'logout']);
         Route::get('/me', [App\Http\Controllers\Api\Teacher\TeacherAuthController::class, 'me']);
         Route::post('/refresh', [App\Http\Controllers\Api\Teacher\TeacherAuthController::class, 'refresh']);

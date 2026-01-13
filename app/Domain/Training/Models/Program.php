@@ -13,6 +13,7 @@ class Program extends Model
 
     protected $fillable = [
         'parent_id',
+        'teacher_id',
         'code',
         'name',
         'description',
@@ -31,16 +32,21 @@ class Program extends Model
 
     public function parent(): BelongsTo
     {
-        return $this->belongsTo(Program::class, 'parent_id');
+        return $this->belongsTo(self::class, 'parent_id');
     }
 
     public function children(): HasMany
     {
-        return $this->hasMany(Program::class, 'parent_id');
+        return $this->hasMany(self::class, 'parent_id');
     }
 
     public function courses(): HasMany
     {
         return $this->hasMany(Course::class);
+    }
+
+    public function teacher(): BelongsTo
+    {
+        return $this->belongsTo(Teacher::class, 'teacher_id');
     }
 }
