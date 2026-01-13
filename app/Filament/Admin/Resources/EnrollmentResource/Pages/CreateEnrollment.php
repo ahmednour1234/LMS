@@ -153,7 +153,6 @@ class CreateEnrollment extends CreateRecord
 
             $invoice->forceFill([
                 'enrollment_id' => $this->record->id,
-                'student_id'    => $this->record->student_id ?? null,
                 'branch_id'     => $branchId,
                 'user_id'       => auth()->id(),
                 'currency_code' => $this->record->currency_code ?? null,
