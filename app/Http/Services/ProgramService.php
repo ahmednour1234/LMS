@@ -136,5 +136,62 @@ class ProgramService
 
         return $query->paginate($perPage);
     }
+    public function getTeacherPrograms(int $teacherId, array $filters = [], int $perPage = 15): LengthAwarePaginator
+    {
+        $query = Program::query()->where('teacher_id', $teacherId);
+
+        $this->applyFilters($query, $filters);
+
+        $this->applySorting($query, $filters['sort'] ?? 'newest');
+
+        return $query->paginate($perPage);
+    }
+
+
+    public function findTeacherProgram(int $teacherId, int $programId): ?Program
+    {
+        return Program::query()
+            ->where('teacher_id', $teacherId)
+            ->where('id', $programId)
+            ->first();
+    }
+
+    private function applyFilters(Builder $query, array $filters): void
+    {
+        // q search (name ar/en)
+        if (!empty($filters['q'])) {
+            $searchTerm = $filters['q'];
+            $query->where(function (Builder $q) use ($searchTerm) {
+                $q->whereRaw("JSON_UNQUOTE(JSON_EXTRACT(name, '$.ar')) LIKE ?", ["%{$searchTerm}%"])
+                  ->orWhereRaw("JSON_UNQUOTE(JSON_EXTRACT(name, '$.en')) LIKE ?", ["%{$searchTerm}%"])
+                  ->orWhere('code', 'LIKE', "%{$searchTerm}%");
+            });
+        }
+
+        // active (default = 1)
+        $active = $filters['active'] ?? 1;
+        if ($active !== null && $active !== '') {
+            $query->where('is_active', (bool) $active);
+        }
+
+        // parent_id
+        if (isset($filters['parent_id']) && $filters['parent_id'] !== null && $filters['parent_id'] !== '') {
+            $query->where('parent_id', (int) $filters['parent_id']);
+        }
+
+        // code exact
+        if (!empty($filters['code'])) {
+            $query->where('code', $filters['code']);
+        }
+    }
+
+    private function applySorting(Builder $query, string $sort): void
+    {
+        match ($sort) {
+            'oldest' => $query->orderBy('created_at', 'asc')->orderBy('id', 'asc'),
+            'name'   => $query->orderByRaw("JSON_UNQUOTE(JSON_EXTRACT(name, '$.en')) ASC"),
+            default  => $query->orderBy('created_at', 'desc')->orderBy('id', 'desc'),
+        };
+    }
 }
 

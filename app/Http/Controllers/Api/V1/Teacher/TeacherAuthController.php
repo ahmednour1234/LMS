@@ -1,13 +1,13 @@
 <?php
 
-namespace App\Http\Controllers\Api\Teacher;
+namespace App\Http\Controllers\Api\V1\Teacher;
 
 use App\Domain\Training\Models\Teacher;
 use App\Http\Controllers\ApiController;
 use App\Http\Requests\Teacher\LoginTeacherRequest;
 use App\Http\Requests\Teacher\RegisterTeacherRequest;
 use App\Http\Requests\Teacher\UpdateTeacherProfileRequest;
-use App\Http\Resources\Api\V1\Public\TeacherResource;
+use App\Http\Resources\Public\TeacherResource;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
@@ -20,11 +20,11 @@ class TeacherAuthController extends ApiController
     {
         $data = $request->validated();
         $data['active'] = 1;
-        
+
         if ($request->hasFile('photo')) {
             $data['photo'] = $request->file('photo')->store('teachers', 'public');
         }
-        
+
         $teacher = Teacher::create($data);
 
         $token = JWTAuth::fromUser($teacher);

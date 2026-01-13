@@ -1,12 +1,12 @@
 <?php
 
-namespace App\Http\Controllers\Api\Teacher;
+namespace App\Http\Controllers\Api\V1\Teacher;
 
 use App\Domain\Training\Models\Program;
 use App\Http\Controllers\ApiController;
 use App\Http\Requests\Teacher\StoreProgramRequest;
 use App\Http\Requests\Teacher\UpdateProgramRequest;
-use App\Http\Resources\Api\V1\Public\ProgramResource;
+use App\Http\Resources\Public\ProgramResource;
 use App\Http\Services\ProgramService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\Auth;
@@ -165,4 +165,15 @@ class ProgramController extends ApiController
 
         return $this->successResponse(new ProgramResource($model), 'Program status updated successfully.');
     }
+    public function getTeacherPrograms(int $teacherId, array $filters = [], int $perPage = 15): LengthAwarePaginator
+    {
+        $query = Program::query()->where('teacher_id', $teacherId);
+
+        $this->applyFilters($query, $filters);
+
+        $this->applySorting($query, $filters['sort'] ?? 'newest');
+
+        return $query->paginate($perPage);
+    }
+
 }

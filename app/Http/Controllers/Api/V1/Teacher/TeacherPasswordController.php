@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Http\Controllers\Api\Teacher;
+namespace App\Http\Controllers\Api\V1\Teacher;
 
 use App\Http\Controllers\ApiController;
 use App\Http\Requests\Teacher\ForgotTeacherPasswordRequest;
