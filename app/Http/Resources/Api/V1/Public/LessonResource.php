@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Http\Resources\Public;
+namespace App\Http\Resources\Public\Api\V1;
 
 use App\Support\Traits\HasTranslatableFields;
 use Illuminate\Http\Request;
