@@ -155,7 +155,6 @@ class CreateEnrollment extends CreateRecord
                 'enrollment_id' => $this->record->id,
                 'branch_id'     => $branchId,
                 'user_id'       => auth()->id(),
-                'currency_code' => $this->record->currency_code ?? null,
 
                 'total_amount'  => $total,
                 'due_amount'    => $total,
