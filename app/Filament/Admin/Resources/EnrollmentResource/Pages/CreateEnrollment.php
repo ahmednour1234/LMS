@@ -151,6 +151,7 @@ class CreateEnrollment extends CreateRecord
                 'enrollment_id' => $this->record->id,
                 'student_id'    => $this->record->student_id,
                 'branch_id'     => $this->record->branch_id,
+                'user_id'       => auth()->id(),
                 'currency_code' => $this->record->currency_code,
                 'amount'        => $this->record->total_amount,   // لو عندك اسمها total بدل amount عدلها
                 'status'        => 'unpaid',                      // عدلها حسب enum عندك
