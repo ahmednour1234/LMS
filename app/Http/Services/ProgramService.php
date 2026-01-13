@@ -5,148 +5,109 @@ namespace App\Http\Services;
 use App\Domain\Training\Models\Program;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\ModelNotFoundException;
+use Illuminate\Pagination\LengthAwarePaginator as Paginator;
 
 class ProgramService
 {
-    /**
-     * Get paginated programs with filtering and sorting.
-     *
-     * @param array $filters
-     * @param int $perPage
-     * @return LengthAwarePaginator
-     */
-    public function getPaginated(array $filters = [], int $perPage = 15): LengthAwarePaginator
+    /* ============================================================
+     |  PUBLIC (No Teacher Scope)
+     |  Use only in /public endpoints
+     * ============================================================ */
+
+    public function publicIndex(array $filters = [], int $perPage = 15): LengthAwarePaginator
     {
         $query = Program::query();
 
-        // Filter by search query (name in ar/en)
-        if (isset($filters['q']) && !empty($filters['q'])) {
-            $searchTerm = $filters['q'];
-            $query->where(function (Builder $q) use ($searchTerm) {
-                $q->whereRaw("JSON_UNQUOTE(JSON_EXTRACT(name, '$.ar')) LIKE ?", ["%{$searchTerm}%"])
-                  ->orWhereRaw("JSON_UNQUOTE(JSON_EXTRACT(name, '$.en')) LIKE ?", ["%{$searchTerm}%"]);
-            });
-        }
-
-        // Filter by active status (default: active only)
-        $active = $filters['active'] ?? 1;
-        if ($active !== null) {
-            $query->where('is_active', (bool) $active);
-        }
-
-        // Sorting
-        $sort = $filters['sort'] ?? 'newest';
-        match ($sort) {
-            'oldest' => $query->orderBy('created_at', 'asc')->orderBy('id', 'asc'),
-            'name' => $query->orderByRaw("JSON_UNQUOTE(JSON_EXTRACT(name, '$.en')) ASC"),
-            default => $query->orderBy('created_at', 'desc')->orderBy('id', 'desc'), // newest
-        };
-
-        return $query->paginate($perPage);
-    }
-
-    /**
-     * Get a single program by ID.
-     *
-     * @param int $id
-     * @param bool $withCourses Whether to load courses relation
-     * @return Program|null
-     */
-    public function findById(int $id, bool $withCourses = false): ?Program
-    {
-        $query = Program::query();
-
-        if ($withCourses) {
-            $query->with([
-                'courses' => function ($query) {
-                    $query->where('is_active', true)
-                          ->orderBy('created_at', 'desc')
-                          ->orderBy('id', 'desc');
-                },
-                'courses.ownerTeacher',
-            ]);
-        }
-
-        return $query->find($id);
-    }
-
-    /**
-     * Get courses for a program with filtering.
-     *
-     * @param int $programId
-     * @param array $filters
-     * @param int $perPage
-     * @return LengthAwarePaginator
-     */
-    public function getProgramCourses(int $programId, array $filters = [], int $perPage = 15): LengthAwarePaginator
-    {
-        $program = $this->findById($programId);
-
-        if (!$program) {
-            return \Illuminate\Pagination\LengthAwarePaginator::make([], 0, $perPage);
-        }
-
-        $query = $program->courses();
-
-        // Apply course filters (same as CourseService)
-        // Filter by search query (title in ar/en)
-        if (isset($filters['q']) && !empty($filters['q'])) {
-            $searchTerm = $filters['q'];
-            $query->where(function (Builder $q) use ($searchTerm) {
-                $q->whereRaw("JSON_UNQUOTE(JSON_EXTRACT(name, '$.ar')) LIKE ?", ["%{$searchTerm}%"])
-                  ->orWhereRaw("JSON_UNQUOTE(JSON_EXTRACT(name, '$.en')) LIKE ?", ["%{$searchTerm}%"]);
-            });
-        }
-
-        // Filter by active status (default: active only)
-        $active = $filters['active'] ?? 1;
-        if ($active !== null) {
-            $query->where('is_active', (bool) $active);
-        }
-
-        // Filter by delivery_type (optional)
-        if (isset($filters['delivery_type']) && !empty($filters['delivery_type'])) {
-            $query->where('delivery_type', $filters['delivery_type']);
-        }
-
-        // Filter by owner_teacher_id (optional)
-        if (isset($filters['owner_teacher_id']) && $filters['owner_teacher_id'] !== null) {
-            $query->where('owner_teacher_id', $filters['owner_teacher_id']);
-        }
-
-        // Filter by teacher_id (optional) - courses where teacher is owner
-        if (isset($filters['teacher_id']) && $filters['teacher_id'] !== null) {
-            $query->where('owner_teacher_id', $filters['teacher_id']);
-        }
-
-        // Filter by has_price (only courses with active prices)
-        if (isset($filters['has_price']) && $filters['has_price'] == 1) {
-            $query->whereHas('prices', function (Builder $q) {
-                $q->where('is_active', true);
-            });
-        }
-
-        // Sorting
-        $sort = $filters['sort'] ?? 'newest';
-        match ($sort) {
-            'oldest' => $query->orderBy('created_at', 'asc')->orderBy('id', 'asc'),
-            'title' => $query->orderByRaw("JSON_UNQUOTE(JSON_EXTRACT(name, '$.en')) ASC"),
-            default => $query->orderBy('created_at', 'desc')->orderBy('id', 'desc'), // newest
-        };
-
-        return $query->paginate($perPage);
-    }
-    public function getTeacherPrograms(int $teacherId, array $filters = [], int $perPage = 15): LengthAwarePaginator
-    {
-        $query = Program::query()->where('teacher_id', $teacherId);
-
-        $this->applyFilters($query, $filters);
-
+        $this->applyCommonFilters($query, $filters, allowTeacherFilter: false);
         $this->applySorting($query, $filters['sort'] ?? 'newest');
 
         return $query->paginate($perPage);
     }
 
+    public function publicShow(int $programId, bool $withCourses = false): ?Program
+    {
+        $query = Program::query();
+
+        if ($withCourses) {
+            $query->with([
+                'courses' => fn ($q) => $q->where('is_active', true)
+                    ->orderBy('created_at', 'desc')
+                    ->orderBy('id', 'desc'),
+                'courses.ownerTeacher',
+            ]);
+        }
+
+        return $query->find($programId);
+    }
+
+    public function publicProgramCourses(int $programId, array $filters = [], int $perPage = 15): LengthAwarePaginator
+    {
+        $program = Program::query()->find($programId);
+
+        if (!$program) {
+            return $this->emptyPaginator($perPage);
+        }
+
+        $query = $program->courses();
+
+        // courses filters (light)
+        if (!empty($filters['q'])) {
+            $term = $filters['q'];
+            $query->where(function (Builder $q) use ($term) {
+                $q->whereRaw("JSON_UNQUOTE(JSON_EXTRACT(name,'$.ar')) LIKE ?", ["%{$term}%"])
+                  ->orWhereRaw("JSON_UNQUOTE(JSON_EXTRACT(name,'$.en')) LIKE ?", ["%{$term}%"])
+                  ->orWhere('code', 'LIKE', "%{$term}%");
+            });
+        }
+
+        $active = $filters['active'] ?? 1;
+        if ($active !== null && $active !== '') {
+            $query->where('is_active', (bool) $active);
+        }
+
+        if (!empty($filters['delivery_type'])) {
+            $query->where('delivery_type', $filters['delivery_type']);
+        }
+
+        if (!empty($filters['owner_teacher_id'])) {
+            $query->where('owner_teacher_id', (int) $filters['owner_teacher_id']);
+        }
+
+        if (!empty($filters['has_price']) && (int) $filters['has_price'] === 1) {
+            $query->whereHas('prices', fn (Builder $q) => $q->where('is_active', true));
+        }
+
+        $sort = $filters['sort'] ?? 'newest';
+        match ($sort) {
+            'oldest' => $query->orderBy('created_at', 'asc')->orderBy('id', 'asc'),
+            'title', 'name' => $query->orderByRaw("JSON_UNQUOTE(JSON_EXTRACT(name,'$.en')) ASC"),
+            default => $query->orderBy('created_at', 'desc')->orderBy('id', 'desc'),
+        };
+
+        return $query->paginate($perPage);
+    }
+
+    /* ============================================================
+     |  TEACHER SCOPE (Secure)
+     |  Use only in /teacher endpoints
+     * ============================================================ */
+
+    public function getTeacherPrograms(int $teacherId, array $filters = [], int $perPage = 15): LengthAwarePaginator
+    {
+        $query = Program::query()->where('teacher_id', $teacherId);
+
+        $this->applyCommonFilters($query, $filters, allowTeacherFilter: false);
+
+        // IMPORTANT: parent_id filter must also belong to same teacher (prevent leakage)
+        if (isset($filters['parent_id']) && $filters['parent_id'] !== null && $filters['parent_id'] !== '') {
+            $query->where('parent_id', (int) $filters['parent_id']);
+        }
+
+        $this->applySorting($query, $filters['sort'] ?? 'newest');
+
+        return $query->paginate($perPage);
+    }
 
     public function findTeacherProgram(int $teacherId, int $programId): ?Program
     {
@@ -156,32 +117,84 @@ class ProgramService
             ->first();
     }
 
-    private function applyFilters(Builder $query, array $filters): void
+    public function findTeacherProgramOrFail(int $teacherId, int $programId): Program
     {
-        // q search (name ar/en)
+        $program = $this->findTeacherProgram($teacherId, $programId);
+
+        if (!$program) {
+            throw new ModelNotFoundException("Program not found.");
+        }
+
+        return $program;
+    }
+
+    public function createForTeacher(int $teacherId, array $data): Program
+    {
+        // never allow overriding teacher_id from request
+        $data['teacher_id'] = $teacherId;
+
+        // validate parent belongs to same teacher
+        if (!empty($data['parent_id'])) {
+            $this->assertParentBelongsToTeacher($teacherId, (int) $data['parent_id']);
+        }
+
+        return Program::create($data);
+    }
+
+    public function updateForTeacher(int $teacherId, int $programId, array $data): Program
+    {
+        unset($data['teacher_id']); // forbid ownership change
+
+        $program = $this->findTeacherProgramOrFail($teacherId, $programId);
+
+        if (array_key_exists('parent_id', $data) && !empty($data['parent_id'])) {
+            $this->assertParentBelongsToTeacher($teacherId, (int) $data['parent_id']);
+        }
+
+        $program->update($data);
+
+        return $program->refresh();
+    }
+
+    public function toggleActiveForTeacher(int $teacherId, int $programId): Program
+    {
+        $program = $this->findTeacherProgramOrFail($teacherId, $programId);
+
+        $program->update(['is_active' => ! $program->is_active]);
+
+        return $program->refresh();
+    }
+
+    /* ============================================================
+     |  INTERNAL HELPERS
+     * ============================================================ */
+
+    private function applyCommonFilters(Builder $query, array $filters, bool $allowTeacherFilter): void
+    {
+        // q search (name ar/en + code)
         if (!empty($filters['q'])) {
-            $searchTerm = $filters['q'];
-            $query->where(function (Builder $q) use ($searchTerm) {
-                $q->whereRaw("JSON_UNQUOTE(JSON_EXTRACT(name, '$.ar')) LIKE ?", ["%{$searchTerm}%"])
-                  ->orWhereRaw("JSON_UNQUOTE(JSON_EXTRACT(name, '$.en')) LIKE ?", ["%{$searchTerm}%"])
-                  ->orWhere('code', 'LIKE', "%{$searchTerm}%");
+            $term = $filters['q'];
+            $query->where(function (Builder $q) use ($term) {
+                $q->whereRaw("JSON_UNQUOTE(JSON_EXTRACT(name,'$.ar')) LIKE ?", ["%{$term}%"])
+                  ->orWhereRaw("JSON_UNQUOTE(JSON_EXTRACT(name,'$.en')) LIKE ?", ["%{$term}%"])
+                  ->orWhere('code', 'LIKE', "%{$term}%");
             });
         }
 
-        // active (default = 1)
+        // active default=1 (only active)
         $active = $filters['active'] ?? 1;
         if ($active !== null && $active !== '') {
             $query->where('is_active', (bool) $active);
         }
 
-        // parent_id
-        if (isset($filters['parent_id']) && $filters['parent_id'] !== null && $filters['parent_id'] !== '') {
-            $query->where('parent_id', (int) $filters['parent_id']);
-        }
-
         // code exact
         if (!empty($filters['code'])) {
             $query->where('code', $filters['code']);
+        }
+
+        // optional: filter by teacher_id ONLY for admin/public use if needed
+        if ($allowTeacherFilter && isset($filters['teacher_id']) && $filters['teacher_id'] !== null && $filters['teacher_id'] !== '') {
+            $query->where('teacher_id', (int) $filters['teacher_id']);
         }
     }
 
@@ -189,9 +202,28 @@ class ProgramService
     {
         match ($sort) {
             'oldest' => $query->orderBy('created_at', 'asc')->orderBy('id', 'asc'),
-            'name'   => $query->orderByRaw("JSON_UNQUOTE(JSON_EXTRACT(name, '$.en')) ASC"),
+            'name'   => $query->orderByRaw("JSON_UNQUOTE(JSON_EXTRACT(name,'$.en')) ASC"),
             default  => $query->orderBy('created_at', 'desc')->orderBy('id', 'desc'),
         };
     }
-}
 
+    private function assertParentBelongsToTeacher(int $teacherId, int $parentId): void
+    {
+        $exists = Program::query()
+            ->where('id', $parentId)
+            ->where('teacher_id', $teacherId)
+            ->exists();
+
+        if (!$exists) {
+            abort(422, 'parent_id must belong to the authenticated teacher.');
+        }
+    }
+
+    private function emptyPaginator(int $perPage = 15): LengthAwarePaginator
+    {
+        return new Paginator([], 0, $perPage, 1, [
+            'path' => request()->url(),
+            'query' => request()->query(),
+        ]);
+    }
+}

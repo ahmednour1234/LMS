@@ -2,11 +2,10 @@
 
 namespace App\Http\Controllers\Api\V1\Teacher;
 
-use App\Domain\Training\Models\Program;
 use App\Http\Controllers\ApiController;
 use App\Http\Requests\Teacher\StoreProgramRequest;
 use App\Http\Requests\Teacher\UpdateProgramRequest;
-use App\Http\Resources\Api\V1\Public\ProgramResource;
+use App\Http\Resources\Api\V1\Teacher\ProgramResource;
 use App\Http\Services\ProgramService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\Auth;
@@ -15,7 +14,7 @@ use Illuminate\Support\Facades\Storage;
 /**
  * @group Teacher Programs
  *
- * APIs for teachers to manage their own programs.
+ * Teacher APIs to manage own programs only.
  */
 class ProgramController extends ApiController
 {
@@ -28,19 +27,19 @@ class ProgramController extends ApiController
      *
      * @queryParam q string Search in name(ar/en) or code. Example: English
      * @queryParam active boolean Filter by active (default 1). Example: 1
-     * @queryParam parent_id int Filter by parent program. Example: 5
+     * @queryParam parent_id int Filter by parent program (must be mine). Example: 5
      * @queryParam code string Filter by exact code. Example: PRG-001
      * @queryParam sort string Sort (newest, oldest, name). Example: newest
      * @queryParam per_page int Items per page. Example: 15
      */
     public function index(): JsonResponse
     {
-        $teacher = Auth::guard('teacher')->user();
+        $teacherId = Auth::guard('teacher')->id();
 
         $filters = request()->only(['q', 'active', 'parent_id', 'code', 'sort']);
-        $perPage  = (int) request()->get('per_page', 15);
+        $perPage = (int) request()->get('per_page', 15);
 
-        $programs = $this->programService->getTeacherPrograms($teacher->id, $filters, $perPage);
+        $programs = $this->programService->getTeacherPrograms($teacherId, $filters, $perPage);
 
         return $this->successResponse([
             'programs' => ProgramResource::collection($programs),
@@ -58,45 +57,40 @@ class ProgramController extends ApiController
      */
     public function show(int $program): JsonResponse
     {
-        $teacher = Auth::guard('teacher')->user();
+        $teacherId = Auth::guard('teacher')->id();
 
-        $model = $this->programService->findTeacherProgram($teacher->id, $program);
-
-        if (!$model) {
-            return $this->errorResponse(
-                \App\Http\Enums\ApiErrorCode::NOT_FOUND,
-                'Program not found.',
-                null,
-                404
-            );
-        }
+        $model = $this->programService->findTeacherProgramOrFail($teacherId, $program);
 
         return $this->successResponse(new ProgramResource($model), 'Program retrieved successfully.');
     }
 
     /**
-    /**
-     * Store Program
+     * Store Program (Owned by Teacher)
      */
     public function store(StoreProgramRequest $request): JsonResponse
     {
-        $teacher = Auth::guard('teacher')->user();
+        $teacherId = Auth::guard('teacher')->id();
 
-        $data = $request->validated();
-        $data['teacher_id'] = $teacher->id;
+        // only allow safe fields (NEVER accept teacher_id from request)
+        $data = $request->safe()->only([
+            'code',
+            'name',
+            'description',
+            'parent_id',
+            'is_active',
+        ]);
+
+        $data['teacher_id'] = $teacherId;
         $data['is_active']  = $data['is_active'] ?? true;
 
+        // image upload (optional)
         if ($request->hasFile('image')) {
             $data['image'] = $request->file('image')->store('programs', 'public');
         }
 
-        $program = Program::create($data);
+        $program = $this->programService->createForTeacher($teacherId, $data);
 
-        return $this->successResponse(
-            new ProgramResource($program),
-            'Program created successfully.',
-            201
-        );
+        return $this->successResponse(new ProgramResource($program), 'Program created successfully.', 201);
     }
 
     /**
@@ -104,67 +98,58 @@ class ProgramController extends ApiController
      */
     public function update(UpdateProgramRequest $request, int $program): JsonResponse
     {
-        $teacher = Auth::guard('teacher')->user();
+        $teacherId = Auth::guard('teacher')->id();
 
-        $model = $this->programService->findTeacherProgram($teacher->id, $program);
+        $model = $this->programService->findTeacherProgramOrFail($teacherId, $program);
 
-        if (!$model) {
-            return $this->errorResponse(
-                \App\Http\Enums\ApiErrorCode::NOT_FOUND,
-                'Program not found.',
-                null,
-                404
-            );
-        }
-
-        $data = $request->validated();
+        $data = $request->safe()->only([
+            'code',
+            'name',
+            'description',
+            'parent_id',
+            'is_active',
+            'remove_image',
+        ]);
 
         // remove image
-        if (!empty($data['remove_image']) && $model->image) {
-            if (Storage::disk('public')->exists($model->image)) {
-                Storage::disk('public')->delete($model->image);
-            }
+        if (!empty($data['remove_image'])) {
+            $this->deletePublicFileIfExists($model->image);
             $data['image'] = null;
         }
 
         // replace image
         if ($request->hasFile('image')) {
-            if ($model->image && Storage::disk('public')->exists($model->image)) {
-                Storage::disk('public')->delete($model->image);
-            }
+            $this->deletePublicFileIfExists($model->image);
             $data['image'] = $request->file('image')->store('programs', 'public');
         }
 
         unset($data['remove_image']);
 
-        $model->update($data);
-        $model->refresh();
+        $updated = $this->programService->updateForTeacher($teacherId, $model->id, $data);
 
-        return $this->successResponse(new ProgramResource($model), 'Program updated successfully.');
+        return $this->successResponse(new ProgramResource($updated), 'Program updated successfully.');
     }
 
     /**
-     * Toggle Active
+     * Toggle Active (Owned by Teacher)
      */
     public function toggleActive(int $program): JsonResponse
     {
-        $teacher = Auth::guard('teacher')->user();
+        $teacherId = Auth::guard('teacher')->id();
 
-        $model = $this->programService->findTeacherProgram($teacher->id, $program);
+        $model = $this->programService->findTeacherProgramOrFail($teacherId, $program);
 
-        if (!$model) {
-            return $this->errorResponse(
-                \App\Http\Enums\ApiErrorCode::NOT_FOUND,
-                'Program not found.',
-                null,
-                404
-            );
-        }
+        $updated = $this->programService->toggleActiveForTeacher($teacherId, $model->id);
 
-        $model->is_active = !$model->is_active;
-        $model->save();
-
-        return $this->successResponse(new ProgramResource($model), 'Program status updated successfully.');
+        return $this->successResponse(new ProgramResource($updated), 'Program status updated successfully.');
     }
 
+    private function deletePublicFileIfExists(?string $path): void
+    {
+        if (!$path) return;
+
+        if (Storage::disk('public')->exists($path)) {
+            Storage::disk('public')->delete($path);
+        }
+    }
 }

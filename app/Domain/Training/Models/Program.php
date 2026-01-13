@@ -49,4 +49,9 @@ class Program extends Model
     {
         return $this->belongsTo(Teacher::class, 'teacher_id');
     }
+    public function scopeOwnedBy($q, int $teacherId)
+{
+    return $q->where('teacher_id', $teacherId);
+}
+
 }
