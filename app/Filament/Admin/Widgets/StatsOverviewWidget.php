@@ -68,7 +68,7 @@ class StatsOverviewWidget extends BaseWidget
                 'label' => __('dashboard.stats.payments_collected_today') ?? 'Payments Today',
                 'value_callback' => fn(?int $bid) => (float) Payment::query()
                     ->where('status', 'completed')
-                    ->whereDate('created_at', today())
+                    ->whereDate('paid_at', today())
                     ->when($bid, fn (Builder $q) => $q->where('branch_id', $bid))
                     ->sum('amount'),
                 'value_formatter' => fn($value) => $this->money($value),
@@ -79,7 +79,7 @@ class StatsOverviewWidget extends BaseWidget
                     'days' => 7,
                     'callback' => fn(Carbon $date, ?int $bid) => (float) Payment::query()
                         ->where('status', 'completed')
-                        ->whereDate('created_at', $date)
+                        ->whereDate('paid_at', $date)
                         ->when($bid, fn (Builder $q) => $q->where('branch_id', $bid))
                         ->sum('amount'),
                 ],
@@ -110,7 +110,7 @@ class StatsOverviewWidget extends BaseWidget
                     'points' => 7,
                     'callback' => fn(Carbon $from, Carbon $to, ?int $bid) => (float) Payment::query()
                         ->where('status', 'completed')
-                        ->whereBetween('created_at', [$from, $to])
+                        ->whereBetween('paid_at', [$from, $to])
                         ->when($bid, fn (Builder $q) => $q->where('branch_id', $bid))
                         ->sum('amount'),
                 ],
@@ -118,7 +118,7 @@ class StatsOverviewWidget extends BaseWidget
                     'type' => 'vs_previous_period',
                     'comparison_callback' => fn(?int $bid) => (float) Payment::query()
                         ->where('status', 'completed')
-                        ->whereBetween('created_at', [now()->subMonth()->startOfMonth(), now()->subMonth()->endOfMonth()])
+                        ->whereBetween('paid_at', [now()->subMonth()->startOfMonth(), now()->subMonth()->endOfMonth()])
                         ->when($bid, fn (Builder $q) => $q->where('branch_id', $bid))
                         ->sum('amount'),
                     'suffix' => ' vs last month',
