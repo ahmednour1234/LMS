@@ -25,8 +25,8 @@ class CollectionsChartWidget extends ChartWidget
         $payments = Payment::query()
             ->when($branchId, fn ($query) => $query->where('branch_id', $branchId))
             ->where('status', 'completed')
-            ->whereBetween('paid_at', [$startDate, $endDate])
-            ->selectRaw('DATE(paid_at) as date, SUM(amount) as total')
+            ->whereBetween('created_at', [$startDate, $endDate])
+            ->selectRaw('DATE(created_at) as date, SUM(amount) as total')
             ->groupBy('date')
             ->orderBy('date')
             ->get();
@@ -39,10 +39,10 @@ class CollectionsChartWidget extends ChartWidget
         while ($currentDate <= $endDate) {
             $dateKey = $currentDate->format('Y-m-d');
             $dates[] = $currentDate->format('M d');
-            
+
             $payment = $payments->firstWhere('date', $dateKey);
             $amounts[] = $payment ? (float) $payment->total : 0;
-            
+
             $currentDate->addDay();
         }
 
