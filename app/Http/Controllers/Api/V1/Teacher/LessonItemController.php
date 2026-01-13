@@ -7,7 +7,7 @@ use App\Domain\Training\Models\LessonItem;
 use App\Http\Controllers\ApiController;
 use App\Http\Requests\Teacher\StoreLessonItemRequest;
 use App\Http\Requests\Teacher\UpdateLessonItemRequest;
-use App\Http\Resources\Public\LessonItemResource;
+use App\Http\Resources\Api\V1\Public\LessonItemResource;
 use App\Http\Services\LessonItemService;
 use App\Http\Services\TeacherOwnershipGuardService;
 use Illuminate\Http\JsonResponse;

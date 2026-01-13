@@ -7,7 +7,7 @@ use App\Http\Controllers\ApiController;
 use App\Http\Requests\Teacher\LoginTeacherRequest;
 use App\Http\Requests\Teacher\RegisterTeacherRequest;
 use App\Http\Requests\Teacher\UpdateTeacherProfileRequest;
-use App\Http\Resources\Public\TeacherResource;
+use App\Http\Resources\Api\V1\Public\TeacherResource;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;

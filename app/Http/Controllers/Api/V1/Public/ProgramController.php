@@ -4,8 +4,8 @@ namespace App\Http\Controllers\Api\V1\Public;
 
 use App\Http\Controllers\ApiController;
 use App\Http\Enums\ApiErrorCode;
-use App\Http\Resources\Public\CourseListResource;
-use App\Http\Resources\Public\ProgramResource;
+use App\Http\Resources\Api\V1\Public\CourseListResource;
+use App\Http\Resources\Api\V1\Public\ProgramResource;
 use App\Http\Services\ProgramService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;

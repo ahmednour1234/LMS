@@ -7,7 +7,7 @@ use App\Domain\Training\Models\CourseSection;
 use App\Http\Controllers\ApiController;
 use App\Http\Requests\Teacher\StoreCourseSectionRequest;
 use App\Http\Requests\Teacher\UpdateCourseSectionRequest;
-use App\Http\Resources\Public\CourseSectionResource;
+use App\Http\Resources\Api\V1\Public\CourseSectionResource;
 use App\Http\Services\CourseSectionService;
 use App\Http\Services\TeacherOwnershipGuardService;
 use Illuminate\Http\JsonResponse;

@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Http\Controllers\Api\V1\Teacher;
+namespace App\Http\Controllers\Api\Teacher;
 
 use App\Domain\Training\Models\Program;
 use App\Http\Controllers\ApiController;
@@ -74,7 +74,6 @@ class ProgramController extends ApiController
         return $this->successResponse(new ProgramResource($model), 'Program retrieved successfully.');
     }
 
-    /**
     /**
      * Store Program
      */
@@ -166,5 +165,4 @@ class ProgramController extends ApiController
 
         return $this->successResponse(new ProgramResource($model), 'Program status updated successfully.');
     }
-
 }

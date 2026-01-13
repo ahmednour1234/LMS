@@ -4,7 +4,7 @@ namespace App\Http\Controllers\Api\V1\Teacher;
 
 use App\Http\Controllers\ApiController;
 use App\Domain\Training\Models\Course;
-use App\Http\Resources\Public\CourseResource;
+use App\Http\Resources\Api\V1\Public\CourseResource;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\Auth;
 

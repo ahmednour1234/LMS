@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Http\Resources\Public\Api\V1;
+namespace App\Http\Resources\Api\V1\Public;
 
 use App\Support\Helpers\ImageHelper;
 use App\Support\Traits\HasTranslatableFields;

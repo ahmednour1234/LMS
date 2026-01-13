@@ -7,7 +7,7 @@ use App\Domain\Training\Models\Exam;
 use App\Http\Controllers\ApiController;
 use App\Http\Requests\Teacher\StoreExamRequest;
 use App\Http\Requests\Teacher\UpdateExamRequest;
-use App\Http\Resources\Public\ExamResource;
+use App\Http\Resources\Api\V1\Public\ExamResource;
 use App\Http\Services\ExamService;
 use App\Http\Services\TeacherOwnershipGuardService;
 use Illuminate\Http\JsonResponse;

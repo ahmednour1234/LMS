@@ -4,6 +4,7 @@ namespace App\Domain\Training\Services;
 
 use App\Domain\Training\Enums\DeliveryType;
 use App\Domain\Training\Models\CoursePrice;
+use App\Domain\Training\Models\Course;
 
 class CoursePriceService
 {

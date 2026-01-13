@@ -4,7 +4,7 @@ namespace App\Http\Controllers\Api\V1\Teacher;
 
 use App\Http\Controllers\ApiController;
 use App\Http\Requests\Teacher\StoreMediaRequest;
-use App\Http\Resources\Public\MediaFileResource;
+use App\Http\Resources\Public\Api\V1\MediaFileResource;
 use App\Http\Services\MediaService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\Auth;

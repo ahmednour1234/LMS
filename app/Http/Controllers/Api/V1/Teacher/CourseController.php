@@ -6,7 +6,7 @@ use App\Domain\Training\Services\CoursePriceService;
 use App\Http\Controllers\ApiController;
 use App\Http\Requests\Teacher\StoreCourseRequest;
 use App\Http\Requests\Teacher\UpdateCourseRequest;
-use App\Http\Resources\Public\CourseResource;
+use App\Http\Resources\Api\V1\Public\CourseResource;
 use App\Http\Services\TeacherCourseService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\Auth;
