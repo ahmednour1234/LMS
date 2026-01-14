@@ -15,23 +15,38 @@ class ProgramService
      |  Use only in /public endpoints
      * ============================================================ */
 
+    /**
+     * Compatibility method:
+     * Some controllers call getPaginated(). We keep it mapped to publicIndex().
+     */
+    public function getPaginated(array $filters = [], int $perPage = 15): LengthAwarePaginator
+    {
+        return $this->publicIndex($filters, $perPage);
+    }
+
+    /**
+     * Public list of programs (default active only).
+     */
     public function publicIndex(array $filters = [], int $perPage = 15): LengthAwarePaginator
     {
         $query = Program::query();
 
-        $this->applyCommonFilters($query, $filters, allowTeacherFilter: false);
-        $this->applySorting($query, $filters['sort'] ?? 'newest');
+        $this->applyCommonFilters($query, $filters, allowTeacherFilter: true); // public ممكن تسمح teacher_id لو محتاج
+        $this->applySorting($query, (string) ($filters['sort'] ?? 'newest'));
 
         return $query->paginate($perPage);
     }
 
+    /**
+     * Public show (optionally with active courses only).
+     */
     public function publicShow(int $programId, bool $withCourses = false): ?Program
     {
         $query = Program::query();
 
         if ($withCourses) {
             $query->with([
-                'courses' => fn ($q) => $q->where('is_active', true)
+                'courses' => fn (Builder $q) => $q->where('is_active', true)
                     ->orderBy('created_at', 'desc')
                     ->orderBy('id', 'desc'),
                 'courses.ownerTeacher',
@@ -41,49 +56,21 @@ class ProgramService
         return $query->find($programId);
     }
 
+    /**
+     * Public program courses with filters.
+     */
     public function publicProgramCourses(int $programId, array $filters = [], int $perPage = 15): LengthAwarePaginator
     {
         $program = Program::query()->find($programId);
 
-        if (!$program) {
+        if (! $program) {
             return $this->emptyPaginator($perPage);
         }
 
         $query = $program->courses();
 
-        // courses filters (light)
-        if (!empty($filters['q'])) {
-            $term = $filters['q'];
-            $query->where(function (Builder $q) use ($term) {
-                $q->whereRaw("JSON_UNQUOTE(JSON_EXTRACT(name,'$.ar')) LIKE ?", ["%{$term}%"])
-                  ->orWhereRaw("JSON_UNQUOTE(JSON_EXTRACT(name,'$.en')) LIKE ?", ["%{$term}%"])
-                  ->orWhere('code', 'LIKE', "%{$term}%");
-            });
-        }
-
-        $active = $filters['active'] ?? 1;
-        if ($active !== null && $active !== '') {
-            $query->where('is_active', (bool) $active);
-        }
-
-        if (!empty($filters['delivery_type'])) {
-            $query->where('delivery_type', $filters['delivery_type']);
-        }
-
-        if (!empty($filters['owner_teacher_id'])) {
-            $query->where('owner_teacher_id', (int) $filters['owner_teacher_id']);
-        }
-
-        if (!empty($filters['has_price']) && (int) $filters['has_price'] === 1) {
-            $query->whereHas('prices', fn (Builder $q) => $q->where('is_active', true));
-        }
-
-        $sort = $filters['sort'] ?? 'newest';
-        match ($sort) {
-            'oldest' => $query->orderBy('created_at', 'asc')->orderBy('id', 'asc'),
-            'title', 'name' => $query->orderByRaw("JSON_UNQUOTE(JSON_EXTRACT(name,'$.en')) ASC"),
-            default => $query->orderBy('created_at', 'desc')->orderBy('id', 'desc'),
-        };
+        $this->applyCoursesFilters($query, $filters);
+        $this->applyCoursesSorting($query, (string) ($filters['sort'] ?? 'newest'));
 
         return $query->paginate($perPage);
     }
@@ -93,18 +80,26 @@ class ProgramService
      |  Use only in /teacher endpoints
      * ============================================================ */
 
+    /**
+     * Teacher paginated programs (secure).
+     */
+    public function teacherPaginated(int $teacherId, array $filters = [], int $perPage = 15): LengthAwarePaginator
+    {
+        return $this->getTeacherPrograms($teacherId, $filters, $perPage);
+    }
+
     public function getTeacherPrograms(int $teacherId, array $filters = [], int $perPage = 15): LengthAwarePaginator
     {
         $query = Program::query()->where('teacher_id', $teacherId);
 
         $this->applyCommonFilters($query, $filters, allowTeacherFilter: false);
 
-        // IMPORTANT: parent_id filter must also belong to same teacher (prevent leakage)
+        // IMPORTANT: parent_id filter is allowed BUT should stay within teacher scope (already via where teacher_id)
         if (isset($filters['parent_id']) && $filters['parent_id'] !== null && $filters['parent_id'] !== '') {
             $query->where('parent_id', (int) $filters['parent_id']);
         }
 
-        $this->applySorting($query, $filters['sort'] ?? 'newest');
+        $this->applySorting($query, (string) ($filters['sort'] ?? 'newest'));
 
         return $query->paginate($perPage);
     }
@@ -121,7 +116,7 @@ class ProgramService
     {
         $program = $this->findTeacherProgram($teacherId, $programId);
 
-        if (!$program) {
+        if (! $program) {
             throw new ModelNotFoundException("Program not found.");
         }
 
@@ -166,14 +161,18 @@ class ProgramService
     }
 
     /* ============================================================
-     |  INTERNAL HELPERS
+     |  INTERNAL HELPERS (Programs)
      * ============================================================ */
 
     private function applyCommonFilters(Builder $query, array $filters, bool $allowTeacherFilter): void
     {
         // q search (name ar/en + code)
         if (!empty($filters['q'])) {
-            $term = $filters['q'];
+            $term = trim((string) $filters['q']);
+
+            // حماية بسيطة من LIKE wildcards الثقيلة
+            $term = str_replace(['%', '_'], ['\%', '\_'], $term);
+
             $query->where(function (Builder $q) use ($term) {
                 $q->whereRaw("JSON_UNQUOTE(JSON_EXTRACT(name,'$.ar')) LIKE ?", ["%{$term}%"])
                   ->orWhereRaw("JSON_UNQUOTE(JSON_EXTRACT(name,'$.en')) LIKE ?", ["%{$term}%"])
@@ -189,20 +188,27 @@ class ProgramService
 
         // code exact
         if (!empty($filters['code'])) {
-            $query->where('code', $filters['code']);
+            $query->where('code', (string) $filters['code']);
         }
 
-        // optional: filter by teacher_id ONLY for admin/public use if needed
+        // optional: filter by teacher_id ONLY for public/admin usage
         if ($allowTeacherFilter && isset($filters['teacher_id']) && $filters['teacher_id'] !== null && $filters['teacher_id'] !== '') {
             $query->where('teacher_id', (int) $filters['teacher_id']);
+        }
+
+        // parent_id (public allowed only if you want)
+        if (isset($filters['parent_id']) && $filters['parent_id'] !== null && $filters['parent_id'] !== '') {
+            $query->where('parent_id', (int) $filters['parent_id']);
         }
     }
 
     private function applySorting(Builder $query, string $sort): void
     {
+        $sort = strtolower(trim($sort));
+
         match ($sort) {
             'oldest' => $query->orderBy('created_at', 'asc')->orderBy('id', 'asc'),
-            'name'   => $query->orderByRaw("JSON_UNQUOTE(JSON_EXTRACT(name,'$.en')) ASC"),
+            'name', 'title' => $query->orderByRaw("JSON_UNQUOTE(JSON_EXTRACT(name,'$.en')) ASC"),
             default  => $query->orderBy('created_at', 'desc')->orderBy('id', 'desc'),
         };
     }
@@ -214,9 +220,55 @@ class ProgramService
             ->where('teacher_id', $teacherId)
             ->exists();
 
-        if (!$exists) {
+        if (! $exists) {
             abort(422, 'parent_id must belong to the authenticated teacher.');
         }
+    }
+
+    /* ============================================================
+     |  INTERNAL HELPERS (Courses)
+     * ============================================================ */
+
+    private function applyCoursesFilters(Builder $query, array $filters): void
+    {
+        if (!empty($filters['q'])) {
+            $term = trim((string) $filters['q']);
+            $term = str_replace(['%', '_'], ['\%', '\_'], $term);
+
+            $query->where(function (Builder $q) use ($term) {
+                $q->whereRaw("JSON_UNQUOTE(JSON_EXTRACT(name,'$.ar')) LIKE ?", ["%{$term}%"])
+                  ->orWhereRaw("JSON_UNQUOTE(JSON_EXTRACT(name,'$.en')) LIKE ?", ["%{$term}%"])
+                  ->orWhere('code', 'LIKE', "%{$term}%");
+            });
+        }
+
+        $active = $filters['active'] ?? 1;
+        if ($active !== null && $active !== '') {
+            $query->where('is_active', (bool) $active);
+        }
+
+        if (!empty($filters['delivery_type'])) {
+            $query->where('delivery_type', (string) $filters['delivery_type']);
+        }
+
+        if (!empty($filters['owner_teacher_id'])) {
+            $query->where('owner_teacher_id', (int) $filters['owner_teacher_id']);
+        }
+
+        if (!empty($filters['has_price']) && (int) $filters['has_price'] === 1) {
+            $query->whereHas('prices', fn (Builder $q) => $q->where('is_active', true));
+        }
+    }
+
+    private function applyCoursesSorting(Builder $query, string $sort): void
+    {
+        $sort = strtolower(trim($sort));
+
+        match ($sort) {
+            'oldest' => $query->orderBy('created_at', 'asc')->orderBy('id', 'asc'),
+            'title', 'name' => $query->orderByRaw("JSON_UNQUOTE(JSON_EXTRACT(name,'$.en')) ASC"),
+            default => $query->orderBy('created_at', 'desc')->orderBy('id', 'desc'),
+        };
     }
 
     private function emptyPaginator(int $perPage = 15): LengthAwarePaginator
