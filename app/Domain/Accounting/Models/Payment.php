@@ -9,6 +9,7 @@ use App\Support\Traits\HasVisibilityScope;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasOne;
 
 class Payment extends Model
@@ -72,6 +73,23 @@ class Payment extends Model
     public function updater(): BelongsTo
     {
         return $this->belongsTo(User::class, 'updated_by');
+    }
+
+    public function journals(): HasMany
+    {
+        return $this->hasMany(Journal::class, 'reference_id')
+            ->where('reference_type', 'payment');
+    }
+
+    public function journal(): HasOne
+    {
+        return $this->hasOne(Journal::class, 'reference_id')
+            ->where('reference_type', 'payment');
+    }
+
+    public function canBeEdited(): bool
+    {
+        return !$this->journals()->where('status', 'posted')->exists();
     }
 }
 

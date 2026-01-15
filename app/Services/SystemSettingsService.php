@@ -27,6 +27,10 @@ class SystemSettingsService
             'receipt_prefix' => ['prefix' => 'RCP-'],
             'tax_registration_number' => ['number' => ''],
             'commercial_registration_number' => ['number' => ''],
+            'default_cash_account_code' => ['code' => '1110'],
+            'default_bank_account_code' => ['code' => '1120'],
+            'default_revenue_account_code' => ['code' => '4110'],
+            'default_expense_account_code' => ['code' => '5110'],
         ],
     ];
 

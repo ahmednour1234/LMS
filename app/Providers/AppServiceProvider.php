@@ -2,6 +2,8 @@
 
 namespace App\Providers;
 
+use App\Domain\Accounting\Models\Payment;
+use App\Domain\Accounting\Observers\PaymentObserver;
 use App\Services\SystemSettingsService;
 use Illuminate\Support\ServiceProvider;
 
@@ -53,6 +55,9 @@ class AppServiceProvider extends ServiceProvider
         
         // Ensure system settings exist on app boot (fail-safe)
         app(SystemSettingsService::class)->ensureSystemSettingsExist();
+
+        // Register observers
+        Payment::observe(PaymentObserver::class);
         
         // Helper function to sanitize UTF-8 strings
         if (!function_exists('sanitize_utf8')) {
