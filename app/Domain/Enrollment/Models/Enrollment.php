@@ -156,5 +156,10 @@ class Enrollment extends Model
     {
         return $this->enrollment_mode === EnrollmentMode::COURSE_FULL;
     }
+
+    public function attendances(): HasMany
+    {
+        return $this->hasMany(\App\Domain\Training\Models\CourseSessionAttendance::class);
+    }
 }
 
