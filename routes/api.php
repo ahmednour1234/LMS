@@ -2,14 +2,6 @@
 
 use Illuminate\Support\Facades\Route;
 
-/*
-|--------------------------------------------------------------------------
-| API Routes
-|--------------------------------------------------------------------------
-| All API routes are grouped under "api" middleware by RouteServiceProvider.
-|--------------------------------------------------------------------------
-*/
-
 Route::prefix('v1')->group(function () {
 
     /*
@@ -28,6 +20,7 @@ Route::prefix('v1')->group(function () {
     |--------------------------------------------------------------------------
     | Student Auth (Public + Protected)
     |--------------------------------------------------------------------------
+    | Base: /api/v1/student
     */
     Route::prefix('student')->group(function () {
 
@@ -51,6 +44,7 @@ Route::prefix('v1')->group(function () {
     |--------------------------------------------------------------------------
     | Branches (Public Read-only)
     |--------------------------------------------------------------------------
+    | Base: /api/v1/branches
     */
     Route::get('/branches', [App\Http\Controllers\Api\V1\BranchController::class, 'index']);
 
@@ -58,6 +52,7 @@ Route::prefix('v1')->group(function () {
     |--------------------------------------------------------------------------
     | Public (No Auth)
     |--------------------------------------------------------------------------
+    | Base: /api/v1/public
     */
     Route::prefix('public')->group(function () {
 
@@ -93,15 +88,14 @@ Route::prefix('v1')->group(function () {
     | Teacher (Auth + Protected)
     |--------------------------------------------------------------------------
     | Base: /api/v1/teacher
-    |--------------------------------------------------------------------------
     */
     Route::prefix('teacher')->group(function () {
 
         /*
-        |----------------------------------------------------------------------
+        |--------------------------------------------------------------------------
         | Teacher Auth (Public)
+        |--------------------------------------------------------------------------
         | Base: /api/v1/teacher/auth
-        |----------------------------------------------------------------------
         */
         Route::prefix('auth')->group(function () {
             Route::post('/register', [App\Http\Controllers\Api\V1\Teacher\TeacherAuthController::class, 'register']);
@@ -111,17 +105,17 @@ Route::prefix('v1')->group(function () {
         });
 
         /*
-        |----------------------------------------------------------------------
+        |--------------------------------------------------------------------------
         | Teacher Protected (JWT)
-        |----------------------------------------------------------------------
+        |--------------------------------------------------------------------------
         */
         Route::middleware('auth:teacher')->group(function () {
 
             /*
-            |------------------------------------------------------------------
+            |--------------------------------------------------------------------------
             | Session / Profile
+            |--------------------------------------------------------------------------
             | Base: /api/v1/teacher/auth
-            |------------------------------------------------------------------
             */
             Route::prefix('auth')->group(function () {
                 Route::post('/logout', [App\Http\Controllers\Api\V1\Teacher\TeacherAuthController::class, 'logout']);
@@ -131,10 +125,10 @@ Route::prefix('v1')->group(function () {
             });
 
             /*
-            |------------------------------------------------------------------
-            | Programs
+            |--------------------------------------------------------------------------
+            | Programs (Teacher CRUD)
+            |--------------------------------------------------------------------------
             | Base: /api/v1/teacher/programs
-            |------------------------------------------------------------------
             */
             Route::prefix('programs')->group(function () {
                 Route::get('/', [App\Http\Controllers\Api\V1\Teacher\ProgramController::class, 'index']);
@@ -145,10 +139,10 @@ Route::prefix('v1')->group(function () {
             });
 
             /*
-            |------------------------------------------------------------------
+            |--------------------------------------------------------------------------
             | Courses (Teacher CRUD)
+            |--------------------------------------------------------------------------
             | Base: /api/v1/teacher/courses
-            |------------------------------------------------------------------
             */
             Route::prefix('courses')->group(function () {
                 Route::get('/', [App\Http\Controllers\Api\V1\Teacher\CourseController::class, 'index']);
@@ -161,18 +155,30 @@ Route::prefix('v1')->group(function () {
             });
 
             /*
-            |------------------------------------------------------------------
+            |--------------------------------------------------------------------------
+            | Sessions (Teacher CRUD) ✅ FIXED
+            |--------------------------------------------------------------------------
+            | Base: /api/v1/teacher/sessions
+            |
+            | NOTE:
+            | - Removed wrong prefix (v1/teacher) inside v1
+            | - apiResource placed inside teacher protected group
+            */
+            Route::apiResource('sessions', App\Http\Controllers\Api\V1\Teacher\SessionController::class);
+
+            /*
+            |--------------------------------------------------------------------------
             | Media Upload
+            |--------------------------------------------------------------------------
             | Base: /api/v1/teacher/media
-            |------------------------------------------------------------------
             */
             Route::post('/media', [App\Http\Controllers\Api\V1\Teacher\TeacherMediaController::class, 'store']);
 
             /*
-            |------------------------------------------------------------------
+            |--------------------------------------------------------------------------
             | Sections
+            |--------------------------------------------------------------------------
             | Base: /api/v1/teacher/sections
-            |------------------------------------------------------------------
             */
             Route::prefix('sections')->group(function () {
                 Route::get('/', [App\Http\Controllers\Api\V1\Teacher\CourseSectionController::class, 'index']);
@@ -183,10 +189,10 @@ Route::prefix('v1')->group(function () {
             });
 
             /*
-            |------------------------------------------------------------------
+            |--------------------------------------------------------------------------
             | Lessons
+            |--------------------------------------------------------------------------
             | Base: /api/v1/teacher/lessons
-            |------------------------------------------------------------------
             */
             Route::prefix('lessons')->group(function () {
                 Route::get('/', [App\Http\Controllers\Api\V1\Teacher\LessonController::class, 'index']);
@@ -197,10 +203,10 @@ Route::prefix('v1')->group(function () {
             });
 
             /*
-            |------------------------------------------------------------------
+            |--------------------------------------------------------------------------
             | Lesson Items
+            |--------------------------------------------------------------------------
             | Base: /api/v1/teacher/lesson-items
-            |------------------------------------------------------------------
             */
             Route::prefix('lesson-items')->group(function () {
                 Route::get('/', [App\Http\Controllers\Api\V1\Teacher\LessonItemController::class, 'index']);
@@ -211,10 +217,10 @@ Route::prefix('v1')->group(function () {
             });
 
             /*
-            |------------------------------------------------------------------
+            |--------------------------------------------------------------------------
             | Exams
+            |--------------------------------------------------------------------------
             | Base: /api/v1/teacher/exams
-            |------------------------------------------------------------------
             */
             Route::prefix('exams')->group(function () {
                 Route::get('/', [App\Http\Controllers\Api\V1\Teacher\ExamController::class, 'index']);
@@ -225,10 +231,10 @@ Route::prefix('v1')->group(function () {
             });
 
             /*
-            |------------------------------------------------------------------
+            |--------------------------------------------------------------------------
             | Tasks
+            |--------------------------------------------------------------------------
             | Base: /api/v1/teacher/tasks
-            |------------------------------------------------------------------
             */
             Route::prefix('tasks')->group(function () {
                 Route::get('/', [App\Http\Controllers\Api\V1\Teacher\TaskController::class, 'index']);
@@ -243,10 +249,10 @@ Route::prefix('v1')->group(function () {
             });
 
             /*
-            |------------------------------------------------------------------
+            |--------------------------------------------------------------------------
             | Task Submissions (single + review)
+            |--------------------------------------------------------------------------
             | Base: /api/v1/teacher/task-submissions
-            |------------------------------------------------------------------
             */
             Route::prefix('task-submissions')->group(function () {
                 Route::get('/{submission}', [App\Http\Controllers\Api\V1\Teacher\TaskSubmissionController::class, 'show']);
@@ -254,10 +260,10 @@ Route::prefix('v1')->group(function () {
             });
 
             /*
-            |------------------------------------------------------------------
+            |--------------------------------------------------------------------------
             | Exam Questions
+            |--------------------------------------------------------------------------
             | Base: /api/v1/teacher/exam-questions
-            |------------------------------------------------------------------
             */
             Route::prefix('exam-questions')->group(function () {
                 Route::get('/', [App\Http\Controllers\Api\V1\Teacher\ExamQuestionController::class, 'index']);
@@ -268,31 +274,3 @@ Route::prefix('v1')->group(function () {
         });
     });
 });
-
-/*
-|--------------------------------------------------------------------------
-| Scribe Notes (How to generate docs)
-|--------------------------------------------------------------------------
-| 1) composer require --dev knuckleswtf/scribe
-| 2) php artisan vendor:publish --tag=scribe-config
-| 3) config/scribe.php:
-|    'routes' => [
-|        [
-|            'match' => [
-|                'prefixes' => ['api/v1'],
-|            ],
-|            'include' => [
-|                'api/v1/*',
-|            ],
-|        ],
-|    ],
-|    'auth' => [
-|        'enabled' => true,
-|        'default' => 'bearer',
-|        'in' => 'header',
-|        'name' => 'Authorization',
-|        'use_value' => 'Bearer {YOUR_TOKEN}',
-|    ],
-| 4) php artisan scribe:generate
-|--------------------------------------------------------------------------
-*/

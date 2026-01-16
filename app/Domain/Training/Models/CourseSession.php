@@ -2,14 +2,14 @@
 
 namespace App\Domain\Training\Models;
 
-use App\Domain\Training\Enums\LocationType;
-use App\Domain\Training\Enums\SessionStatus;
 use App\Models\User;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
-
+use App\Domain\Training\Enums\SessionLocationType;
+use App\Domain\Training\Enums\SessionProvider;
+use App\Domain\Training\Enums\SessionStatus;
 class CourseSession extends Model
 {
     use HasFactory;
@@ -31,7 +31,8 @@ class CourseSession extends Model
     protected function casts(): array
     {
         return [
-            'location_type' => LocationType::class,
+            'location_type' => SessionLocationType::class,
+            'provider' => SessionProvider::class,
             'status' => SessionStatus::class,
             'starts_at' => 'datetime',
             'ends_at' => 'datetime',
