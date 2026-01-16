@@ -32,4 +32,18 @@ return [
 
     'no_data_title' => 'No data found',
     'no_data_desc' => 'Try adjusting your filters (date range, teacher, course, or payment status).',
+    'stats' => [
+        'enrollments_total' => 'إجمالي التسجيلات',
+        'enrollments_active' => 'التسجيلات النشطة',
+        'payments_total' => 'إجمالي المدفوعات',
+        'payments_completed' => 'مدفوعات مكتملة',
+        'payments_pending' => 'مدفوعات معلقة',
+        'payments_failed' => 'مدفوعات فاشلة',
+        'revenue_total' => 'إجمالي الإيراد',
+        'revenue_paid' => 'إجمالي المحصل',
+        'revenue_outstanding' => 'المتبقي',
+        'attendance_present' => 'حضور',
+        'attendance_absent' => 'غياب',
+        'attendance_total' => 'سجلات الحضور',
+    ],
 ];
