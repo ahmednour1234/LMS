@@ -82,6 +82,11 @@ class TeacherPanelProvider extends PanelProvider
             ])
             ->authMiddleware([
                 Authenticate::class,
+            ], isPersistent: true)
+            ->pages([
+                \App\Filament\Teacher\Pages\Register::class,
+                \App\Filament\Teacher\Pages\ForgotPassword::class,
+                \App\Filament\Teacher\Pages\ResetPassword::class,
             ])
             ->renderHook(
                 'panels::topbar.end',
