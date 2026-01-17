@@ -9,7 +9,6 @@ use Illuminate\Support\Facades\Auth;
 
 class Register extends BaseRegister
 {
-    protected static string $view = 'filament.teacher.pages.register';
 
 
 
