@@ -1,0 +1,151 @@
+<?php
+
+namespace App\Filament\Teacher\Resources\Training;
+
+use App\Domain\Training\Models\Program;
+use App\Filament\Teacher\Resources\Training\ProgramResource\Pages;
+use App\Support\Helpers\MultilingualHelper;
+use Filament\Forms;
+use Filament\Forms\Form;
+use Filament\Resources\Resource;
+use Filament\Tables;
+use Filament\Tables\Table;
+use Illuminate\Database\Eloquent\Builder;
+
+class ProgramResource extends Resource
+{
+    protected static ?string $model = Program::class;
+
+    protected static ?string $navigationIcon = 'heroicon-o-academic-cap';
+
+    protected static ?string $navigationGroup = 'Training';
+
+    protected static ?int $navigationSort = 1;
+
+    public static function getNavigationLabel(): string
+    {
+        return __('navigation.programs');
+    }
+
+    public static function getModelLabel(): string
+    {
+        return __('navigation.programs');
+    }
+
+    public static function getPluralModelLabel(): string
+    {
+        return __('navigation.programs');
+    }
+
+    public static function getNavigationGroup(): ?string
+    {
+        return __('navigation.groups.training');
+    }
+
+    public static function getEloquentQuery(): Builder
+    {
+        return parent::getEloquentQuery()->where('teacher_id', auth('teacher')->id());
+    }
+
+    public static function form(Form $form): Form
+    {
+        return $form
+            ->schema([
+                Forms\Components\Select::make('parent_id')
+                    ->relationship('parent', 'code', fn (Builder $query) => $query->where('teacher_id', auth('teacher')->id())->where('id', '!=', $form->getRecord()?->id))
+                    ->searchable()
+                    ->preload()
+                    ->label(__('programs.parent'))
+                    ->helperText(__('programs.parent_helper')),
+                Forms\Components\TextInput::make('code')
+                    ->required()
+                    ->maxLength(255)
+                    ->unique(ignoreRecord: true)
+                    ->label(__('programs.code')),
+                Forms\Components\TextInput::make('name.ar')
+                    ->label(__('programs.name_ar'))
+                    ->required()
+                    ->maxLength(255),
+                Forms\Components\TextInput::make('name.en')
+                    ->label(__('programs.name_en'))
+                    ->required()
+                    ->maxLength(255),
+                Forms\Components\Textarea::make('description.ar')
+                    ->label(__('programs.description_ar'))
+                    ->rows(3),
+                Forms\Components\Textarea::make('description.en')
+                    ->label(__('programs.description_en'))
+                    ->rows(3),
+                Forms\Components\FileUpload::make('image')
+                    ->image()
+                    ->directory('programs')
+                    ->visibility('public')
+                    ->nullable()
+                    ->label(__('programs.image')),
+                Forms\Components\Toggle::make('is_active')
+                    ->label(__('programs.is_active'))
+                    ->default(true),
+            ]);
+    }
+
+    public static function table(Table $table): Table
+    {
+        return $table
+            ->columns([
+                Tables\Columns\TextColumn::make('code')
+                    ->searchable()
+                    ->sortable()
+                    ->label(__('programs.code')),
+                Tables\Columns\TextColumn::make('name')
+                    ->formatStateUsing(fn ($state) => MultilingualHelper::formatMultilingualField($state))
+                    ->searchable()
+                    ->sortable()
+                    ->label(__('programs.name')),
+                Tables\Columns\ImageColumn::make('image')
+                    ->label(__('programs.image'))
+                    ->circular(),
+                Tables\Columns\TextColumn::make('parent.code')
+                    ->sortable()
+                    ->label(__('programs.parent'))
+                    ->placeholder('-'),
+                Tables\Columns\TextColumn::make('courses_count')
+                    ->counts('courses')
+                    ->label(__('programs.courses_count')),
+                Tables\Columns\IconColumn::make('is_active')
+                    ->boolean()
+                    ->label(__('programs.is_active')),
+                Tables\Columns\TextColumn::make('created_at')
+                    ->dateTime()
+                    ->sortable()
+                    ->toggleable(isToggledHiddenByDefault: true),
+                Tables\Columns\TextColumn::make('updated_at')
+                    ->dateTime()
+                    ->sortable()
+                    ->toggleable(isToggledHiddenByDefault: true),
+            ])
+            ->filters([
+                Tables\Filters\SelectFilter::make('parent_id')
+                    ->relationship('parent', 'code', fn (Builder $query) => $query->where('teacher_id', auth('teacher')->id()))
+                    ->label(__('programs.parent')),
+                Tables\Filters\TernaryFilter::make('is_active')
+                    ->label(__('programs.is_active')),
+            ])
+            ->actions([
+                Tables\Actions\EditAction::make(),
+            ])
+            ->bulkActions([
+                Tables\Actions\BulkActionGroup::make([
+                    Tables\Actions\DeleteBulkAction::make(),
+                ]),
+            ]);
+    }
+
+    public static function getPages(): array
+    {
+        return [
+            'index' => Pages\ListPrograms::route('/'),
+            'create' => Pages\CreateProgram::route('/create'),
+            'edit' => Pages\EditProgram::route('/{record}/edit'),
+        ];
+    }
+}
