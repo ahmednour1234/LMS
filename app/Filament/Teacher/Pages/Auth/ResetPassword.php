@@ -5,12 +5,13 @@ namespace App\Filament\Teacher\Pages\Auth;
 use Filament\Pages\Auth\PasswordReset\ResetPassword as BaseResetPassword;
 use Illuminate\Support\Facades\Password;
 use Filament\Notifications\Notification;
+use Filament\Http\Responses\Auth\Contracts\PasswordResetResponse;
 
 class ResetPassword extends BaseResetPassword
 {
     protected static string $view = 'filament.teacher.pages.reset-password';
 
-    public function resetPassword(): void
+    public function resetPassword(): ?PasswordResetResponse
     {
         $data = $this->form->getState();
 
@@ -36,12 +37,14 @@ class ResetPassword extends BaseResetPassword
                 ->success()
                 ->send();
 
-            $this->redirect(route('filament.teacher.auth.login'));
+            return app(PasswordResetResponse::class);
         } else {
             Notification::make()
                 ->title(__($status))
                 ->danger()
                 ->send();
+
+            return null;
         }
     }
 }
