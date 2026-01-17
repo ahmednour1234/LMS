@@ -15,6 +15,11 @@ class RequestPasswordReset extends BaseRequestPasswordReset
         return [];
     }
 
+    public function getSubNavigationPosition(): ?string
+    {
+        return null;
+    }
+
     public function sendPasswordResetLink(): void
     {
         $data = $this->form->getState();
