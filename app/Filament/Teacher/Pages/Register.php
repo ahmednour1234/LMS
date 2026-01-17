@@ -16,7 +16,7 @@ class Register extends Page implements HasForms
     use InteractsWithForms;
 
     protected static ?string $navigationIcon = null;
-    
+
     protected static bool $shouldRegisterNavigation = false;
 
     protected static string $view = 'filament.teacher.pages.register';
@@ -88,8 +88,5 @@ class Register extends Page implements HasForms
         return 'Create your teacher account';
     }
 
-    public static function canAccess(): bool
-    {
-        return !auth('teacher')->check();
-    }
+
 }
