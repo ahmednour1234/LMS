@@ -10,6 +10,13 @@ class Login extends BaseLogin
 {
     protected static string $view = 'filament.teacher.pages.auth.login';
 
+    public function mount(): void
+    {
+        if (\Filament\Facades\Filament::auth()->check()) {
+            $this->redirect(route('filament.teacher.pages.dashboard'));
+        }
+    }
+
     public function canAccess(): bool
     {
         return !\Filament\Facades\Filament::auth()->check();
