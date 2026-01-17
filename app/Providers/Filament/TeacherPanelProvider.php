@@ -60,7 +60,10 @@ class TeacherPanelProvider extends PanelProvider
         return $panel
             ->id('teacher')
             ->path('teacher-admin')
-            ->login()
+            ->login(\App\Filament\Teacher\Pages\Auth\Login::class)
+            ->registration(\App\Filament\Teacher\Pages\Auth\Register::class)
+            ->passwordReset(\App\Filament\Teacher\Pages\Auth\RequestPasswordReset::class)
+            ->resetPassword(\App\Filament\Teacher\Pages\Auth\ResetPassword::class)
             ->authGuard('teacher')
             ->colors([
                 'primary' => Color::Blue,
@@ -83,11 +86,6 @@ class TeacherPanelProvider extends PanelProvider
             ->authMiddleware([
                 Authenticate::class,
             ], isPersistent: true)
-            ->pages([
-                \App\Filament\Teacher\Pages\Register::class,
-                \App\Filament\Teacher\Pages\ForgotPassword::class,
-                \App\Filament\Teacher\Pages\ResetPassword::class,
-            ])
             ->renderHook(
                 'panels::topbar.end',
                 fn () => view('filament.components.language-switcher-wrapper')
