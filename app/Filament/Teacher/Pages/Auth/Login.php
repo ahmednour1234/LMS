@@ -2,33 +2,41 @@
 
 namespace App\Filament\Teacher\Pages\Auth;
 
+use Filament\Http\Responses\Auth\Contracts\LoginResponse;
 use Filament\Pages\Auth\Login as BaseLogin;
-use Illuminate\Support\Facades\Auth;
+use Illuminate\Validation\ValidationException;
 
 class Login extends BaseLogin
 {
     protected static string $view = 'filament.teacher.pages.auth.login';
 
-    public function authenticate(): ?\Illuminate\Contracts\Auth\Authenticatable
+    public function authenticate(): ?LoginResponse
     {
+        try {
+            $this->rateLimit(5);
+        } catch (\DanHarrin\LivewireRateLimiting\Exceptions\TooManyRequestsException $exception) {
+            $this->getRateLimitedNotification($exception)?->send();
+
+            return null;
+        }
+
         $data = $this->form->getState();
 
-        if (!Auth::guard('teacher')->attempt([
-            'email' => $data['email'],
-            'password' => $data['password'],
-        ], $data['remember'] ?? false)) {
-            $this->addError('data.email', __('filament-panels::pages/auth/login.messages.failed'));
-            return null;
+        if (!\Filament\Facades\Filament::auth()->attempt($this->getCredentialsFromFormData($data), $data['remember'] ?? false)) {
+            $this->throwFailureValidationException();
         }
 
-        $teacher = Auth::guard('teacher')->user();
+        $teacher = \Filament\Facades\Filament::auth()->user();
 
         if (!$teacher || !$teacher->active) {
-            Auth::guard('teacher')->logout();
-            $this->addError('data.email', 'Your account is inactive.');
-            return null;
+            \Filament\Facades\Filament::auth()->logout();
+            throw ValidationException::withMessages([
+                'data.email' => 'Your account is inactive.',
+            ]);
         }
 
-        return $teacher;
+        session()->regenerate();
+
+        return app(LoginResponse::class);
     }
 }
