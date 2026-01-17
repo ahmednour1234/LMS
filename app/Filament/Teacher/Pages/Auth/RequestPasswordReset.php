@@ -10,6 +10,11 @@ class RequestPasswordReset extends BaseRequestPasswordReset
 {
     protected static string $view = 'filament.teacher.pages.forgot-password';
 
+    public function getCachedSubNavigation(): array
+    {
+        return [];
+    }
+
     public function sendPasswordResetLink(): void
     {
         $data = $this->form->getState();
