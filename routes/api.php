@@ -109,7 +109,7 @@ Route::prefix('v1')->group(function () {
         | Teacher Protected (JWT)
         |--------------------------------------------------------------------------
         */
-        Route::middleware('auth:teacher')->group(function () {
+        Route::middleware('auth:teacher-api')->group(function () {
 
             /*
             |--------------------------------------------------------------------------

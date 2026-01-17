@@ -33,7 +33,7 @@ class LessonItemController extends ApiController
      */
     public function index(): JsonResponse
     {
-        $teacherId = Auth::guard('teacher')->id();
+        $teacherId = Auth::guard('teacher-api')->id();
         $filters = request()->only(['lesson_id','type','active','sort']);
         $perPage = (int) request('per_page', 15);
 
@@ -52,7 +52,7 @@ class LessonItemController extends ApiController
 
     public function store(StoreLessonItemRequest $request): JsonResponse
     {
-        $teacherId = Auth::guard('teacher')->id();
+        $teacherId = Auth::guard('teacher-api')->id();
         $data = $request->validated();
 
         $lesson = Lesson::findOrFail((int) $data['lesson_id']);
@@ -65,7 +65,7 @@ class LessonItemController extends ApiController
 
     public function show(LessonItem $item): JsonResponse
     {
-        $teacherId = Auth::guard('teacher')->id();
+        $teacherId = Auth::guard('teacher-api')->id();
         $this->guard->assertLessonItemOwner($teacherId, $item);
 
         return $this->successResponse(new LessonItemResource($item->load('mediaFile')), 'OK');
@@ -73,7 +73,7 @@ class LessonItemController extends ApiController
 
     public function update(UpdateLessonItemRequest $request, LessonItem $item): JsonResponse
     {
-        $teacherId = Auth::guard('teacher')->id();
+        $teacherId = Auth::guard('teacher-api')->id();
         $this->guard->assertLessonItemOwner($teacherId, $item);
 
         $updated = $this->service->update($item, $request->validated());
@@ -83,7 +83,7 @@ class LessonItemController extends ApiController
 
     public function toggleActive(LessonItem $item): JsonResponse
     {
-        $teacherId = Auth::guard('teacher')->id();
+        $teacherId = Auth::guard('teacher-api')->id();
         $this->guard->assertLessonItemOwner($teacherId, $item);
 
         $active = request()->has('is_active') ? (bool) request('is_active') : null;

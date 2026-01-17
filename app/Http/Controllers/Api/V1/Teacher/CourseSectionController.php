@@ -33,7 +33,7 @@ class CourseSectionController extends ApiController
      */
     public function index(): JsonResponse
     {
-        $teacherId = Auth::guard('teacher')->id();
+        $teacherId = Auth::guard('teacher-api')->id();
 
         $filters = request()->only(['course_id','active','q','sort']);
         $perPage = (int) request('per_page', 15);
@@ -57,7 +57,7 @@ class CourseSectionController extends ApiController
      */
     public function store(StoreCourseSectionRequest $request): JsonResponse
     {
-        $teacherId = Auth::guard('teacher')->id();
+        $teacherId = Auth::guard('teacher-api')->id();
 
         $data = $request->validated();
         $course = Course::findOrFail((int) $data['course_id']);
@@ -73,7 +73,7 @@ class CourseSectionController extends ApiController
      */
     public function show(CourseSection $section): JsonResponse
     {
-        $teacherId = Auth::guard('teacher')->id();
+        $teacherId = Auth::guard('teacher-api')->id();
         $this->guard->assertSectionOwner($teacherId, $section);
 
         return $this->successResponse(new CourseSectionResource($section), 'OK');
@@ -84,7 +84,7 @@ class CourseSectionController extends ApiController
      */
     public function update(UpdateCourseSectionRequest $request, CourseSection $section): JsonResponse
     {
-        $teacherId = Auth::guard('teacher')->id();
+        $teacherId = Auth::guard('teacher-api')->id();
         $this->guard->assertSectionOwner($teacherId, $section);
 
         $updated = $this->service->update($section, $request->validated());
@@ -98,7 +98,7 @@ class CourseSectionController extends ApiController
      */
     public function toggleActive(CourseSection $section): JsonResponse
     {
-        $teacherId = Auth::guard('teacher')->id();
+        $teacherId = Auth::guard('teacher-api')->id();
         $this->guard->assertSectionOwner($teacherId, $section);
 
         $active = request()->has('is_active') ? (bool) request('is_active') : null;

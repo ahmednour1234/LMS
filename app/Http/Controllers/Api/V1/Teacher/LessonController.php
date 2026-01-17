@@ -35,7 +35,7 @@ class LessonController extends ApiController
      */
     public function index(): JsonResponse
     {
-        $teacherId = Auth::guard('teacher')->id();
+        $teacherId = Auth::guard('teacher-api')->id();
         $filters = request()->only(['section_id','active','is_preview','lesson_type','q','sort']);
         $perPage = (int) request('per_page', 15);
 
@@ -54,7 +54,7 @@ class LessonController extends ApiController
 
     public function store(StoreLessonRequest $request): JsonResponse
     {
-        $teacherId = Auth::guard('teacher')->id();
+        $teacherId = Auth::guard('teacher-api')->id();
         $data = $request->validated();
 
         $section = CourseSection::findOrFail((int) $data['section_id']);
@@ -67,7 +67,7 @@ class LessonController extends ApiController
 
     public function show(Lesson $lesson): JsonResponse
     {
-        $teacherId = Auth::guard('teacher')->id();
+        $teacherId = Auth::guard('teacher-api')->id();
         $this->guard->assertLessonOwner($teacherId, $lesson);
 
         $lesson->loadCount('items');
@@ -77,7 +77,7 @@ class LessonController extends ApiController
 
     public function update(UpdateLessonRequest $request, Lesson $lesson): JsonResponse
     {
-        $teacherId = Auth::guard('teacher')->id();
+        $teacherId = Auth::guard('teacher-api')->id();
         $this->guard->assertLessonOwner($teacherId, $lesson);
 
         $updated = $this->service->update($lesson, $request->validated());
@@ -87,7 +87,7 @@ class LessonController extends ApiController
 
     public function toggleActive(Lesson $lesson): JsonResponse
     {
-        $teacherId = Auth::guard('teacher')->id();
+        $teacherId = Auth::guard('teacher-api')->id();
         $this->guard->assertLessonOwner($teacherId, $lesson);
 
         $active = request()->has('is_active') ? (bool) request('is_active') : null;

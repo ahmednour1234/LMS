@@ -62,7 +62,7 @@ class TaskController extends ApiController
      */
     public function index(): JsonResponse
     {
-        $teacher = Auth::guard('teacher')->user();
+        $teacher = Auth::guard('teacher-api')->user();
 
         $filters = request()->only(['q','course_id','lesson_id','active','submission_type','sort']);
         $perPage = (int) request()->get('per_page', 15);
@@ -104,7 +104,7 @@ class TaskController extends ApiController
      */
     public function show(int $task): JsonResponse
     {
-        $teacher = Auth::guard('teacher')->user();
+        $teacher = Auth::guard('teacher-api')->user();
 
         $model = $this->service->findOwnedTask($teacher->id, $task);
         if (!$model) {
@@ -151,7 +151,7 @@ class TaskController extends ApiController
      */
     public function store(StoreTaskRequest $request): JsonResponse
     {
-        $teacher = Auth::guard('teacher')->user();
+        $teacher = Auth::guard('teacher-api')->user();
 
         $task = $this->service->create($teacher->id, $request->validated());
 
@@ -184,7 +184,7 @@ class TaskController extends ApiController
      */
     public function update(UpdateTaskRequest $request, int $task): JsonResponse
     {
-        $teacher = Auth::guard('teacher')->user();
+        $teacher = Auth::guard('teacher-api')->user();
 
         $updated = $this->service->update($teacher->id, $task, $request->validated());
 
@@ -201,7 +201,7 @@ class TaskController extends ApiController
      */
     public function toggleActive(int $task): JsonResponse
     {
-        $teacher = Auth::guard('teacher')->user();
+        $teacher = Auth::guard('teacher-api')->user();
 
         $updated = $this->service->toggleActive($teacher->id, $task);
 
@@ -218,7 +218,7 @@ class TaskController extends ApiController
      */
     public function destroy(int $task): JsonResponse
     {
-        $teacher = Auth::guard('teacher')->user();
+        $teacher = Auth::guard('teacher-api')->user();
 
         $this->service->delete($teacher->id, $task);
 

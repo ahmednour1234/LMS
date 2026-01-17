@@ -37,7 +37,7 @@ class SessionController extends ApiController
      */
     public function index(): JsonResponse
     {
-        $teacher = Auth::guard('teacher')->user();
+        $teacher = Auth::guard('teacher-api')->user();
 
         $filters = request()->only(['q', 'course_id', 'lesson_id', 'status', 'location_type', 'from', 'to', 'sort']);
         $perPage = (int) request()->get('per_page', 15);
@@ -60,7 +60,7 @@ class SessionController extends ApiController
      */
     public function show(int $session): JsonResponse
     {
-        $teacher = Auth::guard('teacher')->user();
+        $teacher = Auth::guard('teacher-api')->user();
 
         $model = $this->teacherSessionService->findTeacherSession($teacher->id, $session);
 
@@ -81,7 +81,7 @@ class SessionController extends ApiController
      */
     public function store(StoreSessionRequest $request): JsonResponse
     {
-        $teacher = Auth::guard('teacher')->user();
+        $teacher = Auth::guard('teacher-api')->user();
         $data = $request->validated();
 
         // forbid injection
@@ -105,7 +105,7 @@ class SessionController extends ApiController
      */
     public function update(UpdateSessionRequest $request, int $session): JsonResponse
     {
-        $teacher = Auth::guard('teacher')->user();
+        $teacher = Auth::guard('teacher-api')->user();
 
         $model = $this->teacherSessionService->findTeacherSession($teacher->id, $session);
         if (!$model) {
@@ -134,7 +134,7 @@ class SessionController extends ApiController
      */
     public function destroy(int $session): JsonResponse
     {
-        $teacher = Auth::guard('teacher')->user();
+        $teacher = Auth::guard('teacher-api')->user();
 
         $model = $this->teacherSessionService->findTeacherSession($teacher->id, $session);
         if (!$model) {

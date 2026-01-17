@@ -34,7 +34,7 @@ class TeacherReportController extends ApiController
      */
     public function revenue(TeacherRevenueReportRequest $request): JsonResponse
     {
-        $teacher = Auth::guard('teacher')->user();
+        $teacher = Auth::guard('teacher-api')->user();
         $data = $this->service->revenueReport($teacher->id, $request->validated());
 
         return $this->successResponse($data, __('Reports retrieved successfully.'));
@@ -50,7 +50,7 @@ class TeacherReportController extends ApiController
      */
     public function stats(TeacherRevenueReportRequest $request): JsonResponse
     {
-        $teacher = Auth::guard('teacher')->user();
+        $teacher = Auth::guard('teacher-api')->user();
         $payload = $this->service->stats($teacher->id, $request->validated());
 
         return $this->successResponse(new TeacherStatsResource($payload), __('Reports retrieved successfully.'));
@@ -68,7 +68,7 @@ class TeacherReportController extends ApiController
      */
     public function attendanceSummary(TeacherAttendanceReportRequest $request): JsonResponse
     {
-        $teacher = Auth::guard('teacher')->user();
+        $teacher = Auth::guard('teacher-api')->user();
         $data = $this->service->attendanceSummary($teacher->id, $request->validated());
 
         return $this->successResponse($data, __('Reports retrieved successfully.'));
@@ -87,7 +87,7 @@ class TeacherReportController extends ApiController
      */
     public function studentsReport(TeacherStudentsReportRequest $request): JsonResponse
     {
-        $teacher = Auth::guard('teacher')->user();
+        $teacher = Auth::guard('teacher-api')->user();
         $result = $this->service->studentsReport($teacher->id, $request->validated());
 
         return $this->successResponse($result, __('Reports retrieved successfully.'));
@@ -98,7 +98,7 @@ class TeacherReportController extends ApiController
      */
     public function studentDetails(int $student): JsonResponse
     {
-        $teacher = Auth::guard('teacher')->user();
+        $teacher = Auth::guard('teacher-api')->user();
         $result = $this->service->studentDetails($teacher->id, $student);
 
         if (!$result) {

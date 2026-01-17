@@ -34,7 +34,7 @@ class ExamController extends ApiController
      */
     public function index(): JsonResponse
     {
-        $teacherId = Auth::guard('teacher')->id();
+        $teacherId = Auth::guard('teacher-api')->id();
         $filters = request()->only(['course_id','lesson_id','type','active','q','sort']);
         $perPage = (int) request('per_page', 15);
 
@@ -53,7 +53,7 @@ class ExamController extends ApiController
 
     public function store(StoreExamRequest $request): JsonResponse
     {
-        $teacherId = Auth::guard('teacher')->id();
+        $teacherId = Auth::guard('teacher-api')->id();
         $data = $request->validated();
 
         $course = Course::findOrFail((int) $data['course_id']);
@@ -66,7 +66,7 @@ class ExamController extends ApiController
 
     public function show(Exam $exam): JsonResponse
     {
-        $teacherId = Auth::guard('teacher')->id();
+        $teacherId = Auth::guard('teacher-api')->id();
         $this->guard->assertExamOwner($teacherId, $exam);
 
         $exam->loadCount('questions');
@@ -76,7 +76,7 @@ class ExamController extends ApiController
 
     public function update(UpdateExamRequest $request, Exam $exam): JsonResponse
     {
-        $teacherId = Auth::guard('teacher')->id();
+        $teacherId = Auth::guard('teacher-api')->id();
         $this->guard->assertExamOwner($teacherId, $exam);
 
         $updated = $this->service->update($exam, $request->validated());
@@ -86,7 +86,7 @@ class ExamController extends ApiController
 
     public function toggleActive(Exam $exam): JsonResponse
     {
-        $teacherId = Auth::guard('teacher')->id();
+        $teacherId = Auth::guard('teacher-api')->id();
         $this->guard->assertExamOwner($teacherId, $exam);
 
         $active = request()->has('is_active') ? (bool) request('is_active') : null;

@@ -44,8 +44,12 @@ return [
             'driver' => 'jwt',
             'provider' => 'students',
         ],
-        'teacher' => [
+        'teacher-api' => [
             'driver' => 'jwt',
+            'provider' => 'teachers',
+        ],
+        'teacher' => [
+            'driver' => 'session',
             'provider' => 'teachers',
         ],
     ],
@@ -109,6 +113,12 @@ return [
     'passwords' => [
         'users' => [
             'provider' => 'users',
+            'table' => env('AUTH_PASSWORD_RESET_TOKEN_TABLE', 'password_reset_tokens'),
+            'expire' => 60,
+            'throttle' => 60,
+        ],
+        'teachers' => [
+            'provider' => 'teachers',
             'table' => env('AUTH_PASSWORD_RESET_TOKEN_TABLE', 'password_reset_tokens'),
             'expire' => 60,
             'throttle' => 60,

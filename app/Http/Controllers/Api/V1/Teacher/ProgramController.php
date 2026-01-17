@@ -34,7 +34,7 @@ class ProgramController extends ApiController
      */
     public function index(): JsonResponse
     {
-        $teacherId = Auth::guard('teacher')->id();
+        $teacherId = Auth::guard('teacher-api')->id();
 
         $filters = request()->only(['q', 'active', 'parent_id', 'code', 'sort']);
         $perPage = (int) request()->get('per_page', 15);
@@ -57,7 +57,7 @@ class ProgramController extends ApiController
      */
     public function show(int $program): JsonResponse
     {
-        $teacherId = Auth::guard('teacher')->id();
+        $teacherId = Auth::guard('teacher-api')->id();
 
         $model = $this->programService->findTeacherProgramOrFail($teacherId, $program);
 
@@ -69,7 +69,7 @@ class ProgramController extends ApiController
      */
     public function store(StoreProgramRequest $request): JsonResponse
     {
-        $teacherId = Auth::guard('teacher')->id();
+        $teacherId = Auth::guard('teacher-api')->id();
 
         // only allow safe fields (NEVER accept teacher_id from request)
         $data = $request->safe()->only([
@@ -98,7 +98,7 @@ class ProgramController extends ApiController
      */
     public function update(UpdateProgramRequest $request, int $program): JsonResponse
     {
-        $teacherId = Auth::guard('teacher')->id();
+        $teacherId = Auth::guard('teacher-api')->id();
 
         $model = $this->programService->findTeacherProgramOrFail($teacherId, $program);
 
@@ -135,7 +135,7 @@ class ProgramController extends ApiController
      */
     public function toggleActive(int $program): JsonResponse
     {
-        $teacherId = Auth::guard('teacher')->id();
+        $teacherId = Auth::guard('teacher-api')->id();
 
         $model = $this->programService->findTeacherProgramOrFail($teacherId, $program);
 

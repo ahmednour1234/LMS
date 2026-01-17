@@ -32,7 +32,7 @@ class ExamQuestionController extends ApiController
      */
     public function index(): JsonResponse
     {
-        $teacherId = Auth::guard('teacher')->id();
+        $teacherId = Auth::guard('teacher-api')->id();
 
         $filters = request()->only(['exam_id','type','active','sort']);
         if (empty($filters['exam_id'])) {
@@ -58,7 +58,7 @@ class ExamQuestionController extends ApiController
      */
     public function store(StoreExamQuestionRequest $request): JsonResponse
     {
-        $teacherId = Auth::guard('teacher')->id();
+        $teacherId = Auth::guard('teacher-api')->id();
         $data = $request->validated();
 
         // bulk
@@ -87,7 +87,7 @@ class ExamQuestionController extends ApiController
 
     public function update(UpdateExamQuestionRequest $request, ExamQuestion $question): JsonResponse
     {
-        $teacherId = Auth::guard('teacher')->id();
+        $teacherId = Auth::guard('teacher-api')->id();
         $this->guard->assertExamQuestionOwner($teacherId, $question);
 
         $updated = $this->service->update($question, $request->validated());
@@ -97,7 +97,7 @@ class ExamQuestionController extends ApiController
 
     public function destroy(ExamQuestion $question): JsonResponse
     {
-        $teacherId = Auth::guard('teacher')->id();
+        $teacherId = Auth::guard('teacher-api')->id();
         $this->guard->assertExamQuestionOwner($teacherId, $question);
 
         $this->service->delete($question);

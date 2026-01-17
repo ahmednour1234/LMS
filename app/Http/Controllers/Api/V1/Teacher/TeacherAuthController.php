@@ -69,21 +69,21 @@ class TeacherAuthController extends ApiController
 
     public function logout(): JsonResponse
     {
-        Auth::guard('teacher')->logout();
+        Auth::guard('teacher-api')->logout();
 
         return $this->successResponse(null, 'Logged out successfully.');
     }
 
     public function me(): JsonResponse
     {
-        $teacher = Auth::guard('teacher')->user();
+        $teacher = Auth::guard('teacher-api')->user();
 
         return $this->successResponse($teacher, 'Teacher profile retrieved successfully.');
     }
 
     public function refresh(): JsonResponse
     {
-        $token = Auth::guard('teacher')->refresh();
+        $token = Auth::guard('teacher-api')->refresh();
 
         return $this->successResponse([
             'token' => $token,
@@ -93,7 +93,7 @@ class TeacherAuthController extends ApiController
 
     public function updateProfile(UpdateTeacherProfileRequest $request): JsonResponse
     {
-        $teacher = Auth::guard('teacher')->user();
+        $teacher = Auth::guard('teacher-api')->user();
         $data = $request->validated();
 
         if ($request->hasFile('photo')) {

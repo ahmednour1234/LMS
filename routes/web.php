@@ -48,6 +48,29 @@ Route::middleware(['web'])->group(function () {
         ->name('public.installment.show');
 });
 
+// Teacher authentication routes
+Route::prefix('teacher')->name('teacher.')->middleware(['web'])->group(function () {
+    // Public routes
+    Route::post('/register', App\Http\Controllers\Teacher\Auth\RegisterController::class)
+        ->name('register');
+    
+    Route::post('/login', App\Http\Controllers\Teacher\Auth\LoginController::class)
+        ->name('login')
+        ->middleware('throttle:5,1');
+    
+    Route::post('/forgot-password', App\Http\Controllers\Teacher\Auth\ForgotPasswordController::class)
+        ->name('forgot-password')
+        ->middleware('throttle:3,1');
+    
+    Route::post('/reset-password', App\Http\Controllers\Teacher\Auth\ResetPasswordController::class)
+        ->name('reset-password');
+    
+    // Protected route
+    Route::post('/logout', App\Http\Controllers\Teacher\Auth\LogoutController::class)
+        ->name('logout')
+        ->middleware('auth:teacher');
+});
+
 Route::middleware(['web', 'auth'])->group(function () {
     Route::get('/admin/exports/excel', [App\Http\Controllers\ExportController::class, 'excel'])
         ->name('filament.admin.exports.excel');

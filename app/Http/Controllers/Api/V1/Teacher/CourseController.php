@@ -38,7 +38,7 @@ class CourseController extends ApiController
      */
     public function index(): JsonResponse
     {
-        $teacher = Auth::guard('teacher')->user();
+        $teacher = Auth::guard('teacher-api')->user();
 
         $filters = request()->only(['q', 'active', 'program_id', 'delivery_type', 'sort']);
         $perPage = (int) request()->get('per_page', 15);
@@ -62,7 +62,7 @@ class CourseController extends ApiController
      */
     public function show(int $course): JsonResponse
     {
-        $teacher = Auth::guard('teacher')->user();
+        $teacher = Auth::guard('teacher-api')->user();
 
         $model = $this->teacherCourseService->findTeacherCourse($teacher->id, $course);
 
@@ -83,7 +83,7 @@ class CourseController extends ApiController
      */
     public function store(StoreCourseRequest $request): JsonResponse
     {
-        $teacher = Auth::guard('teacher')->user();
+        $teacher = Auth::guard('teacher-api')->user();
         $data = $request->validated();
 
         // ✅ do not allow client to set owner_teacher_id
@@ -117,7 +117,7 @@ class CourseController extends ApiController
      */
     public function update(UpdateCourseRequest $request, int $course): JsonResponse
     {
-        $teacher = Auth::guard('teacher')->user();
+        $teacher = Auth::guard('teacher-api')->user();
 
         $model = $this->teacherCourseService->findTeacherCourse($teacher->id, $course);
         if (!$model) {
@@ -165,7 +165,7 @@ class CourseController extends ApiController
      */
     public function toggleActive(int $course): JsonResponse
     {
-        $teacher = Auth::guard('teacher')->user();
+        $teacher = Auth::guard('teacher-api')->user();
 
         $model = $this->teacherCourseService->findTeacherCourse($teacher->id, $course);
         if (!$model) {
@@ -185,7 +185,7 @@ class CourseController extends ApiController
      */
     public function price(int $course): JsonResponse
     {
-        $teacher = Auth::guard('teacher')->user();
+        $teacher = Auth::guard('teacher-api')->user();
 
         $model = $this->teacherCourseService->findTeacherCourse($teacher->id, $course);
         if (!$model) {

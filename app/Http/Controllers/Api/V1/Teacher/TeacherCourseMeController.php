@@ -21,7 +21,7 @@ class TeacherCourseMeController extends ApiController
      */
     public function index(): JsonResponse
     {
-        $teacherId = Auth::guard('teacher')->id();
+        $teacherId = Auth::guard('teacher-api')->id();
 
         $q = Course::query()->where('owner_teacher_id', $teacherId);
 

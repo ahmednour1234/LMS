@@ -21,7 +21,7 @@ class TeacherMediaController extends ApiController
      */
     public function store(StoreMediaRequest $request): JsonResponse
     {
-        $teacher = Auth::guard('teacher')->user();
+        $teacher = Auth::guard('teacher-api')->user();
 
         $file = $request->file('file');
         $isPrivate = (bool) ($request->input('is_private', false));

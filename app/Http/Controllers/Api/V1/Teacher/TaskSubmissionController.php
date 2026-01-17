@@ -33,7 +33,7 @@ class TaskSubmissionController extends ApiController
      */
     public function index(int $task): JsonResponse
     {
-        $teacher = Auth::guard('teacher')->user();
+        $teacher = Auth::guard('teacher-api')->user();
 
         // ✅ ensures task belongs to teacher
         $ownedTask = $this->taskService->findOwnedTask($teacher->id, $task);
@@ -67,7 +67,7 @@ class TaskSubmissionController extends ApiController
      */
     public function show(int $submission): JsonResponse
     {
-        $teacher = Auth::guard('teacher')->user();
+        $teacher = Auth::guard('teacher-api')->user();
 
         $model = $this->submissionService->findOwnedSubmission($teacher->id, $submission);
         if (!$model) {
@@ -89,7 +89,7 @@ class TaskSubmissionController extends ApiController
      */
     public function review(ReviewTaskSubmissionRequest $request, int $submission): JsonResponse
     {
-        $teacher = Auth::guard('teacher')->user();
+        $teacher = Auth::guard('teacher-api')->user();
         $reviewerUserId = Auth::id(); // لو مستخدم admin مختلف، عدّل حسب نظامك
 
         $updated = $this->submissionService->review($teacher->id, $submission, $reviewerUserId, $request->validated());
