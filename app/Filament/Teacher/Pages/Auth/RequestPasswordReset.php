@@ -20,6 +20,11 @@ class RequestPasswordReset extends BaseRequestPasswordReset
         return null;
     }
 
+    public function getWidgetData(): array
+    {
+        return [];
+    }
+
     public function sendPasswordResetLink(): void
     {
         $data = $this->form->getState();

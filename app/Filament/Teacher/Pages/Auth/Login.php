@@ -15,6 +15,21 @@ class Login extends BaseLogin
         return !\Filament\Facades\Filament::auth()->check();
     }
 
+    public function getCachedSubNavigation(): array
+    {
+        return [];
+    }
+
+    public function getSubNavigationPosition(): ?string
+    {
+        return null;
+    }
+
+    public function getWidgetData(): array
+    {
+        return [];
+    }
+
     public function authenticate(): ?LoginResponse
     {
         try {

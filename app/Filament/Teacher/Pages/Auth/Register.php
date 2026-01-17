@@ -16,6 +16,21 @@ class Register extends BaseRegister
         return !\Filament\Facades\Filament::auth()->check();
     }
 
+    public function getCachedSubNavigation(): array
+    {
+        return [];
+    }
+
+    public function getSubNavigationPosition(): ?string
+    {
+        return null;
+    }
+
+    public function getWidgetData(): array
+    {
+        return [];
+    }
+
     public function form(\Filament\Forms\Form $form): \Filament\Forms\Form
     {
         return $form

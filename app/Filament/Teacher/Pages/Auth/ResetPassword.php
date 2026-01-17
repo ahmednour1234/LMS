@@ -21,6 +21,11 @@ class ResetPassword extends BaseResetPassword
         return null;
     }
 
+    public function getWidgetData(): array
+    {
+        return [];
+    }
+
     public function resetPassword(): ?PasswordResetResponse
     {
         $data = $this->form->getState();
