@@ -10,6 +10,11 @@ class Login extends BaseLogin
 {
     protected static string $view = 'filament.teacher.pages.auth.login';
 
+    public function canAccess(): bool
+    {
+        return !\Filament\Facades\Filament::auth()->check();
+    }
+
     public function authenticate(): ?LoginResponse
     {
         try {

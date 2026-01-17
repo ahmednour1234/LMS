@@ -11,6 +11,11 @@ class Register extends BaseRegister
 {
     protected static string $view = 'filament.teacher.pages.register';
 
+    public function canAccess(): bool
+    {
+        return !\Filament\Facades\Filament::auth()->check();
+    }
+
     public function form(\Filament\Forms\Form $form): \Filament\Forms\Form
     {
         return $form
