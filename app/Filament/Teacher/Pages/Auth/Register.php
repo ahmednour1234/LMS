@@ -46,7 +46,7 @@ class Register extends BaseRegister
             ->statePath('data');
     }
 
-    protected function handleRegistration(array $data): \Illuminate\Contracts\Auth\Authenticatable
+    protected function handleRegistration(array $data): \Illuminate\Database\Eloquent\Model
     {
         $teacher = Teacher::create([
             'name' => $data['name'],
