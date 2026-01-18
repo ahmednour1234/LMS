@@ -6,6 +6,7 @@ use App\Domain\Training\Models\Program;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Pagination\LengthAwarePaginator as Paginator;
 
 class ProgramService
@@ -235,7 +236,7 @@ class ProgramService
      |  INTERNAL HELPERS (Courses)
      * ============================================================ */
 
-    private function applyCoursesFilters(Builder $query, array $filters): void
+    private function applyCoursesFilters(Builder|HasMany $query, array $filters): void
     {
         if (!empty($filters['q'])) {
             $term = trim((string) $filters['q']);
@@ -266,7 +267,7 @@ class ProgramService
         }
     }
 
-    private function applyCoursesSorting(Builder $query, string $sort): void
+    private function applyCoursesSorting(Builder|HasMany $query, string $sort): void
     {
         $sort = strtolower(trim($sort));
 
