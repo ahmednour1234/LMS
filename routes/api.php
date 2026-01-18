@@ -65,6 +65,7 @@ Route::prefix('v1')->group(function () {
             ])->group(function () {
                 Route::get('/courses/{course}/content', [App\Http\Controllers\Api\V1\Student\ContentController::class, 'index']);
             });
+            Route::get('/lessons', [App\Http\Controllers\Api\V1\Student\LessonController::class, 'index']);
             Route::get('/lessons/{lesson}', [App\Http\Controllers\Api\V1\Student\LessonController::class, 'show']);
 
             // Exams
