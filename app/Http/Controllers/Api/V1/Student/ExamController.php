@@ -228,7 +228,16 @@ class ExamController extends ApiController
         $enrollment = \App\Domain\Enrollment\Models\Enrollment::where('student_id', $student->id)
             ->where('course_id', $examModel->course_id)
             ->whereIn('status', ['active', 'pending', 'pending_payment'])
-            ->firstOrFail();
+            ->first();
+
+        if (!$enrollment) {
+            return $this->errorResponse(
+                ApiErrorCode::FORBIDDEN,
+                'You are not enrolled in this course.',
+                null,
+                403
+            );
+        }
 
         $attempt = $this->gradingService->submitExam(
             $student,

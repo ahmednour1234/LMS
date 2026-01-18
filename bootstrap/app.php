@@ -101,8 +101,9 @@ return Application::configure(basePath: dirname(__DIR__))
         // Handle BusinessException (custom domain errors)
         $exceptions->render(function (BusinessException $e, Request $request) {
             if ($request->expectsJson() || $request->is('api/*')) {
+                $errorCode = $e->getErrorCode() ?? ApiErrorCode::INTERNAL_ERROR;
                 return ApiResponseService::error(
-                    $e->getErrorCode(),
+                    $errorCode,
                     $e->getMessage(),
                     $e->getDetails(),
                     $e->getCode() ?: 400
