@@ -76,4 +76,9 @@ class Course extends Model
     {
         return $this->hasMany(CourseSession::class);
     }
+
+    public function enrollments(): HasMany
+    {
+        return $this->hasMany(\App\Domain\Enrollment\Models\Enrollment::class);
+    }
 }

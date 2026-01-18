@@ -91,7 +91,6 @@ class WorstCoursesWidget extends BaseWidget
 
             TextColumn::make('enrollments_count')
                 ->label(__('dashboard.tables.enrollments_count') ?? 'Enrollments')
-                ->counts('enrollments')
                 ->sortable()
                 ->badge()
                 ->color('warning'),

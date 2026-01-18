@@ -44,6 +44,11 @@ class TeacherRegistrationsPage extends Page implements HasForms, HasTable
         return __('Reports');
     }
 
+    public static function getModelLabel(): string
+    {
+        return __('navigation.enrollments') ?? 'Registrations';
+    }
+
     public function table(Table $table): Table
     {
         $teacherId = auth('teacher')->id();
