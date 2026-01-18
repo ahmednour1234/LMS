@@ -4,7 +4,10 @@ namespace App\Filament\Teacher\Pages;
 
 use App\Filament\Teacher\Widgets\LatestCoursesTableWidget;
 use App\Filament\Teacher\Widgets\LatestTaskSubmissionsTableWidget;
+use App\Filament\Teacher\Widgets\TeacherAnalyticsOverviewWidget;
 use App\Filament\Teacher\Widgets\TeacherStatsOverviewWidget;
+use App\Filament\Teacher\Widgets\TopCoursesByEnrollmentsWidget;
+use App\Filament\Teacher\Widgets\WorstCoursesWidget;
 use Filament\Pages\Dashboard as BaseDashboard;
 
 class Dashboard extends BaseDashboard
@@ -20,6 +23,7 @@ class Dashboard extends BaseDashboard
     {
         return [
             TeacherStatsOverviewWidget::class,
+            TeacherAnalyticsOverviewWidget::class,
         ];
     }
 
@@ -27,6 +31,8 @@ class Dashboard extends BaseDashboard
     {
         return [
             LatestCoursesTableWidget::class,
+            TopCoursesByEnrollmentsWidget::class,
+            WorstCoursesWidget::class,
             LatestTaskSubmissionsTableWidget::class,
         ];
     }
