@@ -24,6 +24,7 @@ use Filament\Forms\Concerns\InteractsWithForms;
 use Filament\Forms\Contracts\HasForms;
 use Filament\Notifications\Notification;
 use Filament\Pages\Page;
+use Filament\Actions\Action as PageAction;
 use Filament\Tables;
 use Filament\Tables\Actions\Action;
 use Filament\Tables\Columns\IconColumn;
@@ -72,7 +73,7 @@ class CourseDashboardPage extends Page implements HasForms, HasTable
     protected function getHeaderActions(): array
     {
         return [
-            Action::make('back')
+            PageAction::make('back')
                 ->label(__('course_dashboard.back_to_courses') ?? 'Back to Courses')
                 ->icon('heroicon-o-arrow-left')
                 ->color('gray')
