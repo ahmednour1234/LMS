@@ -480,13 +480,15 @@
           "enrollments": "Enrollments"
         },
         "reports": {
+          "title": "Reports",
           "registrations_hint": "Track student registrations and payment status.",
           "total_registrations": "Total Registrations",
           "total_amount": "Total Amount",
           "paid_amount": "Paid Amount",
           "due_amount": "Due Amount",
           "no_data": "No data found.",
-          "no_data_hint": "Try adjusting filters or select a different date range."
+          "no_data_hint": "Try adjusting filters or select a different date range.",
+          "details": "Details"
         },
         "enrollments": {
           "reference": "Reference",
@@ -529,6 +531,16 @@
           "status": "Status",
           "no_data_title": "No Data Found",
           "no_data_desc": "No enrollments found for the selected filters."
+        },
+        "attendance": {
+          "attendance_report": "Attendance Report",
+          "sessions": "Sessions",
+          "enrollments": "Enrollments",
+          "present": "Present",
+          "absent": "Absent",
+          "late": "Late",
+          "excused": "Excused",
+          "rate": "Attendance Rate %"
         }
 
 }

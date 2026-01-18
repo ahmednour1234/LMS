@@ -481,13 +481,15 @@
           "enrollments": "التسجيلات"
         },
         "reports": {
+          "title": "التقارير",
           "registrations_hint": "متابعة تسجيلات الطلاب وحالة الدفع.",
           "total_registrations": "إجمالي التسجيلات",
           "total_amount": "إجمالي المبلغ",
           "paid_amount": "المبلغ المدفوع",
           "due_amount": "المبلغ المتبقي",
           "no_data": "لا توجد بيانات.",
-          "no_data_hint": "جرّب تعديل الفلاتر أو اختيار فترة تاريخ مختلفة."
+          "no_data_hint": "جرّب تعديل الفلاتر أو اختيار فترة تاريخ مختلفة.",
+          "details": "التفاصيل"
         },
         "enrollments": {
           "reference": "المرجع",
@@ -530,6 +532,16 @@
           "status": "الحالة",
           "no_data_title": "لا توجد بيانات",
           "no_data_desc": "لا توجد تسجيلات مطابقة للفلاتر المحددة."
+        },
+        "attendance": {
+          "attendance_report": "تقرير الحضور",
+          "sessions": "الجلسات",
+          "enrollments": "الاشتراكات",
+          "present": "حاضر",
+          "absent": "غائب",
+          "late": "متأخر",
+          "excused": "معذور",
+          "rate": "نسبة الحضور %"
         }
 
 }
