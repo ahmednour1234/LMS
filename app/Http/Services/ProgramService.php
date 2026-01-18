@@ -50,7 +50,7 @@ class ProgramService
 
         if ($withCourses) {
             $query->with([
-                'courses' => fn (Builder $q) => $q->where('is_active', true)
+                'courses' => fn (HasMany $q) => $q->where('is_active', true)
                     ->orderBy('created_at', 'desc')
                     ->orderBy('id', 'desc'),
                 'courses.ownerTeacher',
