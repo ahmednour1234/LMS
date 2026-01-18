@@ -4,39 +4,40 @@ namespace App\Filament\Teacher\Pages\Reports;
 
 use App\Domain\Enrollment\Models\Enrollment;
 use App\Domain\Training\Models\Course;
-use App\Enums\PaymentStatus;
 use App\Filament\Concerns\HasTableExports;
 use App\Support\Helpers\MultilingualHelper;
 use Filament\Forms\Components\DatePicker;
-use Filament\Forms\Components\Select;
-use Filament\Forms\Concerns\InteractsWithForms;
-use Filament\Forms\Contracts\HasForms;
-use Filament\Pages\Page;
-use Filament\Tables\Actions\Action;
 use Filament\Tables\Columns\TextColumn;
+use Filament\Tables\Columns\ViewColumn;
 use Filament\Tables\Concerns\InteractsWithTable;
 use Filament\Tables\Contracts\HasTable;
 use Filament\Tables\Filters\Filter;
 use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Table;
+use Filament\Pages\Page;
+use Filament\Forms\Concerns\InteractsWithForms;
+use Filament\Forms\Contracts\HasForms;
 use Illuminate\Database\Eloquent\Builder;
-use Illuminate\Support\Carbon;
 
 class TeacherRegistrationsPage extends Page implements HasForms, HasTable
 {
     use InteractsWithForms, InteractsWithTable, HasTableExports;
 
     protected static ?string $navigationIcon = 'heroicon-o-academic-cap';
-
     protected static string $view = 'filament.teacher.pages.teacher-registrations-page';
-
     protected static ?string $navigationGroup = 'Reports';
-
     protected static ?int $navigationSort = 22;
+
+    public array $stats = [
+        'total' => 0,
+        'total_amount' => '0',
+        'paid_amount' => '0',
+        'due_amount' => '0',
+    ];
 
     public static function getNavigationLabel(): string
     {
-        return __('navigation.enrollments') ?? 'Registrations';
+        return __('navigation.enrollments') ?: 'Registrations';
     }
 
     public static function getNavigationGroup(): ?string
@@ -46,147 +47,144 @@ class TeacherRegistrationsPage extends Page implements HasForms, HasTable
 
     public static function getModelLabel(): string
     {
-        return __('navigation.enrollments') ?? 'Registrations';
+        return __('navigation.enrollments') ?: 'Registrations';
+    }
+
+    public function mount(): void
+    {
+        $this->recalculateStats();
+    }
+
+    protected function getBaseQuery(): Builder
+    {
+        $teacherId = auth('teacher')->id();
+
+        return Enrollment::query()
+            ->whereHas('course', fn (Builder $q) => $q->where('owner_teacher_id', $teacherId))
+            ->with(['student', 'course'])
+            ->withSum(['payments as paid_amount_sum' => function ($q) {
+                $q->where('status', 'completed');
+            }], 'amount');
     }
 
     public function table(Table $table): Table
     {
-        $teacherId = auth('teacher')->id();
-
         return $table
-            ->query(
-                Enrollment::query()
-                    ->whereHas('course', fn (Builder $q) => $q->where('owner_teacher_id', $teacherId))
-                    ->with(['student', 'course', 'payments'])
-            )
+            ->query($this->getBaseQuery())
             ->columns([
                 TextColumn::make('reference')
                     ->searchable()
                     ->sortable()
-                    ->label(__('enrollments.reference') ?? 'Reference'),
+                    ->label(__('enrollments.reference') ?: 'Reference')
+                    ->copyable()
+                    ->toggleable(),
 
-                TextColumn::make('student.name')
-                    ->searchable()
-                    ->sortable()
-                    ->label(__('enrollments.student') ?? 'Student'),
+                ViewColumn::make('student.name')
+                    ->label(__('enrollments.student') ?: 'Student')
+                    ->view('filament.teacher.tables.columns.student-with-avatar'),
 
                 TextColumn::make('course.name')
+                    ->label(__('enrollments.course') ?: 'Course')
                     ->formatStateUsing(fn ($state) => MultilingualHelper::formatMultilingualField($state))
+                    ->badge()
+                    ->color('info')
                     ->searchable()
-                    ->sortable()
-                    ->label(__('enrollments.course') ?? 'Course'),
+                    ->sortable(),
 
                 TextColumn::make('total_amount')
+                    ->label(__('enrollments.total_amount') ?: 'Total Amount')
+                    ->money('OMR')
+                    ->sortable(),
+
+                TextColumn::make('paid_amount_sum')
+                    ->label(__('enrollments.paid_amount') ?: 'Paid Amount')
                     ->money('OMR')
                     ->sortable()
-                    ->label(__('enrollments.total_amount') ?? 'Total Amount'),
+                    ->color('success'),
 
-                TextColumn::make('paid_amount')
-                    ->money('OMR')
+                TextColumn::make('due_amount_calc')
+                    ->label(__('enrollments.due_amount') ?: 'Due Amount')
                     ->state(function ($record) {
-                        return $record->payments()->where('status', 'completed')->sum('amount');
+                        $paid = (float) ($record->paid_amount_sum ?? 0);
+                        return max(((float) $record->total_amount) - $paid, 0);
                     })
-                    ->label(__('enrollments.paid_amount') ?? 'Paid Amount'),
+                    ->money('OMR')
+                    ->color(fn ($state) => ((float) $state) > 0 ? 'warning' : 'success'),
 
-                TextColumn::make('due_amount')
-                    ->money('OMR')
-                    ->state(function ($record) {
-                        $paid = $record->payments()->where('status', 'completed')->sum('amount');
-                        return $record->total_amount - $paid;
-                    })
-                    ->label(__('enrollments.due_amount') ?? 'Due Amount'),
+                ViewColumn::make('payment_progress')
+                    ->label(__('Payment') ?: 'Payment')
+                    ->view('filament.teacher.tables.columns.payment-progress'),
 
                 TextColumn::make('status')
                     ->badge()
                     ->formatStateUsing(fn ($state) => __('enrollments.status_options.' . $state->value) ?? $state->value)
-                    ->color(fn ($state) => match($state->value) {
+                    ->color(fn ($state) => match ($state->value) {
                         'active' => 'success',
                         'pending_payment' => 'warning',
                         'completed' => 'info',
                         'cancelled' => 'danger',
                         default => 'gray',
                     })
-                    ->label(__('enrollments.status') ?? 'Status'),
+                    ->label(__('enrollments.status') ?: 'Status'),
 
                 TextColumn::make('created_at')
                     ->dateTime()
                     ->sortable()
-                    ->label(__('dashboard.tables.created_at') ?? 'Created At'),
+                    ->label(__('dashboard.tables.created_at') ?: 'Created At'),
             ])
             ->filters([
                 Filter::make('created_at')
                     ->form([
-                        DatePicker::make('created_from')
-                            ->label(__('filters.date_from') ?? 'From Date'),
-                        DatePicker::make('created_until')
-                            ->label(__('filters.date_to') ?? 'To Date'),
+                        DatePicker::make('created_from')->label(__('filters.date_from') ?: 'From Date')->native(false),
+                        DatePicker::make('created_until')->label(__('filters.date_to') ?: 'To Date')->native(false),
                     ])
                     ->query(function (Builder $query, array $data): Builder {
                         return $query
-                            ->when(
-                                $data['created_from'],
-                                fn (Builder $query, $date): Builder => $query->whereDate('created_at', '>=', $date),
-                            )
-                            ->when(
-                                $data['created_until'],
-                                fn (Builder $query, $date): Builder => $query->whereDate('created_at', '<=', $date),
-                            );
+                            ->when($data['created_from'] ?? null, fn (Builder $q, $date) => $q->whereDate('created_at', '>=', $date))
+                            ->when($data['created_until'] ?? null, fn (Builder $q, $date) => $q->whereDate('created_at', '<=', $date));
+                    })
+                    ->indicateUsing(function (array $data): array {
+                        $indicators = [];
+                        if (!empty($data['created_from'])) $indicators[] = 'From: ' . $data['created_from'];
+                        if (!empty($data['created_until'])) $indicators[] = 'To: ' . $data['created_until'];
+                        return $indicators;
                     }),
 
                 SelectFilter::make('course_id')
-                    ->label(__('Course') ?? 'Course')
-                    ->options(function () use ($teacherId) {
-                        return Course::query()
-                            ->where('owner_teacher_id', $teacherId)
-                            ->get()
-                            ->mapWithKeys(function ($course) {
-                                $name = is_array($course->name) ? ($course->name['en'] ?? $course->name['ar'] ?? '') : $course->name;
-                                return [$course->id => $name];
-                            });
-                    })
-                    ->searchable(),
+                    ->label(__('Course') ?: 'Course')
+                    ->options(fn () => Course::query()
+                        ->where('owner_teacher_id', auth('teacher')->id())
+                        ->get()
+                        ->mapWithKeys(function ($course) {
+                            $name = is_array($course->name)
+                                ? ($course->name[app()->getLocale()] ?? $course->name['en'] ?? $course->name['ar'] ?? '')
+                                : $course->name;
+                            return [$course->id => $name];
+                        })
+                        ->toArray()
+                    )
+                    ->searchable()
+                    ->preload(),
 
                 SelectFilter::make('payment_status')
-                    ->label(__('Payment Status') ?? 'Payment Status')
+                    ->label(__('Payment Status') ?: 'Payment Status')
                     ->options([
-                        'completed' => __('Completed') ?? 'Completed',
-                        'partial' => __('Partial') ?? 'Partial',
-                        'pending' => __('Pending') ?? 'Pending',
+                        'completed' => __('Completed') ?: 'Completed',
+                        'partial' => __('Partial') ?: 'Partial',
+                        'pending' => __('Pending') ?: 'Pending',
                     ])
                     ->query(function (Builder $query, $state): Builder {
-                        if (!$state || !isset($state['value']) || !$state['value']) {
-                            return $query;
-                        }
+                        $value = $state['value'] ?? null;
+                        if (!$value) return $query;
 
-                        $paidStatus = $state['value'];
-
-                        return $query->where(function (Builder $q) use ($paidStatus) {
-                            if ($paidStatus === 'completed') {
-                                $q->whereRaw('(
-                                    SELECT COALESCE(SUM(amount), 0)
-                                    FROM payments
-                                    WHERE payments.enrollment_id = enrollments.id
-                                    AND payments.status = ?
-                                ) >= enrollments.total_amount', ['completed']);
-                            } elseif ($paidStatus === 'partial') {
-                                $q->whereRaw('(
-                                    SELECT COALESCE(SUM(amount), 0)
-                                    FROM payments
-                                    WHERE payments.enrollment_id = enrollments.id
-                                    AND payments.status = ?
-                                ) > 0', ['completed'])
-                                ->whereRaw('(
-                                    SELECT COALESCE(SUM(amount), 0)
-                                    FROM payments
-                                    WHERE payments.enrollment_id = enrollments.id
-                                    AND payments.status = ?
-                                ) < enrollments.total_amount', ['completed']);
+                        return $query->where(function (Builder $q) use ($value) {
+                            if ($value === 'completed') {
+                                $q->whereRaw('COALESCE(paid_amount_sum, 0) >= enrollments.total_amount');
+                            } elseif ($value === 'partial') {
+                                $q->whereRaw('COALESCE(paid_amount_sum, 0) > 0')
+                                  ->whereRaw('COALESCE(paid_amount_sum, 0) < enrollments.total_amount');
                             } else {
-                                $q->whereRaw('NOT EXISTS (
-                                    SELECT 1 FROM payments
-                                    WHERE payments.enrollment_id = enrollments.id
-                                    AND payments.status = ?
-                                )', ['completed']);
+                                $q->whereRaw('COALESCE(paid_amount_sum, 0) = 0');
                             }
                         });
                     }),
@@ -194,6 +192,47 @@ class TeacherRegistrationsPage extends Page implements HasForms, HasTable
             ->headerActions([
                 ...static::getExportActions(),
             ])
-            ->defaultSort('created_at', 'desc');
+            ->defaultSort('created_at', 'desc')
+            ->deferLoading()
+            ->paginated([10, 25, 50])
+            ->poll('30s')
+            ->filtersTriggerAction(
+                fn ($action) => $action->button()->label(__('filters.title') ?: 'Filters')->icon('heroicon-o-funnel')
+            )
+            ->actions([
+                \Filament\Tables\Actions\ViewAction::make()
+                    ->label(__('general.view') ?: 'View')
+                    ->icon('heroicon-o-eye'),
+            ])
+            ->recordUrl(null)
+            ->emptyStateHeading(__('reports.no_data') ?: 'No registrations yet')
+            ->emptyStateDescription(__('reports.no_data_hint') ?: 'Try adjusting filters or select a different date range.')
+            ->emptyStateIcon('heroicon-o-academic-cap')
+            ->modifyQueryUsing(function (Builder $query) {
+                return $query->tap(fn () => $this->recalculateStatsFromQuery($query));
+            });
+    }
+
+    protected function recalculateStats(): void
+    {
+        $query = $this->getBaseQuery();
+        $this->recalculateStatsFromQuery($query);
+    }
+
+    protected function recalculateStatsFromQuery(Builder $query): void
+    {
+        $cloned = clone $query;
+
+        $total = (int) $cloned->count();
+        $totalAmount = (float) (clone $query)->sum('total_amount');
+        $paidAmount = (float) (clone $query)->sum('paid_amount_sum');
+        $dueAmount = max($totalAmount - $paidAmount, 0);
+
+        $this->stats = [
+            'total' => $total,
+            'total_amount' => number_format($totalAmount, 2),
+            'paid_amount' => number_format($paidAmount, 2),
+            'due_amount' => number_format($dueAmount, 2),
+        ];
     }
 }
