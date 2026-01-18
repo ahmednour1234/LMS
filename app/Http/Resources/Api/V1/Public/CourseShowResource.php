@@ -54,6 +54,7 @@ class CourseShowResource extends JsonResource
             'image' => ImageHelper::getFullImageUrl($this->image),
             'created_at' => $this->created_at?->toIso8601String(),
             'updated_at' => $this->updated_at?->toIso8601String(),
+            'prices' => CoursePriceResource::collection($this->whenLoaded('prices')),
             'sections' => CourseSectionResource::collection($this->whenLoaded('sections')),
         ];
     }

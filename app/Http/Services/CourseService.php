@@ -83,6 +83,12 @@ class CourseService
         return Course::with([
             'program',
             'ownerTeacher',
+            'prices' => function ($query) {
+                $query->where('is_active', true)
+                      ->orderBy('branch_id')
+                      ->orderBy('delivery_type')
+                      ->orderBy('id');
+            },
             'sections' => function ($query) {
                 $query->where('is_active', true)
                       ->orderBy('order')
