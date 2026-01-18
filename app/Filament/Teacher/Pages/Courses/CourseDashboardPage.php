@@ -96,6 +96,21 @@ class CourseDashboardPage extends Page implements HasForms, HasTable
         return $table->query(Enrollment::query()->where('id', -1));
     }
 
+    public function getRegistrationsTableProperty(): Table
+    {
+        return $this->registrationsTable($this->makeTable());
+    }
+
+    public function getTasksTableProperty(): Table
+    {
+        return $this->tasksTable($this->makeTable());
+    }
+
+    public function getAttendanceTableProperty(): Table
+    {
+        return $this->attendanceTable($this->makeTable());
+    }
+
     public function registrationsTable(Table $table): Table
     {
         return $table
