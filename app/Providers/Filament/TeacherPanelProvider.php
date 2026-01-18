@@ -75,6 +75,7 @@ class TeacherPanelProvider extends PanelProvider
             ->discoverWidgets(in: app_path('Filament/Teacher/Widgets'), for: 'App\\Filament\\Teacher\\Widgets')
             ->pages([
                 \App\Filament\Teacher\Pages\Dashboard::class,
+                \App\Filament\Teacher\Pages\Courses\CourseDashboardPage::class,
             ])
             ->middleware([
                 EncryptCookies::class,

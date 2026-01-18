@@ -63,7 +63,10 @@ class CourseDashboardPage extends Page implements HasForms, HasTable
         $this->subheading = __('course_dashboard.subtitle', ['code' => $course->code]) ?? 'Course Dashboard';
     }
 
-    protected static ?string $slug = 'courses/{record}/dashboard';
+    public static function getSlug(): string
+    {
+        return 'courses/{record}/dashboard';
+    }
 
     public static function getUrl(array $parameters = [], bool $isAbsolute = true, ?string $panel = null, ?\Illuminate\Database\Eloquent\Model $tenant = null): string
     {
@@ -74,7 +77,11 @@ class CourseDashboardPage extends Page implements HasForms, HasTable
 
         $recordId = $record instanceof \Illuminate\Database\Eloquent\Model ? $record->id : $record;
         
-        return url('/teacher-admin/courses/' . $recordId . '/dashboard');
+        $panel = $panel ?? \Filament\Facades\Filament::getPanel('teacher');
+        $slug = static::getSlug();
+        $slug = str_replace('{record}', $recordId, $slug);
+        
+        return $panel->getUrl($slug, $isAbsolute);
     }
 
     public static function shouldRegisterNavigation(): bool
