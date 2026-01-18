@@ -508,15 +508,12 @@ class CourseDashboardPage extends Page implements HasForms, HasTable
                 TextColumn::make('status')
                     ->badge()
                     ->formatStateUsing(fn ($state) => __('course_dashboard.attendance_status.' . ($state instanceof \App\Domain\Training\Enums\AttendanceStatus ? $state->value : $state)) ?? ($state instanceof \App\Domain\Training\Enums\AttendanceStatus ? $state->value : $state))
-                    ->color(fn ($state) => {
-                        $statusValue = $state instanceof \App\Domain\Training\Enums\AttendanceStatus ? $state->value : $state;
-                        return match($statusValue) {
-                            'present' => 'success',
-                            'absent' => 'danger',
-                            'late' => 'warning',
-                            'excused' => 'info',
-                            default => 'gray',
-                        };
+                    ->color(fn ($state) => match($state instanceof \App\Domain\Training\Enums\AttendanceStatus ? $state->value : $state) {
+                        'present' => 'success',
+                        'absent' => 'danger',
+                        'late' => 'warning',
+                        'excused' => 'info',
+                        default => 'gray',
                     })
                     ->label(__('course_dashboard.status')),
 
