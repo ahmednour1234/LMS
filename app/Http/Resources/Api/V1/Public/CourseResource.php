@@ -2,21 +2,26 @@
 
 namespace App\Http\Resources\Api\V1\Public;
 
+use App\Support\Traits\HasTranslatableFields;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
 
 class CourseResource extends JsonResource
 {
+    use HasTranslatableFields;
+
     public function toArray(Request $request): array
     {
+        $locale = app()->getLocale();
+
         return [
             'id' => $this->id,
             'program_id' => $this->program_id,
             'owner_teacher_id' => $this->owner_teacher_id,
 
             'code' => $this->code,
-            'name' => $this->name,
-            'description' => $this->description,
+            'name' => $this->getTranslatedValue($this->name, $locale),
+            'description' => $this->getTranslatedValue($this->description, $locale),
 
             'image' => $this->image ? asset('storage/' . $this->image) : null,
 
