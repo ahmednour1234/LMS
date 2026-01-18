@@ -17,6 +17,7 @@ use Filament\Tables\Filters\Filter;
 use Filament\Tables\Filters\SelectFilter;
 use Filament\Forms\Components\DatePicker;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Support\Facades\DB;
 
 class TeacherRegistrationsPage extends Page implements HasForms, HasTable
 {
@@ -217,7 +218,11 @@ class TeacherRegistrationsPage extends Page implements HasForms, HasTable
     {
         $total = (int) (clone $query)->count();
         $totalAmount = (float) (clone $query)->sum('total_amount');
-        $paidAmount = (float) (clone $query)->sum('paid_amount_sum');
+        $enrollmentIds = (clone $query)->pluck('id');
+        $paidAmount = $enrollmentIds->isEmpty() ? 0 : (float) DB::table('payments')
+            ->whereIn('enrollment_id', $enrollmentIds)
+            ->where('status', 'completed')
+            ->sum('amount');
         $dueAmount = max($totalAmount - $paidAmount, 0);
 
         $this->stats = [
