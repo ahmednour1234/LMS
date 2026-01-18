@@ -93,3 +93,15 @@ Route::middleware(['web', 'auth'])->group(function () {
     Route::get('/admin/installments/{installment}/print', [App\Http\Controllers\InstallmentController::class, 'print'])
         ->name('installments.print');
 });
+
+// Teacher panel custom routes - Course Dashboard Page
+Route::middleware([
+    'web',
+    \Filament\Http\Middleware\Authenticate::class.':teacher',
+    \Filament\Http\Middleware\AuthenticateSession::class,
+    \Filament\Http\Middleware\DispatchServingFilamentEvent::class,
+    \Filament\Http\Middleware\DisableBladeIconComponents::class,
+])->prefix('teacher-admin')->group(function () {
+    Route::get('/courses/{record}/dashboard', \App\Filament\Teacher\Pages\Courses\CourseDashboardPage::class)
+        ->name('filament.teacher.pages.courses.course-dashboard');
+});

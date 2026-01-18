@@ -77,11 +77,7 @@ class CourseDashboardPage extends Page implements HasForms, HasTable
 
         $recordId = $record instanceof \Illuminate\Database\Eloquent\Model ? $record->id : $record;
         
-        $panel = $panel ?? \Filament\Facades\Filament::getPanel('teacher');
-        $slug = static::getSlug();
-        $slug = str_replace('{record}', $recordId, $slug);
-        
-        return $panel->getUrl($slug, $isAbsolute);
+        return route('filament.teacher.pages.courses.course-dashboard', ['record' => $recordId], $isAbsolute);
     }
 
     public static function shouldRegisterNavigation(): bool
