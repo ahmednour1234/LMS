@@ -34,7 +34,7 @@ Route::post('/admin/locale/toggle', function () {
     }
 
     return redirect()->to($redirect);
-})->name('filament.admin.locale.toggle')->middleware(['web', 'auth']);
+})->name('filament.admin.locale.toggle')->middleware(['web']);
 
 // Public routes (no authentication required)
 Route::middleware(['web'])->group(function () {
