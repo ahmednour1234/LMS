@@ -14,6 +14,20 @@ class CourseResource extends JsonResource
     {
         $locale = app()->getLocale();
 
+        $isEnrolled = false;
+        $enrollmentStatus = null;
+
+        if (auth('students')->check()) {
+            $student = auth('students')->user();
+            $enrollment = \App\Domain\Enrollment\Models\Enrollment::where('student_id', $student->id)
+                ->where('course_id', $this->id)
+                ->whereIn('status', ['active', 'pending', 'pending_payment'])
+                ->first();
+
+            $isEnrolled = $enrollment !== null;
+            $enrollmentStatus = $enrollment?->status->value;
+        }
+
         return [
             'id' => $this->id,
             'program_id' => $this->program_id,
@@ -30,6 +44,9 @@ class CourseResource extends JsonResource
             'is_active' => (bool) $this->is_active,
 
             'prices' => CoursePriceResource::collection($this->whenLoaded('prices')),
+
+            'is_enrolled' => $isEnrolled,
+            'enrollment_status' => $enrollmentStatus,
 
             'created_at' => $this->created_at?->toISOString(),
             'updated_at' => $this->updated_at?->toISOString(),
