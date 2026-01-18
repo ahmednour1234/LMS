@@ -18,6 +18,7 @@ use Filament\Forms\Contracts\HasForms;
 use Filament\Forms\Form;
 use Filament\Notifications\Notification;
 use Filament\Pages\Page;
+use Filament\Support\Enums\Alignment;
 use Illuminate\Support\Facades\App;
 use Rap2hpoutre\FastExcel\FastExcel;
 use Symfony\Component\HttpFoundation\StreamedResponse;
@@ -190,7 +191,7 @@ class TeacherRevenueReportPage extends Page implements HasForms
                                 $this->generate();
                             }),
                     ])
-                    ->footerActionsAlignment('right'),
+                    ->footerActionsAlignment(Alignment::Right),
             ])
             ->statePath('data');
     }
