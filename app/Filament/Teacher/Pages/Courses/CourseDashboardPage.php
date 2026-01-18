@@ -91,6 +91,11 @@ class CourseDashboardPage extends Page implements HasForms, HasTable
         // Reset table state when switching tabs
     }
 
+    public function table(Table $table): Table
+    {
+        return $table->query(Enrollment::query()->where('id', -1));
+    }
+
     public function registrationsTable(Table $table): Table
     {
         return $table
