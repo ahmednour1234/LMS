@@ -24,6 +24,8 @@ class CourseResource extends JsonResource
             'duration_hours' => $this->duration_hours,
             'is_active' => (bool) $this->is_active,
 
+            'prices' => CoursePriceResource::collection($this->whenLoaded('prices')),
+
             'created_at' => $this->created_at?->toISOString(),
             'updated_at' => $this->updated_at?->toISOString(),
         ];
