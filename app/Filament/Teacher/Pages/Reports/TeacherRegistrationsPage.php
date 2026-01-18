@@ -6,19 +6,17 @@ use App\Domain\Enrollment\Models\Enrollment;
 use App\Domain\Training\Models\Course;
 use App\Filament\Concerns\HasTableExports;
 use App\Support\Helpers\MultilingualHelper;
-use Filament\Forms\Components\DatePicker;
-use Filament\Tables\Columns\TextColumn;
-use Filament\Tables\Columns\ViewColumn;
-use Filament\Tables\Concerns\InteractsWithTable;
+use Filament\Forms\Contracts\HasForms;
+use Filament\Pages\Page;
 use Filament\Tables\Contracts\HasTable;
+use Filament\Forms\Concerns\InteractsWithForms;
+use Filament\Tables\Concerns\InteractsWithTable;
+use Filament\Tables\Table;
+use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Filters\Filter;
 use Filament\Tables\Filters\SelectFilter;
-use Filament\Tables\Table;
-use Filament\Pages\Page;
-use Filament\Forms\Concerns\InteractsWithForms;
-use Filament\Forms\Contracts\HasForms;
+use Filament\Forms\Components\DatePicker;
 use Illuminate\Database\Eloquent\Builder;
-use Illuminate\Support\Facades\DB;
 
 class TeacherRegistrationsPage extends Page implements HasForms, HasTable
 {
@@ -31,9 +29,9 @@ class TeacherRegistrationsPage extends Page implements HasForms, HasTable
 
     public array $stats = [
         'total' => 0,
-        'total_amount' => '0',
-        'paid_amount' => '0',
-        'due_amount' => '0',
+        'total_amount' => '0.00',
+        'paid_amount' => '0.00',
+        'due_amount' => '0.00',
     ];
 
     public static function getNavigationLabel(): string
@@ -56,33 +54,33 @@ class TeacherRegistrationsPage extends Page implements HasForms, HasTable
         $this->recalculateStats();
     }
 
-    protected function getBaseQuery(): Builder
+    protected function baseQuery(): Builder
     {
         $teacherId = auth('teacher')->id();
 
         return Enrollment::query()
             ->whereHas('course', fn (Builder $q) => $q->where('owner_teacher_id', $teacherId))
             ->with(['student', 'course'])
-            ->withSum(['payments as paid_amount_sum' => function ($q) {
-                $q->where('status', 'completed');
-            }], 'amount');
+            ->withSum(['payments as paid_amount_sum' => fn ($q) => $q->where('status', 'completed')], 'amount');
     }
 
     public function table(Table $table): Table
     {
         return $table
-            ->query($this->getBaseQuery())
+            ->query($this->baseQuery())
             ->columns([
                 TextColumn::make('reference')
+                    ->label(__('enrollments.reference') ?: 'Reference')
                     ->searchable()
                     ->sortable()
-                    ->label(__('enrollments.reference') ?: 'Reference')
                     ->copyable()
                     ->toggleable(),
 
-                ViewColumn::make('student.name')
+                TextColumn::make('student.name')
                     ->label(__('enrollments.student') ?: 'Student')
-                    ->view('filament.teacher.tables.columns.student-with-avatar'),
+                    ->searchable()
+                    ->sortable()
+                    ->wrap(),
 
                 TextColumn::make('course.name')
                     ->label(__('enrollments.course') ?: 'Course')
@@ -112,11 +110,8 @@ class TeacherRegistrationsPage extends Page implements HasForms, HasTable
                     ->money('OMR')
                     ->color(fn ($state) => ((float) $state) > 0 ? 'warning' : 'success'),
 
-                ViewColumn::make('payment_progress')
-                    ->label(__('Payment') ?: 'Payment')
-                    ->view('filament.teacher.tables.columns.payment-progress'),
-
                 TextColumn::make('status')
+                    ->label(__('enrollments.status') ?: 'Status')
                     ->badge()
                     ->formatStateUsing(fn ($state) => __('enrollments.status_options.' . $state->value) ?? $state->value)
                     ->color(fn ($state) => match ($state->value) {
@@ -125,19 +120,22 @@ class TeacherRegistrationsPage extends Page implements HasForms, HasTable
                         'completed' => 'info',
                         'cancelled' => 'danger',
                         default => 'gray',
-                    })
-                    ->label(__('enrollments.status') ?: 'Status'),
+                    }),
 
                 TextColumn::make('created_at')
+                    ->label(__('dashboard.tables.created_at') ?: 'Created At')
                     ->dateTime()
-                    ->sortable()
-                    ->label(__('dashboard.tables.created_at') ?: 'Created At'),
+                    ->sortable(),
             ])
             ->filters([
                 Filter::make('created_at')
                     ->form([
-                        DatePicker::make('created_from')->label(__('filters.date_from') ?: 'From Date')->native(false),
-                        DatePicker::make('created_until')->label(__('filters.date_to') ?: 'To Date')->native(false),
+                        DatePicker::make('created_from')
+                            ->label(__('filters.date_from') ?: 'From Date')
+                            ->native(false),
+                        DatePicker::make('created_until')
+                            ->label(__('filters.date_to') ?: 'To Date')
+                            ->native(false),
                     ])
                     ->query(function (Builder $query, array $data): Builder {
                         return $query
@@ -146,24 +144,28 @@ class TeacherRegistrationsPage extends Page implements HasForms, HasTable
                     })
                     ->indicateUsing(function (array $data): array {
                         $indicators = [];
-                        if (!empty($data['created_from'])) $indicators[] = 'From: ' . $data['created_from'];
-                        if (!empty($data['created_until'])) $indicators[] = 'To: ' . $data['created_until'];
+                        if (!empty($data['created_from'])) $indicators[] = (__('filters.date_from') ?: 'From') . ': ' . $data['created_from'];
+                        if (!empty($data['created_until'])) $indicators[] = (__('filters.date_to') ?: 'To') . ': ' . $data['created_until'];
                         return $indicators;
                     }),
 
                 SelectFilter::make('course_id')
                     ->label(__('Course') ?: 'Course')
-                    ->options(fn () => Course::query()
-                        ->where('owner_teacher_id', auth('teacher')->id())
-                        ->get()
-                        ->mapWithKeys(function ($course) {
-                            $name = is_array($course->name)
-                                ? ($course->name[app()->getLocale()] ?? $course->name['en'] ?? $course->name['ar'] ?? '')
-                                : $course->name;
-                            return [$course->id => $name];
-                        })
-                        ->toArray()
-                    )
+                    ->options(function () {
+                        $teacherId = auth('teacher')->id();
+
+                        return Course::query()
+                            ->where('owner_teacher_id', $teacherId)
+                            ->get()
+                            ->mapWithKeys(function ($course) {
+                                $name = is_array($course->name)
+                                    ? ($course->name[app()->getLocale()] ?? $course->name['en'] ?? $course->name['ar'] ?? '')
+                                    : $course->name;
+
+                                return [$course->id => $name];
+                            })
+                            ->toArray();
+                    })
                     ->searchable()
                     ->preload(),
 
@@ -174,7 +176,7 @@ class TeacherRegistrationsPage extends Page implements HasForms, HasTable
                         'partial' => __('Partial') ?: 'Partial',
                         'pending' => __('Pending') ?: 'Pending',
                     ])
-                    ->query(function (Builder $query, $state): Builder {
+                    ->query(function (Builder $query, array $state): Builder {
                         $value = $state['value'] ?? null;
                         if (!$value) return $query;
 
@@ -194,43 +196,28 @@ class TeacherRegistrationsPage extends Page implements HasForms, HasTable
                 ...static::getExportActions(),
             ])
             ->defaultSort('created_at', 'desc')
-            ->deferLoading()
             ->paginated([10, 25, 50])
-            ->poll('30s')
-            ->filtersTriggerAction(
-                fn ($action) => $action->button()->label(__('filters.title') ?: 'Filters')->icon('heroicon-o-funnel')
-            )
-            ->actions([
-                \Filament\Tables\Actions\ViewAction::make()
-                    ->label(__('general.view') ?: 'View')
-                    ->icon('heroicon-o-eye'),
-            ])
-            ->recordUrl(null)
+            ->deferLoading()
+            ->filtersTriggerAction(fn ($action) => $action->button()->label(__('filters.title') ?: 'Filters')->icon('heroicon-o-funnel'))
             ->emptyStateHeading(__('reports.no_data') ?: 'No registrations yet')
             ->emptyStateDescription(__('reports.no_data_hint') ?: 'Try adjusting filters or select a different date range.')
             ->emptyStateIcon('heroicon-o-academic-cap')
             ->modifyQueryUsing(function (Builder $query) {
-                return $query->tap(fn () => $this->recalculateStatsFromQuery($query));
+                $this->recalculateStatsFromQuery($query);
+                return $query;
             });
     }
 
     protected function recalculateStats(): void
     {
-        $query = $this->getBaseQuery();
-        $this->recalculateStatsFromQuery($query);
+        $this->recalculateStatsFromQuery($this->baseQuery());
     }
 
     protected function recalculateStatsFromQuery(Builder $query): void
     {
-        $cloned = clone $query;
-
-        $total = (int) $cloned->count();
+        $total = (int) (clone $query)->count();
         $totalAmount = (float) (clone $query)->sum('total_amount');
-        $enrollmentIds = (clone $query)->pluck('id');
-        $paidAmount = $enrollmentIds->isEmpty() ? 0 : (float) DB::table('payments')
-            ->whereIn('enrollment_id', $enrollmentIds)
-            ->where('status', 'completed')
-            ->sum('amount');
+        $paidAmount = (float) (clone $query)->sum('paid_amount_sum');
         $dueAmount = max($totalAmount - $paidAmount, 0);
 
         $this->stats = [
