@@ -47,5 +47,10 @@ class Exam extends Model
     {
         return $this->hasMany(ExamQuestion::class)->orderBy('order');
     }
+
+    public function attempts(): HasMany
+    {
+        return $this->hasMany(ExamAttempt::class);
+    }
 }
 

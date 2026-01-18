@@ -37,6 +37,52 @@ Route::prefix('v1')->group(function () {
             Route::post('/logout', [App\Http\Controllers\Api\V1\Student\AuthController::class, 'logout']);
             Route::post('/refresh', [App\Http\Controllers\Api\V1\Student\AuthController::class, 'refresh']);
             Route::put('/profile', [App\Http\Controllers\Api\V1\Student\ProfileController::class, 'update']);
+
+            // Courses
+            Route::get('/courses', [App\Http\Controllers\Api\V1\Student\CourseController::class, 'index']);
+            Route::get('/courses/{course}', [App\Http\Controllers\Api\V1\Student\CourseController::class, 'show']);
+
+            // Enrollments
+            Route::post('/enrollments', [App\Http\Controllers\Api\V1\Student\EnrollmentController::class, 'store']);
+            Route::get('/enrollments', [App\Http\Controllers\Api\V1\Student\EnrollmentController::class, 'index']);
+            Route::get('/enrollments/{enrollment}', [App\Http\Controllers\Api\V1\Student\EnrollmentController::class, 'show']);
+
+            // Payments
+            Route::post('/enrollments/{enrollment}/payments', [App\Http\Controllers\Api\V1\Student\PaymentController::class, 'store']);
+            Route::get('/enrollments/{enrollment}/payments', [App\Http\Controllers\Api\V1\Student\PaymentController::class, 'index']);
+
+            // Sessions & Attendance
+            Route::middleware([\App\Http\Middleware\EnsureEnrolledInCourse::class])->group(function () {
+                Route::get('/courses/{course}/sessions', [App\Http\Controllers\Api\V1\Student\SessionController::class, 'index']);
+            });
+            Route::post('/sessions/{session}/attendance/check-in', [App\Http\Controllers\Api\V1\Student\SessionController::class, 'checkIn']);
+            Route::get('/attendance/report', [App\Http\Controllers\Api\V1\Student\AttendanceController::class, 'report']);
+
+            // Content & Lessons
+            Route::middleware([
+                \App\Http\Middleware\EnsureEnrolledInCourse::class,
+                \App\Http\Middleware\EnsureEnrollmentPaid::class,
+            ])->group(function () {
+                Route::get('/courses/{course}/content', [App\Http\Controllers\Api\V1\Student\ContentController::class, 'index']);
+            });
+            Route::get('/lessons/{lesson}', [App\Http\Controllers\Api\V1\Student\LessonController::class, 'show']);
+
+            // Exams
+            Route::middleware([\App\Http\Middleware\EnsureEnrolledInCourse::class])->group(function () {
+                Route::get('/courses/{course}/exams', [App\Http\Controllers\Api\V1\Student\ExamController::class, 'index']);
+            });
+            Route::get('/exams/{exam}', [App\Http\Controllers\Api\V1\Student\ExamController::class, 'show']);
+            Route::get('/exams/{exam}/questions', [App\Http\Controllers\Api\V1\Student\ExamController::class, 'questions']);
+            Route::post('/exams/{exam}/submit', [App\Http\Controllers\Api\V1\Student\ExamController::class, 'submit']);
+            Route::get('/exams/{exam}/result', [App\Http\Controllers\Api\V1\Student\ExamController::class, 'result']);
+
+            // Tasks
+            Route::middleware([\App\Http\Middleware\EnsureEnrolledInCourse::class])->group(function () {
+                Route::get('/courses/{course}/tasks', [App\Http\Controllers\Api\V1\Student\TaskController::class, 'index']);
+            });
+            Route::get('/tasks/{task}', [App\Http\Controllers\Api\V1\Student\TaskController::class, 'show']);
+            Route::post('/tasks/{task}/submit', [App\Http\Controllers\Api\V1\Student\TaskController::class, 'submit']);
+            Route::get('/tasks/{task}/submissions', [App\Http\Controllers\Api\V1\Student\TaskController::class, 'submissions']);
         });
     });
 
