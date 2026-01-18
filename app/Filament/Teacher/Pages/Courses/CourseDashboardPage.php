@@ -45,7 +45,9 @@ class CourseDashboardPage extends Page implements HasForms, HasTable
 
     protected static string $view = 'filament.teacher.pages.courses.course-dashboard';
 
-    public Course $record;
+    protected static ?string $slug = 'courses/{record}/dashboard';
+
+    public ?Course $record = null;
 
     public ?string $activeTab = 'overview';
 
@@ -53,31 +55,13 @@ class CourseDashboardPage extends Page implements HasForms, HasTable
 
     protected ?string $subheading = null;
 
-    public function mount(int | string $record): void
+    public function mount(Course $record): void
     {
-        $course = Course::findOrFail($record);
-        abort_unless($course->owner_teacher_id === auth('teacher')->id(), 404);
+        abort_unless($record->owner_teacher_id === auth('teacher')->id(), 404);
 
-        $this->record = $course;
-        $this->heading = MultilingualHelper::formatMultilingualField($course->name);
-        $this->subheading = __('course_dashboard.subtitle', ['code' => $course->code]) ?? 'Course Dashboard';
-    }
-
-    public static function getSlug(): string
-    {
-        return 'courses/{record}/dashboard';
-    }
-
-    public static function getUrl(array $parameters = [], bool $isAbsolute = true, ?string $panel = null, ?\Illuminate\Database\Eloquent\Model $tenant = null): string
-    {
-        $record = $parameters['record'] ?? null;
-        if (!$record) {
-            throw new \InvalidArgumentException('Record parameter is required');
-        }
-
-        $recordId = $record instanceof \Illuminate\Database\Eloquent\Model ? $record->id : $record;
-        
-        return route('filament.teacher.pages.courses.course-dashboard', ['record' => $recordId], $isAbsolute);
+        $this->record = $record;
+        $this->heading = MultilingualHelper::formatMultilingualField($record->name);
+        $this->subheading = __('course_dashboard.subtitle', ['code' => $record->code]) ?? 'Course Dashboard';
     }
 
     public static function shouldRegisterNavigation(): bool

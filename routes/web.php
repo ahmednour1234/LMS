@@ -94,22 +94,3 @@ Route::middleware(['web', 'auth'])->group(function () {
         ->name('installments.print');
 });
 
-// Teacher panel custom routes - Course Dashboard Page
-Route::middleware([
-    'web',
-    \Illuminate\Cookie\Middleware\EncryptCookies::class,
-    \Illuminate\Cookie\Middleware\AddQueuedCookiesToResponse::class,
-    \Illuminate\Session\Middleware\StartSession::class,
-    \Illuminate\View\Middleware\ShareErrorsFromSession::class,
-    \Illuminate\Routing\Middleware\SubstituteBindings::class,
-    \App\Http\Middleware\SetTeacherPanel::class,
-    \Filament\Http\Middleware\DispatchServingFilamentEvent::class,
-    \Filament\Http\Middleware\Authenticate::class.':teacher',
-    \Filament\Http\Middleware\AuthenticateSession::class,
-    \Filament\Http\Middleware\DisableBladeIconComponents::class,
-])->prefix('teacher-admin')->group(function () {
-    Route::get('/courses/{record}/dashboard', function ($record) {
-        // Mount and return the Livewire component
-        return \Livewire\Livewire::mount(\App\Filament\Teacher\Pages\Courses\CourseDashboardPage::class, ['record' => $record]);
-    })->name('filament.teacher.pages.courses.course-dashboard');
-});

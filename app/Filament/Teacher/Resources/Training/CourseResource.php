@@ -292,7 +292,7 @@ class CourseResource extends Resource
                     ->label(__('course_dashboard.dashboard') ?? 'Dashboard')
                     ->icon('heroicon-o-chart-bar')
                     ->color('primary')
-                    ->url(fn ($record) => url('/teacher-admin/courses/' . $record->id . '/dashboard'))
+                    ->url(fn ($record) => \App\Filament\Teacher\Pages\Courses\CourseDashboardPage::getUrl(['record' => $record->id]))
                     ->visible(fn ($record) => $record->owner_teacher_id === auth('teacher')->id()),
                 Tables\Actions\EditAction::make(),
             ])
