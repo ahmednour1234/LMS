@@ -2,7 +2,7 @@
 
 namespace App\Filament\Admin\Resources;
 
-use App\Domain\Training\Enums\LocationType;
+use App\Domain\Training\Enums\SessionLocationType;
 use App\Domain\Training\Enums\SessionStatus;
 use App\Domain\Training\Models\Course;
 use App\Domain\Training\Models\CourseSession;
@@ -77,11 +77,12 @@ class CourseSessionResource extends Resource
                     ->label(__('attendance.title')),
                 Forms\Components\Select::make('location_type')
                     ->options([
-                        LocationType::ONLINE->value => __('attendance.location_type_options.online'),
-                        LocationType::ONSITE->value => __('attendance.location_type_options.onsite'),
+                        SessionLocationType::ONLINE->value => __('attendance.location_type_options.online'),
+                        SessionLocationType::ONSITE->value => __('attendance.location_type_options.onsite'),
+                        SessionLocationType::HYBRID->value => __('attendance.location_type_options.hybrid'),
                     ])
                     ->required()
-                    ->default(LocationType::ONLINE->value)
+                    ->default(SessionLocationType::ONLINE->value)
                     ->label(__('attendance.location_type'))
                     ->live(),
                 Forms\Components\Select::make('provider')
@@ -90,7 +91,7 @@ class CourseSessionResource extends Resource
                     ])
                     ->nullable()
                     ->label(__('attendance.provider'))
-                    ->visible(fn (Forms\Get $get) => $get('location_type') === LocationType::ONLINE->value),
+                    ->visible(fn (Forms\Get $get) => $get('location_type') === SessionLocationType::ONLINE->value),
                 Forms\Components\TextInput::make('room_slug')
                     ->disabled()
                     ->dehydrated(false)
@@ -138,9 +139,9 @@ class CourseSessionResource extends Resource
                     ->sortable()
                     ->label(__('attendance.ends_at')),
                 Tables\Columns\TextColumn::make('location_type')
-                    ->formatStateUsing(fn ($state) => $state instanceof LocationType 
+                    ->formatStateUsing(fn ($state) => $state instanceof SessionLocationType 
                         ? __('attendance.location_type_options.' . $state->value)
-                        : __('attendance.location_type_options.' . $state))
+                        : (is_string($state) ? __('attendance.location_type_options.' . $state) : $state))
                     ->badge()
                     ->label(__('attendance.location_type')),
                 Tables\Columns\TextColumn::make('status')
@@ -159,8 +160,9 @@ class CourseSessionResource extends Resource
                     ->label(__('attendance.course')),
                 Tables\Filters\SelectFilter::make('location_type')
                     ->options([
-                        LocationType::ONLINE->value => __('attendance.location_type_options.online'),
-                        LocationType::ONSITE->value => __('attendance.location_type_options.onsite'),
+                        SessionLocationType::ONLINE->value => __('attendance.location_type_options.online'),
+                        SessionLocationType::ONSITE->value => __('attendance.location_type_options.onsite'),
+                        SessionLocationType::HYBRID->value => __('attendance.location_type_options.hybrid'),
                     ])
                     ->label(__('attendance.location_type')),
                 Tables\Filters\SelectFilter::make('status')
