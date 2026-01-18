@@ -288,6 +288,12 @@ class CourseResource extends Resource
                     ->label(__('courses.is_active')),
             ])
             ->actions([
+                Tables\Actions\Action::make('dashboard')
+                    ->label(__('course_dashboard.dashboard') ?? 'Dashboard')
+                    ->icon('heroicon-o-chart-bar')
+                    ->color('primary')
+                    ->url(fn ($record) => url('/teacher-admin/courses/' . $record->id . '/dashboard'))
+                    ->visible(fn ($record) => $record->owner_teacher_id === auth('teacher')->id()),
                 Tables\Actions\EditAction::make(),
             ])
             ->bulkActions([
