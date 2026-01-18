@@ -7,6 +7,7 @@ use App\Domain\Enrollment\Models\Student;
 use App\Domain\Training\Models\CourseSession;
 use App\Domain\Training\Models\CourseSessionAttendance;
 use App\Domain\Training\Enums\AttendanceStatus;
+use App\Domain\Training\Enums\AttendanceMethod;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Support\Facades\DB;
 
@@ -33,7 +34,7 @@ class AttendanceService
             'session_id' => $sessionId,
             'enrollment_id' => $enrollment->id,
             'status' => AttendanceStatus::PRESENT,
-            'method' => 'student_checkin',
+            'method' => AttendanceMethod::STUDENT_CHECKIN,
             'marked_at' => now(),
         ]);
     }
