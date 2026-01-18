@@ -42,6 +42,9 @@ class ProgramService
      */
     public function publicShow(int $programId, bool $withCourses = false): ?Program
     {
+        // #region agent log
+        file_put_contents('e:\lms\.cursor\debug.log', json_encode(['id'=>'log_'.time().'_f','timestamp'=>time()*1000,'location'=>'ProgramService.php:43','message'=>'publicShow() called','data'=>['programId'=>$programId,'withCourses'=>$withCourses],'sessionId'=>'debug-session','runId'=>'run1','hypothesisId'=>'A'])."\n", FILE_APPEND);
+        // #endregion
         $query = Program::query();
 
         if ($withCourses) {
@@ -61,6 +64,9 @@ class ProgramService
      */
     public function publicProgramCourses(int $programId, array $filters = [], int $perPage = 15): LengthAwarePaginator
     {
+        // #region agent log
+        file_put_contents('e:\lms\.cursor\debug.log', json_encode(['id'=>'log_'.time().'_g','timestamp'=>time()*1000,'location'=>'ProgramService.php:62','message'=>'publicProgramCourses() called','data'=>['programId'=>$programId],'sessionId'=>'debug-session','runId'=>'run1','hypothesisId'=>'C'])."\n", FILE_APPEND);
+        // #endregion
         $program = Program::query()->find($programId);
 
         if (! $program) {

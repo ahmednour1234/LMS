@@ -92,8 +92,14 @@ class ProgramController extends ApiController
      */
     public function show(Request $request, int $program): JsonResponse
     {
+        // #region agent log
+        file_put_contents('e:\lms\.cursor\debug.log', json_encode(['id'=>'log_'.time().'_a','timestamp'=>time()*1000,'location'=>'ProgramController.php:95','message'=>'show() entry','data'=>['program'=>$program,'serviceClass'=>get_class($this->programService),'hasFindById'=>method_exists($this->programService,'findById'),'hasPublicShow'=>method_exists($this->programService,'publicShow')],'sessionId'=>'debug-session','runId'=>'run1','hypothesisId'=>'A'])."\n", FILE_APPEND);
+        // #endregion
         $includeCourses = $request->input('include_courses', 1) == 1;
-        $programModel = $this->programService->findById($program, $includeCourses);
+        // #region agent log
+        file_put_contents('e:\lms\.cursor\debug.log', json_encode(['id'=>'log_'.time().'_b','timestamp'=>time()*1000,'location'=>'ProgramController.php:97','message'=>'before publicShow call','data'=>['program'=>$program,'includeCourses'=>$includeCourses],'sessionId'=>'debug-session','runId'=>'post-fix','hypothesisId'=>'A'])."\n", FILE_APPEND);
+        // #endregion
+        $programModel = $this->programService->publicShow($program, $includeCourses);
 
         if (!$programModel) {
             return $this->errorResponse(
@@ -143,8 +149,14 @@ class ProgramController extends ApiController
      */
     public function courses(Request $request, int $program): JsonResponse
     {
+        // #region agent log
+        file_put_contents('e:\lms\.cursor\debug.log', json_encode(['id'=>'log_'.time().'_c','timestamp'=>time()*1000,'location'=>'ProgramController.php:145','message'=>'courses() entry','data'=>['program'=>$program,'hasFindById'=>method_exists($this->programService,'findById'),'hasGetProgramCourses'=>method_exists($this->programService,'getProgramCourses'),'hasPublicProgramCourses'=>method_exists($this->programService,'publicProgramCourses')],'sessionId'=>'debug-session','runId'=>'run1','hypothesisId'=>'B'])."\n", FILE_APPEND);
+        // #endregion
         // Verify program exists
-        $programModel = $this->programService->findById($program);
+        // #region agent log
+        file_put_contents('e:\lms\.cursor\debug.log', json_encode(['id'=>'log_'.time().'_d','timestamp'=>time()*1000,'location'=>'ProgramController.php:148','message'=>'before publicShow call (courses)','data'=>['program'=>$program],'sessionId'=>'debug-session','runId'=>'post-fix','hypothesisId'=>'B'])."\n", FILE_APPEND);
+        // #endregion
+        $programModel = $this->programService->publicShow($program);
         if (!$programModel) {
             return $this->errorResponse(
                 ApiErrorCode::NOT_FOUND,
@@ -165,7 +177,10 @@ class ProgramController extends ApiController
         ];
 
         $perPage = (int) $request->input('per_page', 15);
-        $courses = $this->programService->getProgramCourses($program, $filters, $perPage);
+        // #region agent log
+        file_put_contents('e:\lms\.cursor\debug.log', json_encode(['id'=>'log_'.time().'_e','timestamp'=>time()*1000,'location'=>'ProgramController.php:170','message'=>'before publicProgramCourses call','data'=>['program'=>$program,'hasGetProgramCourses'=>method_exists($this->programService,'getProgramCourses'),'hasPublicProgramCourses'=>method_exists($this->programService,'publicProgramCourses')],'sessionId'=>'debug-session','runId'=>'post-fix','hypothesisId'=>'C'])."\n", FILE_APPEND);
+        // #endregion
+        $courses = $this->programService->publicProgramCourses($program, $filters, $perPage);
 
         return $this->paginatedResponse(
             CourseListResource::collection($courses),
