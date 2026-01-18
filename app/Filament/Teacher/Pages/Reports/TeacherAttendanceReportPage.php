@@ -17,6 +17,7 @@ use Filament\Forms\Contracts\HasForms;
 use Filament\Forms\Form;
 use Filament\Notifications\Notification;
 use Filament\Pages\Page;
+use Filament\Support\Enums\Alignment;
 use Illuminate\Support\Facades\App;
 use Illuminate\Support\Str;
 use Rap2hpoutre\FastExcel\FastExcel;
@@ -175,7 +176,7 @@ class TeacherAttendanceReportPage extends Page implements HasForms
                                 $this->generate();
                             }),
                     ])
-                    ->footerActionsAlignment('right'),
+                    ->footerActionsAlignment(Alignment::Right),
             ])
             ->statePath('data');
     }
