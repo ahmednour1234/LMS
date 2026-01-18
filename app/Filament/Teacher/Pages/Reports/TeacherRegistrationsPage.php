@@ -18,6 +18,7 @@ use Filament\Pages\Page;
 use Filament\Forms\Concerns\InteractsWithForms;
 use Filament\Forms\Contracts\HasForms;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Support\Facades\DB;
 
 class TeacherRegistrationsPage extends Page implements HasForms, HasTable
 {
@@ -225,7 +226,11 @@ class TeacherRegistrationsPage extends Page implements HasForms, HasTable
 
         $total = (int) $cloned->count();
         $totalAmount = (float) (clone $query)->sum('total_amount');
-        $paidAmount = (float) (clone $query)->sum('paid_amount_sum');
+        $enrollmentIds = (clone $query)->pluck('id');
+        $paidAmount = $enrollmentIds->isEmpty() ? 0 : (float) DB::table('payments')
+            ->whereIn('enrollment_id', $enrollmentIds)
+            ->where('status', 'completed')
+            ->sum('amount');
         $dueAmount = max($totalAmount - $paidAmount, 0);
 
         $this->stats = [
