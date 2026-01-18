@@ -29,7 +29,7 @@ class StudentCompleteDataSeeder extends Seeder
             return;
         }
 
-        $program = Program::where('branch_id', $branch->id)->first();
+        $program = Program::where('is_active', true)->first();
         if (!$program) {
             $this->command->error('No program found. Please seed programs first.');
             return;
