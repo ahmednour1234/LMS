@@ -16,10 +16,13 @@ class SetTeacherPanel
      */
     public function handle(Request $request, Closure $next): Response
     {
-        // Set the teacher panel as current before Filament middleware runs
+        // Ensure Filament panel registry is booted
+        $manager = Filament::getFacadeRoot();
+        
+        // Get the teacher panel and set it as current
         $panel = Filament::getPanel('teacher');
         if ($panel) {
-            Filament::setCurrentPanel($panel);
+            $manager->setCurrentPanel($panel);
         }
 
         return $next($request);
