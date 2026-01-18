@@ -73,13 +73,15 @@ class EnrollmentService
             $sessionsPurchased
         );
 
+        $pricingType = $this->mapPricingType($pricingMode);
+
         $enrollment = Enrollment::create([
             'student_id' => $student->id,
             'course_id' => $courseId,
             'delivery_type' => $deliveryType,
             'branch_id' => $branchId,
             'enrollment_mode' => $enrollmentMode,
-            'pricing_type' => $pricingMode,
+            'pricing_type' => $pricingType,
             'sessions_purchased' => $sessionsPurchased,
             'total_amount' => $priceData['total_amount'],
             'currency_code' => $priceData['currency_code'],
@@ -198,6 +200,15 @@ class EnrollmentService
                 ? EnrollmentMode::TRIAL
                 : EnrollmentMode::PER_SESSION,
             default => EnrollmentMode::COURSE_FULL,
+        };
+    }
+
+    private function mapPricingType(string $pricingMode): string
+    {
+        return match ($pricingMode) {
+            'course_total', 'per_session' => 'full',
+            'installment' => 'installment',
+            default => 'full',
         };
     }
 }
