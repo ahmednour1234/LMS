@@ -457,5 +457,80 @@
         "no_records": "لا توجد سجلات للعرض",
         "filename_prefix": "تصدير"
     }
+    ,
+        "Reports": "التقارير",
+        "exports": {
+          "excel": "تصدير Excel",
+          "pdf": "تصدير PDF",
+          "print": "طباعة"
+        },
+        "filters": {
+          "title": "الفلاتر",
+          "date_from": "من",
+          "date_to": "إلى"
+        },
+        "general": {
+          "all": "الكل",
+          "reset": "إعادة ضبط",
+          "view": "عرض"
+        },
+        "courses": {
+          "course": "الكورس"
+        },
+        "navigation": {
+          "enrollments": "التسجيلات"
+        },
+        "reports": {
+          "registrations_hint": "متابعة تسجيلات الطلاب وحالة الدفع.",
+          "total_registrations": "إجمالي التسجيلات",
+          "total_amount": "إجمالي المبلغ",
+          "paid_amount": "المبلغ المدفوع",
+          "due_amount": "المبلغ المتبقي",
+          "no_data": "لا توجد بيانات.",
+          "no_data_hint": "جرّب تعديل الفلاتر أو اختيار فترة تاريخ مختلفة."
+        },
+        "enrollments": {
+          "reference": "المرجع",
+          "student": "الطالب",
+          "course": "الكورس",
+          "total_amount": "إجمالي المبلغ",
+          "paid_amount": "المبلغ المدفوع",
+          "due_amount": "المبلغ المتبقي",
+          "status": "الحالة",
+          "status_options": {
+            "active": "نشط",
+            "pending_payment": "بانتظار الدفع",
+            "completed": "مكتمل",
+            "cancelled": "ملغي"
+          }
+        },
+        "report": {
+          "generate_report": "إنشاء التقرير",
+          "generate": "توليد",
+          "updated": "تم تحديث التقرير",
+          "range": "الفترة",
+          "filtered_hint": "حسب الفلاتر المحددة",
+          "payments_based": "بناءً على الدفعات المكتملة",
+          "outstanding_hint": "المبالغ المستحقة",
+          "teacher_revenue_report": "تقرير الإيرادات",
+          "payment_status": "حالة الدفع",
+          "status_paid": "مدفوع",
+          "status_partial": "مدفوع جزئيًا",
+          "status_pending": "غير مدفوع",
+          "total_revenue": "إجمالي الإيراد",
+          "total_paid": "إجمالي المدفوع",
+          "total_due": "إجمالي المتبقي",
+          "total_enrollments": "عدد التسجيلات",
+          "reference": "المرجع",
+          "student": "الطالب",
+          "course": "الكورس",
+          "total_amount": "إجمالي المبلغ",
+          "paid_amount": "المبلغ المدفوع",
+          "due_amount": "المبلغ المتبقي",
+          "status": "الحالة",
+          "no_data_title": "لا توجد بيانات",
+          "no_data_desc": "لا توجد تسجيلات مطابقة للفلاتر المحددة."
+        }
+
 }
 

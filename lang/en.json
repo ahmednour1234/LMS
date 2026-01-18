@@ -456,5 +456,79 @@
         "printed_at": "Printed at",
         "no_records": "No records to display",
         "filename_prefix": "Export"
-    }
+    },
+        "Reports": "Reports",
+        "exports": {
+          "excel": "Excel",
+          "pdf": "PDF",
+          "print": "Print"
+        },
+        "filters": {
+          "title": "Filters",
+          "date_from": "From",
+          "date_to": "To"
+        },
+        "general": {
+          "all": "All",
+          "reset": "Reset",
+          "view": "View"
+        },
+        "courses": {
+          "course": "Course"
+        },
+        "navigation": {
+          "enrollments": "Enrollments"
+        },
+        "reports": {
+          "registrations_hint": "Track student registrations and payment status.",
+          "total_registrations": "Total Registrations",
+          "total_amount": "Total Amount",
+          "paid_amount": "Paid Amount",
+          "due_amount": "Due Amount",
+          "no_data": "No data found.",
+          "no_data_hint": "Try adjusting filters or select a different date range."
+        },
+        "enrollments": {
+          "reference": "Reference",
+          "student": "Student",
+          "course": "Course",
+          "total_amount": "Total Amount",
+          "paid_amount": "Paid Amount",
+          "due_amount": "Due Amount",
+          "status": "Status",
+          "status_options": {
+            "active": "Active",
+            "pending_payment": "Pending Payment",
+            "completed": "Completed",
+            "cancelled": "Cancelled"
+          }
+        },
+        "report": {
+          "generate_report": "Generate Report",
+          "generate": "Generate",
+          "updated": "Report updated",
+          "range": "Range",
+          "filtered_hint": "Filtered by selected criteria",
+          "payments_based": "Based on completed payments",
+          "outstanding_hint": "Outstanding amount",
+          "teacher_revenue_report": "Revenue Report",
+          "payment_status": "Payment Status",
+          "status_paid": "Paid",
+          "status_partial": "Partial",
+          "status_pending": "Pending",
+          "total_revenue": "Total Revenue",
+          "total_paid": "Total Paid",
+          "total_due": "Total Due",
+          "total_enrollments": "Enrollments",
+          "reference": "Reference",
+          "student": "Student",
+          "course": "Course",
+          "total_amount": "Total Amount",
+          "paid_amount": "Paid Amount",
+          "due_amount": "Due Amount",
+          "status": "Status",
+          "no_data_title": "No Data Found",
+          "no_data_desc": "No enrollments found for the selected filters."
+        }
+
 }
