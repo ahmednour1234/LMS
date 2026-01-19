@@ -287,15 +287,15 @@ class CourseResource extends Resource
                 Tables\Filters\TernaryFilter::make('is_active')
                     ->label(__('courses.is_active')),
             ])
-            ->actions([
-                Tables\Actions\Action::make('dashboard')
-                    ->label(__('course_dashboard.dashboard') ?? 'Dashboard')
-                    ->icon('heroicon-o-chart-bar')
-                    ->color('primary')
-                    ->url(fn ($record) => \App\Filament\Teacher\Pages\Courses\CourseDashboardPage::getUrl(['record' => $record->id]))
-                    ->visible(fn ($record) => $record->owner_teacher_id === auth('teacher')->id()),
-                Tables\Actions\EditAction::make(),
-            ])
+            // ->actions([
+            //     Tables\Actions\Action::make('dashboard')
+            //         ->label(__('course_dashboard.dashboard') ?? 'Dashboard')
+            //         ->icon('heroicon-o-chart-bar')
+            //         ->color('primary')
+            //         ->url(fn ($record) => \App\Filament\Teacher\Pages\Courses\CourseDashboardPage::getUrl(['record' => $record->id]))
+            //         ->visible(fn ($record) => $record->owner_teacher_id === auth('teacher')->id()),
+            //     Tables\Actions\EditAction::make(),
+            // ])
             ->bulkActions([
                 Tables\Actions\BulkActionGroup::make([
                     Tables\Actions\DeleteBulkAction::make(),
