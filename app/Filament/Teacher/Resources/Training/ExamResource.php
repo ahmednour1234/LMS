@@ -53,7 +53,7 @@ class ExamResource extends Resource
     public static function form(Form $form): Form
     {
         $teacherId = auth('teacher')->id();
-        
+
         return $form
             ->schema([
                 Forms\Components\Select::make('course_id')
@@ -123,6 +123,63 @@ class ExamResource extends Resource
                 Forms\Components\Toggle::make('is_active')
                     ->label(__('exams.is_active'))
                     ->default(true),
+                Forms\Components\Repeater::make('questions')
+                    ->relationship('questions')
+                    ->schema([
+                        Forms\Components\Select::make('type')
+                            ->options([
+                                'mcq' => __('exams.type_options.mcq'),
+                                'essay' => __('exams.type_options.essay'),
+                            ])
+                            ->required()
+                            ->live()
+                            ->label(__('exams.type')),
+                        Forms\Components\Textarea::make('question.ar')
+                            ->label(__('exams.question_ar'))
+                            ->required()
+                            ->rows(2),
+                        Forms\Components\Textarea::make('question.en')
+                            ->label(__('exams.question_en'))
+                            ->required()
+                            ->rows(2),
+                        Forms\Components\TextInput::make('points')
+                            ->numeric()
+                            ->required()
+                            ->default(0)
+                            ->label(__('exams.points')),
+                        Forms\Components\TextInput::make('order')
+                            ->numeric()
+                            ->default(0)
+                            ->label(__('exams.order')),
+                        Forms\Components\Repeater::make('options')
+                            ->schema([
+                                Forms\Components\TextInput::make('option')
+                                    ->required()
+                                    ->label(__('exams.option')),
+                            ])
+                            ->visible(fn (Forms\Get $get) => $get('type') === 'mcq')
+                            ->required(fn (Forms\Get $get) => $get('type') === 'mcq')
+                            ->label(__('exams.options')),
+                        Forms\Components\Select::make('correct_answer')
+                            ->options(function (Forms\Get $get) {
+                                $options = $get('../../options') ?? [];
+                                if (empty($options)) {
+                                    return [];
+                                }
+                                return collect($options)->mapWithKeys(function ($option, $index) {
+                                    $optionValue = is_array($option) ? ($option['option'] ?? $option) : $option;
+                                    return [$optionValue => $optionValue];
+                                })->toArray();
+                            })
+                            ->visible(fn (Forms\Get $get) => $get('type') === 'mcq')
+                            ->required(fn (Forms\Get $get) => $get('type') === 'mcq')
+                            ->live()
+                            ->label(__('exams.correct_answer')),
+                    ])
+                    ->collapsible()
+                    ->itemLabel(fn (Forms\Get $get) => 'Q' . ($get('order') ?? 0) . ': ' . MultilingualHelper::formatMultilingualField($get('question') ?? []))
+                    ->label(__('exams.questions'))
+                    ->orderColumn('order'),
             ]);
     }
 

@@ -27,10 +27,15 @@ class Exam extends Model
         return [
             'title' => 'array',
             'description' => 'array',
-            'total_score' => 'decimal:2',
+            'total_score' => 'integer',
             'duration_minutes' => 'integer',
             'is_active' => 'boolean',
         ];
+    }
+
+    public function computeTotalScore(): int
+    {
+        return (int) $this->questions()->sum('points');
     }
 
     public function course(): BelongsTo
@@ -50,7 +55,7 @@ class Exam extends Model
 
     public function attempts(): HasMany
     {
-        return $this->hasMany(ExamAttempt::class);
+        return $this->hasMany(ExamAttempt::class)->orderBy('attempt_no');
     }
 }
 

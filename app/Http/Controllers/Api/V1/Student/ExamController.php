@@ -97,7 +97,9 @@ class ExamController extends ApiController
     public function show(int $exam): JsonResponse
     {
         $student = auth('students')->user();
-        $examModel = Exam::with('course')->find($exam);
+        $examModel = Exam::with(['course', 'questions' => function ($q) {
+            $q->where('is_active', true)->orderBy('order');
+        }])->find($exam);
 
         if (!$examModel) {
             return $this->errorResponse(
@@ -122,9 +124,58 @@ class ExamController extends ApiController
             );
         }
 
+        $examModel->questions->transform(function ($q) {
+            if ($q->type === 'mcq') {
+                $q->makeVisible(['options']);
+            }
+            $q->makeHidden(['correct_answer']);
+            return $q;
+        });
+
         return $this->successResponse(
             new \App\Http\Resources\V1\Student\ExamResource($examModel),
             'Exam retrieved successfully.'
+        );
+    }
+
+    public function start(int $exam): JsonResponse
+    {
+        $student = auth('students')->user();
+        $examModel = Exam::with('course')->findOrFail($exam);
+
+        $enrollment = \App\Domain\Enrollment\Models\Enrollment::where('student_id', $student->id)
+            ->where('course_id', $examModel->course_id)
+            ->whereIn('status', ['active', 'pending', 'pending_payment'])
+            ->first();
+
+        if (!$enrollment) {
+            return $this->errorResponse(
+                ApiErrorCode::FORBIDDEN,
+                'You are not enrolled in this course.',
+                null,
+                403
+            );
+        }
+
+        $lastAttempt = ExamAttempt::where('student_id', $student->id)
+            ->where('exam_id', $examModel->id)
+            ->orderBy('attempt_no', 'desc')
+            ->first();
+
+        $attemptNo = $lastAttempt ? ($lastAttempt->attempt_no + 1) : 1;
+
+        $attempt = ExamAttempt::create([
+            'exam_id' => $examModel->id,
+            'student_id' => $student->id,
+            'attempt_no' => $attemptNo,
+            'status' => 'in_progress',
+            'started_at' => now(),
+            'max_score' => (float) $examModel->questions()->sum('points'),
+        ]);
+
+        return $this->createdResponse(
+            new \App\Http\Resources\V1\Student\ExamResultResource($attempt),
+            'Exam attempt started successfully.'
         );
     }
 
@@ -296,6 +347,26 @@ class ExamController extends ApiController
         return $this->successResponse(
             new \App\Http\Resources\V1\Student\ExamResultResource($attempt),
             'Exam result retrieved successfully.'
+        );
+    }
+
+    public function showAttempt(int $attempt): JsonResponse
+    {
+        $student = auth('students')->user();
+        $attemptModel = ExamAttempt::with(['exam.course', 'answers.question'])->findOrFail($attempt);
+
+        if ($attemptModel->student_id !== $student->id) {
+            return $this->errorResponse(
+                ApiErrorCode::FORBIDDEN,
+                'You do not have access to this attempt.',
+                null,
+                403
+            );
+        }
+
+        return $this->successResponse(
+            new \App\Http\Resources\V1\Student\ExamResultResource($attemptModel),
+            'Exam attempt retrieved successfully.'
         );
     }
 }

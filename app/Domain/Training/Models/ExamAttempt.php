@@ -3,6 +3,7 @@
 namespace App\Domain\Training\Models;
 
 use App\Domain\Enrollment\Models\Student;
+use App\Domain\Training\Models\Teacher;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -16,6 +17,7 @@ class ExamAttempt extends Model
         'exam_id',
         'student_id',
         'enrollment_id',
+        'attempt_no',
         'score',
         'max_score',
         'percentage',
@@ -23,12 +25,14 @@ class ExamAttempt extends Model
         'started_at',
         'submitted_at',
         'graded_at',
+        'graded_by_teacher_id',
     ];
 
     protected function casts(): array
     {
         return [
-            'score' => 'decimal:2',
+            'attempt_no' => 'integer',
+            'score' => 'integer',
             'max_score' => 'decimal:2',
             'percentage' => 'decimal:2',
             'status' => 'string',
@@ -56,5 +60,10 @@ class ExamAttempt extends Model
     public function answers(): HasMany
     {
         return $this->hasMany(ExamAnswer::class, 'attempt_id');
+    }
+
+    public function gradedBy(): BelongsTo
+    {
+        return $this->belongsTo(Teacher::class, 'graded_by_teacher_id');
     }
 }

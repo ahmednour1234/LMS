@@ -14,7 +14,9 @@ class ExamAnswer extends Model
         'attempt_id',
         'question_id',
         'answer',
-        'points_earned',
+        'answer_text',
+        'selected_option',
+        'points_awarded',
         'points_possible',
         'feedback',
         'is_correct',
@@ -24,7 +26,9 @@ class ExamAnswer extends Model
     {
         return [
             'answer' => 'string',
-            'points_earned' => 'decimal:2',
+            'answer_text' => 'string',
+            'selected_option' => 'string',
+            'points_awarded' => 'integer',
             'points_possible' => 'decimal:2',
             'feedback' => 'string',
             'is_correct' => 'boolean',

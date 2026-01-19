@@ -74,8 +74,10 @@ Route::prefix('v1')->group(function () {
             });
             Route::get('/exams/{exam}', [App\Http\Controllers\Api\V1\Student\ExamController::class, 'show']);
             Route::get('/exams/{exam}/questions', [App\Http\Controllers\Api\V1\Student\ExamController::class, 'questions']);
+            Route::post('/exams/{exam}/start', [App\Http\Controllers\Api\V1\Student\ExamController::class, 'start']);
             Route::post('/exams/{exam}/submit', [App\Http\Controllers\Api\V1\Student\ExamController::class, 'submit']);
             Route::get('/exams/{exam}/result', [App\Http\Controllers\Api\V1\Student\ExamController::class, 'result']);
+            Route::get('/exam-attempts/{attempt}', [App\Http\Controllers\Api\V1\Student\ExamController::class, 'showAttempt']);
 
             // Tasks
             Route::middleware([\App\Http\Middleware\EnsureEnrolledInCourse::class])->group(function () {

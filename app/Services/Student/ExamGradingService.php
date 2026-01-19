@@ -20,22 +20,26 @@ class ExamGradingService
     ): ExamAttempt {
         $attempt = DB::transaction(function () use ($student, $exam, $answers) {
             $maxScore = (float) $exam->questions()->sum('points');
+            $lastAttempt = ExamAttempt::where('student_id', $student->id)
+                ->where('exam_id', $exam->id)
+                ->orderBy('attempt_no', 'desc')
+                ->first();
+            $attemptNo = $lastAttempt ? ($lastAttempt->attempt_no + 1) : 1;
 
             $attempt = ExamAttempt::create([
                 'exam_id' => $exam->id,
                 'student_id' => $student->id,
+                'attempt_no' => $attemptNo,
                 'max_score' => $maxScore,
                 'started_at' => now(),
-                'status' => 'completed',
+                'status' => 'submitted',
                 'submitted_at' => now(),
             ]);
 
-            $score = 0;
-            $autoGradedCount = 0;
-
             foreach ($answers as $answerData) {
                 $questionId = $answerData['question_id'] ?? null;
-                $answerText = $answerData['answer'] ?? null;
+                $answerText = $answerData['answer_text'] ?? $answerData['answer'] ?? null;
+                $selectedOption = $answerData['selected_option'] ?? ($answerData['answer'] ?? null);
 
                 if (!$questionId) {
                     continue;
@@ -49,42 +53,107 @@ class ExamGradingService
                     continue;
                 }
 
-                $pointsEarned = 0;
+                $pointsAwarded = 0;
                 $isCorrect = null;
-                $feedback = null;
 
-                if (in_array($question->type, ['mcq', 'true_false'])) {
-                    $isCorrect = $this->checkAnswer($question, $answerText);
-                    $pointsEarned = $isCorrect ? (float) $question->points : 0;
-                    $autoGradedCount++;
+                if ($question->type === 'mcq') {
+                    $selected = $selectedOption ?? $answerText;
+                    $isCorrect = $this->checkAnswer($question, $selected);
+                    $pointsAwarded = $isCorrect ? (int) $question->points : 0;
                 }
 
                 ExamAnswer::create([
                     'attempt_id' => $attempt->id,
                     'question_id' => $questionId,
                     'answer' => is_array($answerText) ? json_encode($answerText) : $answerText,
-                    'points_earned' => $pointsEarned,
+                    'answer_text' => $question->type === 'essay' ? $answerText : null,
+                    'selected_option' => $question->type === 'mcq' ? $selectedOption : null,
+                    'points_awarded' => $pointsAwarded,
                     'points_possible' => (float) $question->points,
                     'is_correct' => $isCorrect,
-                    'feedback' => $feedback,
                 ]);
-
-                $score += $pointsEarned;
             }
 
-            $percentage = $maxScore > 0 ? ($score / $maxScore) * 100 : 0;
+            $this->autoGradeMcq($attempt);
+            $this->computeAttemptScore($attempt);
 
-            $attempt->update([
-                'score' => $score,
-                'percentage' => $percentage,
-                'status' => $autoGradedCount === count($answers) ? 'graded' : 'completed',
-                'graded_at' => $autoGradedCount === count($answers) ? now() : null,
-            ]);
+            $finalStatus = $this->determineFinalStatus($exam, $attempt);
+            if ($finalStatus === 'graded') {
+                $attempt->update([
+                    'status' => 'graded',
+                    'graded_at' => now(),
+                ]);
+            }
 
             return $attempt->fresh(['answers.question']);
         });
 
         return $attempt;
+    }
+
+    public function autoGradeMcq(ExamAttempt $attempt): void
+    {
+        $attempt->load('answers.question');
+        
+        foreach ($attempt->answers as $answer) {
+            if ($answer->question->type === 'mcq' && $answer->is_correct === null) {
+                $isCorrect = $this->checkAnswer($answer->question, $answer->selected_option);
+                $pointsAwarded = $isCorrect ? (int) $answer->question->points : 0;
+                
+                $answer->update([
+                    'is_correct' => $isCorrect,
+                    'points_awarded' => $pointsAwarded,
+                ]);
+            }
+        }
+    }
+
+    public function computeAttemptScore(ExamAttempt $attempt): int
+    {
+        $attempt->load('answers');
+        $score = (int) $attempt->answers->sum('points_awarded');
+        
+        $attempt->update([
+            'score' => $score,
+            'percentage' => $attempt->max_score > 0 ? ($score / $attempt->max_score) * 100 : 0,
+        ]);
+        
+        return $score;
+    }
+
+    public function determineFinalStatus(Exam $exam, ExamAttempt $attempt): string
+    {
+        if ($exam->type === 'mcq') {
+            return 'graded';
+        }
+        
+        $essayCount = $attempt->answers()
+            ->whereHas('question', fn ($q) => $q->where('type', 'essay'))
+            ->count();
+        
+        if ($essayCount === 0) {
+            return 'graded';
+        }
+        
+        $ungradedEssays = $attempt->answers()
+            ->whereHas('question', fn ($q) => $q->where('type', 'essay'))
+            ->whereNull('points_awarded')
+            ->count();
+        
+        return $ungradedEssays === 0 ? 'graded' : 'submitted';
+    }
+
+    public function finalizeGrade(ExamAttempt $attempt, int $teacherId): void
+    {
+        DB::transaction(function () use ($attempt, $teacherId) {
+            $this->computeAttemptScore($attempt);
+            
+            $attempt->update([
+                'status' => 'graded',
+                'graded_by_teacher_id' => $teacherId,
+                'graded_at' => now(),
+            ]);
+        });
     }
 
     private function checkAnswer(ExamQuestion $question, mixed $studentAnswer): bool

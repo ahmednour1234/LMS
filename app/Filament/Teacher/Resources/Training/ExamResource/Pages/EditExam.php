@@ -26,4 +26,10 @@ class EditExam extends EditRecord
             Actions\DeleteAction::make(),
         ];
     }
+
+    protected function afterSave(): void
+    {
+        $this->record->total_score = $this->record->computeTotalScore();
+        $this->record->save();
+    }
 }

@@ -16,7 +16,9 @@ class SubmitExamRequest extends FormRequest
         return [
             'answers' => 'required|array',
             'answers.*.question_id' => 'required|integer|exists:exam_questions,id',
-            'answers.*.answer' => 'required',
+            'answers.*.answer' => 'nullable',
+            'answers.*.answer_text' => 'nullable|string',
+            'answers.*.selected_option' => 'nullable|string',
         ];
     }
 }
