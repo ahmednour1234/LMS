@@ -5,7 +5,6 @@ namespace App\Filament\Admin\Pages;
 use App\Filament\Admin\Widgets\LatestCoursesTableWidget;
 use App\Filament\Admin\Widgets\LatestStudentsTableWidget;
 use App\Filament\Admin\Widgets\LatestTeachersTableWidget;
-use App\Filament\Admin\Widgets\OverdueInstallmentsTableWidget;
 use App\Filament\Admin\Widgets\StatsOverviewWidget;
 use Filament\Pages\Dashboard as BaseDashboard;
 
@@ -28,7 +27,6 @@ class Dashboard extends BaseDashboard
     protected function getFooterWidgets(): array
     {
         return [
-            OverdueInstallmentsTableWidget::class,
             LatestCoursesTableWidget::class,
             LatestStudentsTableWidget::class,
             LatestTeachersTableWidget::class,

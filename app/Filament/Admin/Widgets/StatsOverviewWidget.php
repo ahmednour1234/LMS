@@ -2,7 +2,6 @@
 
 namespace App\Filament\Admin\Widgets;
 
-use App\Domain\Accounting\Models\ArInstallment;
 use App\Domain\Accounting\Models\ArInvoice;
 use App\Domain\Accounting\Models\Payment;
 use App\Domain\Accounting\Models\RevenueRecognition;
@@ -126,35 +125,6 @@ class StatsOverviewWidget extends BaseWidget
                 'description' => __('dashboard.stats.collections_this_month_desc') ?? 'Total collections for current month',
                 'description_icon' => 'heroicon-m-banknotes',
                 'chart_color' => 'info',
-            ],
-
-            // Overdue Installments
-            [
-                'label' => __('dashboard.stats.overdue_installments') ?? 'Overdue Installments',
-                'value_callback' => fn(?int $bid) => ArInstallment::query()
-                    ->where('due_date', '<', today())
-                    ->where('status', '!=', 'paid')
-                    ->when($bid, function (Builder $q) use ($bid) {
-                        return $q->whereHas('arInvoice', fn (Builder $inv) => $inv->where('branch_id', $bid));
-                    })
-                    ->count(),
-                'icon' => 'heroicon-o-exclamation-circle',
-                'color' => 'danger',
-                'chart' => [
-                    'type' => 'last_days',
-                    'days' => 7,
-                    'callback' => fn(Carbon $date, ?int $bid) => ArInstallment::query()
-                        ->where('due_date', '<', $date)
-                        ->where('status', '!=', 'paid')
-                        ->when($bid, function (Builder $q) use ($bid) {
-                            return $q->whereHas('arInvoice', fn (Builder $inv) => $inv->where('branch_id', $bid));
-                        })
-                        ->count(),
-                ],
-                'trend' => null,
-                'description' => __('dashboard.stats.overdue_installments_desc') ?? 'Installments requiring attention',
-                'description_icon' => 'heroicon-m-exclamation-triangle',
-                'chart_color' => 'danger',
             ],
 
             // AR Open Amount
