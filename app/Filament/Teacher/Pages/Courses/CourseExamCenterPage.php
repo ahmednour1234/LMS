@@ -105,25 +105,25 @@ class CourseExamCenterPage extends Page implements HasForms, HasTable
             ->count();
 
         $totalAttempts = ExamAttempt::query()
-            ->whereHas('exam', fn (Builder $q) => 
+            ->whereHas('exam', fn (Builder $q) =>
                 $q->where('course_id', $courseId)
                   ->whereHas('course', fn ($c) => $c->where('owner_teacher_id', $teacherId))
             )
             ->count();
 
         $pendingGrading = ExamAttempt::query()
-            ->whereHas('exam', fn (Builder $q) => 
+            ->whereHas('exam', fn (Builder $q) =>
                 $q->where('course_id', $courseId)
                   ->whereHas('course', fn ($c) => $c->where('owner_teacher_id', $teacherId))
             )
             ->where('status', 'submitted')
-            ->whereHas('answers.question', fn ($q) => 
+            ->whereHas('answers.question', fn ($q) =>
                 $q->whereIn('type', ['essay', 'short_answer'])
             )
             ->count();
 
         $avgScore = ExamAttempt::query()
-            ->whereHas('exam', fn (Builder $q) => 
+            ->whereHas('exam', fn (Builder $q) =>
                 $q->where('course_id', $courseId)
                   ->whereHas('course', fn ($c) => $c->where('owner_teacher_id', $teacherId))
             )
@@ -258,7 +258,7 @@ class CourseExamCenterPage extends Page implements HasForms, HasTable
         return $table
             ->query(
                 ExamAttempt::query()
-                    ->whereHas('exam', fn (Builder $q) => 
+                    ->whereHas('exam', fn (Builder $q) =>
                         $q->where('course_id', $courseId)
                           ->whereHas('course', fn ($c) => $c->where('owner_teacher_id', $teacherId))
                     )
@@ -301,8 +301,8 @@ class CourseExamCenterPage extends Page implements HasForms, HasTable
                     ->label(__('attempts.status_label')),
 
                 Tables\Columns\TextColumn::make('score')
-                    ->formatStateUsing(fn ($state, $record) => 
-                        $record->max_score > 0 
+                    ->formatStateUsing(fn ($state, $record) =>
+                        $record->max_score > 0
                             ? number_format($state, 2) . ' / ' . number_format($record->max_score, 2)
                             : '-'
                     )
@@ -322,17 +322,17 @@ class CourseExamCenterPage extends Page implements HasForms, HasTable
                     })
                     ->badge()
                     ->color('warning')
-                    ->visible(fn ($record) => 
-                        $record && 
-                        $record->status === 'submitted' && 
-                        $record->exam && 
+                    ->visible(fn ($record) =>
+                        $record &&
+                        $record->status === 'submitted' &&
+                        $record->exam &&
                         $record->exam->questions()->whereIn('type', ['essay', 'short_answer'])->exists()
                     ),
             ])
             ->filters([
                 SelectFilter::make('exam_id')
                     ->label(__('exams.title'))
-                    ->relationship('exam', 'id', fn (Builder $query) => 
+                    ->relationship('exam', 'id', fn (Builder $query) =>
                         $query->where('course_id', $courseId)
                               ->whereHas('course', fn ($q) => $q->where('owner_teacher_id', $teacherId))
                     )
@@ -410,7 +410,7 @@ class CourseExamCenterPage extends Page implements HasForms, HasTable
     public function exportExamResultsPdf(Exam $exam)
     {
         $teacherId = auth('teacher')->id();
-        
+
         $attempts = ExamAttempt::query()
             ->where('exam_id', $exam->id)
             ->whereHas('exam.course', fn (Builder $q) => $q->where('owner_teacher_id', $teacherId))
@@ -429,7 +429,7 @@ class CourseExamCenterPage extends Page implements HasForms, HasTable
         if (!$this->selectedExam) {
             $this->selectedExam = new Exam(['course_id' => $this->record->id]);
         }
-        
+
         return $form
             ->model($this->selectedExam)
             ->schema([
@@ -692,7 +692,7 @@ class CourseExamCenterPage extends Page implements HasForms, HasTable
         $schema = [];
         foreach ($questions as $question) {
             $answer = $attempt->answers->firstWhere('question_id', $question->id);
-            
+
             $schema[] = Forms\Components\Section::make($question->order . '. ' . MultilingualHelper::formatMultilingualField($question->question))
                 ->schema([
                     Forms\Components\Placeholder::make('question_type')
@@ -709,7 +709,7 @@ class CourseExamCenterPage extends Page implements HasForms, HasTable
                             if (!$answer) {
                                 return __('exam_center.no_answer');
                             }
-                            
+
                             if (in_array($question->type, ['mcq', 'true_false'])) {
                                 $options = $question->options ?? [];
                                 $selectedOption = collect($options)->firstWhere('order', $answer->answer);
@@ -721,7 +721,7 @@ class CourseExamCenterPage extends Page implements HasForms, HasTable
                                 }
                                 return $answer->answer ?? __('exam_center.no_answer');
                             }
-                            
+
                             return $answer->answer ?? __('exam_center.no_answer');
                         }),
 
@@ -752,21 +752,16 @@ class CourseExamCenterPage extends Page implements HasForms, HasTable
                                 if (!$answer) {
                                     return __('exam_center.not_answered');
                                 }
-                                
+
                                 $isCorrect = $this->checkAnswerCorrectness($answer, $question);
-                                $answer->update(['is_correct' => $isCorrect]);
-                                
+
                                 if ($isCorrect) {
                                     $pointsEarned = $question->points;
                                 } else {
                                     $pointsEarned = 0;
                                 }
-                                
-                                if ($answer->points_earned !== $pointsEarned) {
-                                    $answer->update(['points_earned' => $pointsEarned]);
-                                }
-                                
-                                return $isCorrect 
+
+                                return $isCorrect
                                     ? __('grading.correct') . ' (' . $pointsEarned . ' ' . __('exam_center.points') . ')'
                                     : __('grading.incorrect') . ' (0 ' . __('exam_center.points') . ')';
                             }),
@@ -796,7 +791,7 @@ class CourseExamCenterPage extends Page implements HasForms, HasTable
 
         $options = $question->options ?? [];
         $selectedOption = collect($options)->firstWhere('order', $answer->answer);
-        
+
         return $selectedOption && ($selectedOption['is_correct'] ?? false);
     }
 
@@ -815,7 +810,7 @@ class CourseExamCenterPage extends Page implements HasForms, HasTable
 
             foreach ($attempt->exam->questions as $question) {
                 $answer = $attempt->answers->firstWhere('question_id', $question->id);
-                
+
                 if (!$answer) {
                     continue;
                 }
@@ -823,19 +818,27 @@ class CourseExamCenterPage extends Page implements HasForms, HasTable
                 if (in_array($question->type, ['essay', 'short_answer'])) {
                     $pointsEarned = $data['answers'][$question->id]['points_earned'] ?? 0;
                     $feedback = $data['answers'][$question->id]['feedback'] ?? null;
-                    
+
                     $answer->update([
                         'points_earned' => min($pointsEarned, $question->points),
                         'points_possible' => $question->points,
                         'feedback' => $feedback,
                     ]);
                 } else {
+                    $isCorrect = $this->checkAnswerCorrectness($answer, $question);
                     $overridePoints = $data['answers'][$question->id]['points_earned_override'] ?? null;
+
                     if ($overridePoints !== null) {
-                        $answer->update([
-                            'points_earned' => min($overridePoints, $question->points),
-                        ]);
+                        $pointsEarned = min($overridePoints, $question->points);
+                    } else {
+                        $pointsEarned = $isCorrect ? $question->points : 0;
                     }
+
+                    $answer->update([
+                        'is_correct' => $isCorrect,
+                        'points_earned' => $pointsEarned,
+                        'points_possible' => $question->points,
+                    ]);
                 }
 
                 $totalScore += $answer->points_earned;
