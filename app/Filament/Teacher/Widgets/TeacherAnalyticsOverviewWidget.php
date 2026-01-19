@@ -26,9 +26,9 @@ class TeacherAnalyticsOverviewWidget extends BaseWidget
         $enrollmentsCount = $enrollments->count();
         $uniqueStudentsCount = $enrollments->pluck('student_id')->unique()->count();
 
-        $totalPaid = $enrollments->sum(function ($enrollment) {
+        $totalPaid = $enrollments->map(function ($enrollment) {
             return $enrollment->payments()->where('status', 'completed')->sum('amount');
-        });
+        })->sum();
 
         $totalAmount = $enrollments->sum('total_amount');
         $totalDue = $totalAmount - $totalPaid;
