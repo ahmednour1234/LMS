@@ -90,6 +90,13 @@ class CourseExamCenterPage extends Page implements Forms\Contracts\HasForms, Has
         }
     }
 
+    protected function getForms(): array
+    {
+        return [
+            'examBuilderForm',
+        ];
+    }
+
     /**
      * لازم تكون public علشان Blade/Livewire يقدر يناديها.
      */
