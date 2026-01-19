@@ -769,7 +769,7 @@ class CourseDashboardPage extends Page implements HasTable
                     ->formatStateUsing(fn ($state) => $state ? (__('course_dashboard.active') ?? 'Active') : (__('course_dashboard.inactive') ?? 'Inactive'))
                     ->color(fn ($state) => $state ? 'success' : 'danger'),
 
-                Tables\Columns\ aTextColumn::make('created_at')
+                Tables\Columns\TextColumn::make('created_at')
                     ->dateTime()
                     ->label(__('course_dashboard.created_at') ?? 'Created At')
                     ->sortable(),
