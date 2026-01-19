@@ -127,8 +127,8 @@ class TaskController extends ApiController
      * Submit a task with optional file upload.
      *
      * @urlParam task integer required The ID of the task. Example: 1
-     * @bodyParam text_answer string optional Text answer. Example: "My answer here"
-     * @bodyParam file file optional File upload (max 10MB). Example: (binary)
+     * @bodyParam solve string optional Text solution/answer. Example: "My solution here"
+     * @bodyParam pdf file optional PDF file upload (max 10MB). Example: (binary)
      *
      * @response 201 {
      *   "success": true,
@@ -136,7 +136,7 @@ class TaskController extends ApiController
      *   "data": {
      *     "id": 1,
      *     "task_id": 1,
-     *     "submission_text": "My answer",
+     *     "submission_text": "My solution",
      *     "status": "submitted"
      *   }
      * }
@@ -175,8 +175,8 @@ class TaskController extends ApiController
         }
 
         $mediaFileId = null;
-        if ($request->hasFile('file')) {
-            $file = $request->file('file');
+        if ($request->hasFile('pdf')) {
+            $file = $request->file('pdf');
             $path = $file->store('task-submissions', 'public');
             
             $mediaFile = MediaFile::create([
@@ -192,7 +192,7 @@ class TaskController extends ApiController
         $submission = TaskSubmission::create([
             'task_id' => $taskModel->id,
             'student_id' => $student->id,
-            'submission_text' => $request->input('text_answer'),
+            'submission_text' => $request->input('solve'),
             'media_file_id' => $mediaFileId,
             'status' => 'submitted',
         ]);

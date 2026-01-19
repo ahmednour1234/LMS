@@ -14,8 +14,20 @@ class SubmitTaskRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'text_answer' => 'nullable|string',
-            'file' => 'nullable|file|max:10240',
+            'solve' => 'nullable|string',
+            'pdf' => 'nullable|file|mimes:pdf|max:10240',
         ];
+    }
+
+    public function withValidator($validator): void
+    {
+        $validator->after(function ($validator) {
+            $hasSolve = $this->filled('solve');
+            $hasPdf = $this->hasFile('pdf');
+            
+            if (!$hasSolve && !$hasPdf) {
+                $validator->errors()->add('solve', 'Either solve (text answer) or pdf file is required.');
+            }
+        });
     }
 }

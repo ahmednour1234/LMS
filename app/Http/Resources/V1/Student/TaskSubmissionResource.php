@@ -4,6 +4,7 @@ namespace App\Http\Resources\V1\Student;
 
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
+use Illuminate\Support\Facades\Storage;
 
 class TaskSubmissionResource extends JsonResource
 {
