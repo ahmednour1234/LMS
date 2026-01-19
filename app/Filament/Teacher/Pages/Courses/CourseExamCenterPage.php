@@ -465,13 +465,8 @@ class CourseExamCenterPage extends Page implements Forms\Contracts\HasForms, Has
                                     ->dehydrated(fn (Get $get) => in_array($get('type'), ['mcq', 'true_false'], true))
                                     ->defaultItems(0)
                                     ->schema([
-                                        Forms\Components\TextInput::make('text_ar')
-                                            ->label(__('exam_center.option_text_ar'))
-                                            ->maxLength(255)
-                                            ->required(fn (Get $get) => in_array($get('../../type'), ['mcq', 'true_false'], true)),
-
-                                        Forms\Components\TextInput::make('text_en')
-                                            ->label(__('exam_center.option_text_en'))
+                                        Forms\Components\TextInput::make('text')
+                                            ->label(__('exam_center.option_text'))
                                             ->maxLength(255)
                                             ->required(fn (Get $get) => in_array($get('../../type'), ['mcq', 'true_false'], true)),
 
@@ -484,7 +479,7 @@ class CourseExamCenterPage extends Page implements Forms\Contracts\HasForms, Has
                                             ->default(0)
                                             ->label(__('exam_questions.order')),
                                     ])
-                                    ->columns(4),
+                                    ->columns(3),
                             ])
                             ->columns(2)
                             ->addActionLabel(__('exam_center.add_question'))
@@ -538,9 +533,8 @@ class CourseExamCenterPage extends Page implements Forms\Contracts\HasForms, Has
                 // ✅ options cleanup: لو مش mcq/true_false خليه []
                 $options = in_array($type, ['mcq', 'true_false'], true)
                     ? array_values(array_filter(($q['options'] ?? []), function ($opt) {
-                        $ar = trim((string) ($opt['text_ar'] ?? ''));
-                        $en = trim((string) ($opt['text_en'] ?? ''));
-                        return $ar !== '' || $en !== '';
+                        $text = trim((string) ($opt['text'] ?? ''));
+                        return $text !== '';
                     }))
                     : [];
 

@@ -43,14 +43,12 @@ class ExamQuestion extends Model
     {
         return [
             [
-                'text_ar' => 'صحيح',
-                'text_en' => 'True',
+                'text' => 'True',
                 'is_correct' => true,
                 'order' => 1,
             ],
             [
-                'text_ar' => 'خطأ',
-                'text_en' => 'False',
+                'text' => 'False',
                 'is_correct' => false,
                 'order' => 2,
             ],
