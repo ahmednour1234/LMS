@@ -32,7 +32,6 @@ class ExamGradingService
                 'attempt_no' => $attemptNo,
                 'max_score' => $maxScore,
                 'started_at' => now(),
-                'status' => 'submitted',
                 'submitted_at' => now(),
             ]);
 
