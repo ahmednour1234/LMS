@@ -1195,10 +1195,10 @@ class CourseDashboardPage extends Page implements HasForms, HasTable
 
         $totalPaid = $enrollments->sum('paid_sum') ?? 0;
 
-        $totalDue = $enrollments->sum(function ($enrollment) {
+        $totalDue = $enrollments->map(function ($enrollment) {
             $paid = $enrollment->paid_sum ?? 0;
             return max(0, $enrollment->total_amount - $paid);
-        });
+        })->sum();
 
         $completedEnrollments = $enrollments->where('status', EnrollmentStatus::COMPLETED)->count();
         $completionRate = $totalEnrolled > 0 ? ($completedEnrollments / $totalEnrolled) * 100 : 0;
