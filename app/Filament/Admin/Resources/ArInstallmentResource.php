@@ -44,6 +44,11 @@ class ArInstallmentResource extends Resource
         return __('navigation.groups.accounting');
     }
 
+    public static function shouldRegisterNavigation(): bool
+    {
+        return false;
+    }
+
     public static function form(Form $form): Form
     {
         return $form
@@ -64,8 +69,8 @@ class ArInstallmentResource extends Resource
                         $invoice = \App\Domain\Accounting\Models\ArInvoice::with('enrollment.student', 'enrollment.course')->find($value);
                         if (!$invoice) return '';
                         $studentName = $invoice->enrollment->student->name ?? '';
-                        $courseName = is_array($invoice->enrollment->course->name ?? null) 
-                            ? ($invoice->enrollment->course->name[app()->getLocale()] ?? $invoice->enrollment->course->name['ar'] ?? '') 
+                        $courseName = is_array($invoice->enrollment->course->name ?? null)
+                            ? ($invoice->enrollment->course->name[app()->getLocale()] ?? $invoice->enrollment->course->name['ar'] ?? '')
                             : ($invoice->enrollment->course->name ?? '');
                         return 'Invoice #' . $invoice->id . ' - ' . $studentName . ' - ' . $courseName;
                     })
@@ -249,7 +254,7 @@ class ArInstallmentResource extends Resource
                         $publicUrl = route('public.installment.show', ['id' => $record->id]);
                         $qrCodeService = app(\App\Services\QrCodeService::class);
                         $qrCodeSvg = $qrCodeService->generateSvg($publicUrl);
-                        
+
                         return new \Illuminate\Support\HtmlString('
                             <div class="p-4">
                                 <div class="flex flex-col items-center space-y-4">
@@ -259,12 +264,12 @@ class ArInstallmentResource extends Resource
                                     <div class="text-center w-full">
                                         <p class="text-sm font-medium mb-2">' . __('installments.public_link') . '</p>
                                         <div class="flex items-center space-x-2">
-                                            <input type="text" 
-                                                   value="' . htmlspecialchars($publicUrl) . '" 
-                                                   readonly 
+                                            <input type="text"
+                                                   value="' . htmlspecialchars($publicUrl) . '"
+                                                   readonly
                                                    class="flex-1 px-3 py-2 border rounded-md text-sm"
                                                    id="public-url-' . $record->id . '">
-                                            <button onclick="navigator.clipboard.writeText(\'' . htmlspecialchars($publicUrl, ENT_QUOTES) . '\').then(() => alert(\'' . htmlspecialchars(__('installments.copied'), ENT_QUOTES) . '\'))" 
+                                            <button onclick="navigator.clipboard.writeText(\'' . htmlspecialchars($publicUrl, ENT_QUOTES) . '\').then(() => alert(\'' . htmlspecialchars(__('installments.copied'), ENT_QUOTES) . '\'))"
                                                     class="px-4 py-2 bg-primary-600 text-white rounded-md hover:bg-primary-700 text-sm">
                                                 ' . __('installments.copy') . '
                                             </button>
