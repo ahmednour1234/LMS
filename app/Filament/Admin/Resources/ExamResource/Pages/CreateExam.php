@@ -290,22 +290,28 @@ class CreateExam extends CreateRecord
             // Process question - only save selected language
             $questionLang = $q['question_lang'] ?? 'en';
             $question = [];
-            if ($questionLang === 'ar' && !empty($q['question']['ar'])) {
-                $question = ['ar' => $q['question']['ar']];
-            } elseif ($questionLang === 'en' && !empty($q['question']['en'])) {
-                $question = ['en' => $q['question']['en']];
+            $questionData = $q['question'] ?? [];
+            if (is_array($questionData)) {
+                if ($questionLang === 'ar' && isset($questionData['ar']) && !empty($questionData['ar'])) {
+                    $question = ['ar' => $questionData['ar']];
+                } elseif ($questionLang === 'en' && isset($questionData['en']) && !empty($questionData['en'])) {
+                    $question = ['en' => $questionData['en']];
+                }
             }
 
             // لو MCQ: options لازم تكون array من [{option_ar/option_en,is_correct}]
             $options = null;
-            if ($type === 'mcq' && !empty($q['options'])) {
+            if ($type === 'mcq' && isset($q['options']) && is_array($q['options'])) {
                 $processedOptions = [];
                 foreach ($q['options'] as $opt) {
+                    if (!is_array($opt)) {
+                        continue;
+                    }
                     $optionLang = $opt['option_lang'] ?? 'en';
                     $optionText = '';
-                    if ($optionLang === 'ar' && !empty($opt['option_ar'])) {
+                    if ($optionLang === 'ar' && isset($opt['option_ar']) && !empty($opt['option_ar'])) {
                         $optionText = $opt['option_ar'];
-                    } elseif ($optionLang === 'en' && !empty($opt['option_en'])) {
+                    } elseif ($optionLang === 'en' && isset($opt['option_en']) && !empty($opt['option_en'])) {
                         $optionText = $opt['option_en'];
                     }
                     if ($optionText) {
@@ -315,7 +321,9 @@ class CreateExam extends CreateRecord
                         ];
                     }
                 }
-                $options = $processedOptions;
+                if (!empty($processedOptions)) {
+                    $options = $processedOptions;
+                }
             }
 
             $this->record->questions()->create([
