@@ -35,7 +35,6 @@ class ExamAttempt extends Model
             'score' => 'integer',
             'max_score' => 'decimal:2',
             'percentage' => 'decimal:2',
-            'status' => 'string',
             'started_at' => 'datetime',
             'submitted_at' => 'datetime',
             'graded_at' => 'datetime',

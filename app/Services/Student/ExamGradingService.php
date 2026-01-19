@@ -13,82 +13,114 @@ use Illuminate\Support\Facades\DB;
 
 class ExamGradingService
 {
-    public function submitExam(
-        Student $student,
-        Exam $exam,
-        array $answers
-    ): ExamAttempt {
-        $attempt = DB::transaction(function () use ($student, $exam, $answers) {
-            $maxScore = (float) $exam->questions()->sum('points');
-            $lastAttempt = ExamAttempt::where('student_id', $student->id)
-                ->where('exam_id', $exam->id)
-                ->orderBy('attempt_no', 'desc')
-                ->first();
-            $attemptNo = $lastAttempt ? ($lastAttempt->attempt_no + 1) : 1;
+    public function submitExam(Student $student, Exam $exam, array $answers): ExamAttempt
+    {
+        return DB::transaction(function () use ($student, $exam, $answers) {
+
+            $questions = $exam->questions()->get()->keyBy('id'); // avoid N+1
+            $maxScore  = (float) $questions->sum('points');
+
+            $attemptNo = (int) (ExamAttempt::where('student_id', $student->id)
+                    ->where('exam_id', $exam->id)
+                    ->max('attempt_no') ?? 0) + 1;
 
             $attempt = ExamAttempt::create([
-                'exam_id' => $exam->id,
-                'student_id' => $student->id,
-                'attempt_no' => $attemptNo,
-                'max_score' => $maxScore,
-                'started_at' => now(),
+                'exam_id'      => $exam->id,
+                'student_id'   => $student->id,
+                'attempt_no'   => $attemptNo,
+                'max_score'    => $maxScore,
+                'started_at'   => now(),
                 'submitted_at' => now(),
+                'status'       => 'submitted',
             ]);
+
+            $seenQuestionIds = [];
 
             foreach ($answers as $answerData) {
                 $questionId = $answerData['question_id'] ?? null;
-                $answerText = $answerData['answer_text'] ?? $answerData['answer'] ?? null;
-                $selectedOption = $answerData['selected_option'] ?? ($answerData['answer'] ?? null);
-
                 if (!$questionId) {
                     continue;
                 }
 
-                $question = ExamQuestion::where('exam_id', $exam->id)
-                    ->where('id', $questionId)
-                    ->first();
-
-                if (!$question) {
+                // Prevent duplicate answers for same question in same submit payload
+                if (isset($seenQuestionIds[$questionId])) {
                     continue;
+                }
+                $seenQuestionIds[$questionId] = true;
+
+                /** @var ExamQuestion|null $question */
+                $question = $questions->get($questionId);
+                if (!$question) {
+                    continue; // question not in this exam
+                }
+
+                $answerText     = $answerData['answer_text'] ?? null;
+                $selectedOption = $answerData['selected_option'] ?? null;
+
+                // Backward compatibility: "answer" key
+                if ($answerText === null && array_key_exists('answer', $answerData)) {
+                    $answerText = $answerData['answer'];
+                }
+                if ($selectedOption === null && array_key_exists('answer', $answerData)) {
+                    $selectedOption = $answerData['answer'];
                 }
 
                 $pointsAwarded = 0;
-                $isCorrect = null;
+                $isCorrect     = null;
 
                 if ($question->type === 'mcq') {
                     $selected = $selectedOption ?? $answerText;
-                    $isCorrect = $this->checkAnswer($question, $selected);
+
+                    // Normalize selection to string
+                    if (is_array($selected)) {
+                        $selected = json_encode($selected, JSON_UNESCAPED_UNICODE);
+                    }
+
+                    $isCorrect = $this->checkAnswer($question, (string) $selected);
                     $pointsAwarded = $isCorrect ? (int) $question->points : 0;
                 }
 
-                ExamAnswer::create([
-                    'attempt_id' => $attempt->id,
-                    'question_id' => $questionId,
-                    'answer' => is_array($answerText) ? json_encode($answerText) : $answerText,
-                    'answer_text' => $question->type === 'essay' ? $answerText : null,
-                    'selected_option' => $question->type === 'mcq' ? $selectedOption : null,
-                    'points_awarded' => $pointsAwarded,
-                    'points_possible' => (float) $question->points,
-                    'is_correct' => $isCorrect,
-                ]);
+                ExamAnswer::updateOrCreate(
+                    [
+                        'attempt_id'  => $attempt->id,
+                        'question_id' => $question->id,
+                    ],
+                    [
+                        'answer'          => is_array($answerText) ? json_encode($answerText, JSON_UNESCAPED_UNICODE) : $answerText,
+                        'answer_text'     => $question->type === 'essay' ? (is_array($answerText) ? json_encode($answerText, JSON_UNESCAPED_UNICODE) : $answerText) : null,
+                        'selected_option' => $question->type === 'mcq' ? (is_array($selectedOption) ? json_encode($selectedOption, JSON_UNESCAPED_UNICODE) : $selectedOption) : null,
+                        'points_awarded'  => $pointsAwarded,
+                        'points_possible' => (float) $question->points,
+                        'is_correct'      => $isCorrect,
+                    ]
+                );
             }
 
+            // Auto grade MCQ (optional if you already graded inline, but keep for safety)
             $this->autoGradeMcq($attempt);
+
+            // Compute score
             $this->computeAttemptScore($attempt);
 
+            // Final status: if exam has only mcq -> graded automatically
             $finalStatus = $this->determineFinalStatus($exam, $attempt);
+
             if ($finalStatus === 'graded') {
                 $attempt->update([
-                    'status' => 'graded',
+                    'status'    => 'graded',
                     'graded_at' => now(),
+                ]);
+            } else {
+                // Ensure still submitted
+                $attempt->update([
+                    'status' => 'submitted',
                 ]);
             }
 
             return $attempt->fresh(['answers.question']);
         });
-
-        return $attempt;
     }
+
 
     public function autoGradeMcq(ExamAttempt $attempt): void
     {
