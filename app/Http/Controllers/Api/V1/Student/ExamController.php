@@ -8,6 +8,7 @@ use App\Http\Requests\Api\V1\Student\SubmitExamRequest;
 use App\Domain\Training\Models\Exam;
 use App\Domain\Training\Models\ExamAttempt;
 use App\Services\Student\ExamGradingService;
+use Carbon\Carbon;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
@@ -58,7 +59,8 @@ class ExamController extends ApiController
         $exams->transform(function ($exam) use ($latestAttempts) {
             $attempt = $latestAttempts->get($exam->id);
             $exam->setAttribute('has_attempt', $attempt !== null);
-            $exam->setAttribute('last_attempt_at', $attempt?->last_attempt_at?->toISOString());
+            $lastAttemptAt = $attempt?->last_attempt_at;
+            $exam->setAttribute('last_attempt_at', $lastAttemptAt ? Carbon::parse($lastAttemptAt)->toISOString() : null);
             $exam->setAttribute('best_score', $attempt ? (float) $attempt->best_score : null);
             return $exam;
         });
