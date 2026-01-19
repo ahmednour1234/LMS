@@ -207,7 +207,7 @@ class CourseExamCenterPage extends Page implements HasForms, HasTable
                     ->label(__('exam_center.edit'))
                     ->icon('heroicon-o-pencil')
                     ->action(function (Exam $record) {
-                        $this->selectedExam = $record;
+                        $this->selectedExam = $record->load('questions');
                         $this->activeTab = 'exam_builder';
                     }),
 
@@ -432,6 +432,25 @@ class CourseExamCenterPage extends Page implements HasForms, HasTable
 
         return $form
             ->model($this->selectedExam)
+            ->mutateFormDataBeforeFillUsing(function (array $data): array {
+                if (isset($data['questions']) && is_iterable($data['questions'])) {
+                    foreach ($data['questions'] as $key => $question) {
+                        if ($question instanceof ExamQuestion) {
+                            $data['questions'][$key] = [
+                                'id' => $question->id,
+                                'type' => $question->type,
+                                'question' => $question->question ?? [],
+                                'options' => $question->options ?? [],
+                                'correct_answer' => $question->correct_answer,
+                                'points' => $question->points,
+                                'order' => $question->order,
+                                'required' => $question->required,
+                            ];
+                        }
+                    }
+                }
+                return $data;
+            })
             ->schema([
                 Forms\Components\Section::make(__('exam_center.exam_details'))
                     ->schema([
