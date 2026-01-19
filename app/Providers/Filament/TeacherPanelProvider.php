@@ -76,6 +76,7 @@ class TeacherPanelProvider extends PanelProvider
             ->pages([
                 \App\Filament\Teacher\Pages\Dashboard::class,
                 \App\Filament\Teacher\Pages\Courses\CourseDashboardPage::class,
+                \App\Filament\Teacher\Pages\Courses\CourseExamCenterPage::class,
             ])
             ->middleware([
                 EncryptCookies::class,

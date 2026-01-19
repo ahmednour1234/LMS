@@ -19,6 +19,7 @@ class ExamQuestion extends Model
         'points',
         'order',
         'is_active',
+        'required',
     ];
 
     protected function casts(): array
@@ -29,12 +30,31 @@ class ExamQuestion extends Model
             'points' => 'decimal:2',
             'order' => 'integer',
             'is_active' => 'boolean',
+            'required' => 'boolean',
         ];
     }
 
     public function exam(): BelongsTo
     {
         return $this->belongsTo(Exam::class);
+    }
+
+    public static function getTrueFalseOptions(): array
+    {
+        return [
+            [
+                'text_ar' => 'صحيح',
+                'text_en' => 'True',
+                'is_correct' => true,
+                'order' => 1,
+            ],
+            [
+                'text_ar' => 'خطأ',
+                'text_en' => 'False',
+                'is_correct' => false,
+                'order' => 2,
+            ],
+        ];
     }
 }
 

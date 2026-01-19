@@ -595,6 +595,12 @@ class CourseDashboardPage extends Page implements HasForms, HasTable
                     }),
             ])
             ->actions([
+                Action::make('exam_center')
+                    ->label(__('course_dashboard.exam_center') ?? 'Exam Center')
+                    ->icon('heroicon-o-academic-cap')
+                    ->color('primary')
+                    ->url(fn () => \App\Filament\Teacher\Pages\Courses\CourseExamCenterPage::getUrl(['record' => $this->record])),
+
                 Action::make('view')
                     ->label(__('course_dashboard.view') ?? 'View')
                     ->icon('heroicon-o-eye')
@@ -611,6 +617,11 @@ class CourseDashboardPage extends Page implements HasForms, HasTable
                     ->url(fn ($record) => \App\Filament\Teacher\Resources\Training\ExamQuestionResource::getUrl('index', ['exam' => $record->id])),
             ])
             ->headerActions([
+                Action::make('exam_center')
+                    ->label(__('course_dashboard.exam_center') ?? 'Exam Center')
+                    ->icon('heroicon-o-academic-cap')
+                    ->color('primary')
+                    ->url(fn () => \App\Filament\Teacher\Pages\Courses\CourseExamCenterPage::getUrl(['record' => $this->record])),
                 Action::make('exportExcel')
                     ->label(__('course_dashboard.export_excel') ?? 'Export Excel')
                     ->icon('heroicon-o-arrow-down-tray')

@@ -15,6 +15,7 @@ class ExamAttempt extends Model
     protected $fillable = [
         'exam_id',
         'student_id',
+        'enrollment_id',
         'score',
         'max_score',
         'percentage',
@@ -45,6 +46,11 @@ class ExamAttempt extends Model
     public function student(): BelongsTo
     {
         return $this->belongsTo(Student::class);
+    }
+
+    public function enrollment(): BelongsTo
+    {
+        return $this->belongsTo(\App\Domain\Enrollment\Models\Enrollment::class);
     }
 
     public function answers(): HasMany
