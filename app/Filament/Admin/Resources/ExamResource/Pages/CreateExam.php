@@ -218,17 +218,21 @@ class CreateExam extends CreateRecord
 
                                                     $correctIndex = null;
                                                     foreach ($state as $i => $row) {
-                                                        if (!empty($row['is_correct'])) {
+                                                        if (is_array($row) && !empty($row['is_correct'])) {
                                                             $correctIndex = $i;
                                                             break;
                                                         }
                                                     }
 
                                                     if ($correctIndex !== null) {
-                                                        foreach ($state as $i => &$row) {
-                                                            $row['is_correct'] = ((string)$i === (string)$correctIndex);
+                                                        // Create a new array to avoid indirect modification
+                                                        $updatedState = [];
+                                                        foreach ($state as $i => $row) {
+                                                            $updatedRow = is_array($row) ? $row : [];
+                                                            $updatedRow['is_correct'] = ((string)$i === (string)$correctIndex);
+                                                            $updatedState[$i] = $updatedRow;
                                                         }
-                                                        $set('options', $state);
+                                                        $set('options', $updatedState);
                                                         $set('correct_answer', (string) $correctIndex);
                                                     } else {
                                                         $set('correct_answer', null);

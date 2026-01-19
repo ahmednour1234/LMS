@@ -151,14 +151,27 @@ class QuestionsRelationManager extends RelationManager
                         
                         $options = $get('options') ?? [];
                         if ($record && $record->options) {
-                            $options = $record->options;
+                            // Convert to array to avoid indirect modification issues
+                            $recordOptions = $record->options;
+                            if (is_array($recordOptions)) {
+                                $options = $recordOptions;
+                            } elseif (is_object($recordOptions) && method_exists($recordOptions, 'toArray')) {
+                                $options = $recordOptions->toArray();
+                            } else {
+                                $options = (array) $recordOptions;
+                            }
                         }
+                        
+                        if (!is_array($options)) {
+                            $options = [];
+                        }
+                        
                         $opts = [];
                         foreach ($options as $index => $option) {
                             $text = '';
                             if (is_array($option)) {
                                 $text = $option['option_ar'] ?? $option['option_en'] ?? $option['option'] ?? '';
-                            } else {
+                            } elseif (is_string($option)) {
                                 $text = $option;
                             }
                             if ($text) {
