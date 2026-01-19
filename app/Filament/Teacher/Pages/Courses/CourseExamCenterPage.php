@@ -262,7 +262,7 @@ class CourseExamCenterPage extends Page implements HasForms, HasTable
                         $q->where('course_id', $courseId)
                           ->whereHas('course', fn ($c) => $c->where('owner_teacher_id', $teacherId))
                     )
-                    ->with(['student', 'enrollment', 'exam'])
+                    ->with(['student', 'enrollment', 'exam.questions'])
                     ->withCount('answers')
             )
             ->columns([
@@ -315,7 +315,7 @@ class CourseExamCenterPage extends Page implements HasForms, HasTable
                 Tables\Columns\TextColumn::make('needs_grading')
                     ->label('')
                     ->formatStateUsing(function ($state, $record) {
-                        if ($record->status === 'submitted' && $record->exam->questions()->whereIn('type', ['essay', 'short_answer'])->exists()) {
+                        if ($record && $record->status === 'submitted' && $record->exam && $record->exam->questions()->whereIn('type', ['essay', 'short_answer'])->exists()) {
                             return __('exam_center.needs_grading');
                         }
                         return '';
@@ -323,7 +323,9 @@ class CourseExamCenterPage extends Page implements HasForms, HasTable
                     ->badge()
                     ->color('warning')
                     ->visible(fn ($record) => 
+                        $record && 
                         $record->status === 'submitted' && 
+                        $record->exam && 
                         $record->exam->questions()->whereIn('type', ['essay', 'short_answer'])->exists()
                     ),
             ])
