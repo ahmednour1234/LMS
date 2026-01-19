@@ -23,5 +23,10 @@ return [
     'order_helper' => 'سيتم عرض الأسئلة بهذا الترتيب',
     'true_false_true' => 'صحيح',
     'true_false_false' => 'خطأ',
+    'question_language' => 'لغة السؤال',
+    'option_language' => 'لغة الخيار',
+    'option_ar' => 'الخيار (عربي)',
+    'option_en' => 'الخيار (إنجليزي)',
+    'is_correct' => 'صحيح',
 ];
 

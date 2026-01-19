@@ -37,5 +37,9 @@ return [
     'total_points' => 'إجمالي النقاط',
     'question_number' => 'السؤال رقم',
     'essay_question' => 'سؤال مقالي',
+    'question_language' => 'لغة السؤال',
+    'question_ar' => 'السؤال (عربي)',
+    'question_en' => 'السؤال (إنجليزي)',
+    'required' => 'مطلوب',
 ];
 

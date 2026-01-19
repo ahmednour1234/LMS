@@ -143,17 +143,35 @@ class CreateExam extends CreateRecord
                                                     ->columnSpan(3),
                                             ]),
 
-                                            Forms\Components\Grid::make(2)->schema([
-                                                Forms\Components\Textarea::make('question.ar')
-                                                    ->label(__('exam_questions.question_ar'))
-                                                    ->required()
-                                                    ->rows(3),
+                                            Forms\Components\Radio::make('question_lang')
+                                                ->label(__('exam_questions.question_language'))
+                                                ->options([
+                                                    'ar' => __('general.arabic'),
+                                                    'en' => __('general.english'),
+                                                ])
+                                                ->default('en')
+                                                ->live()
+                                                ->afterStateUpdated(function ($state, $set) {
+                                                    if ($state === 'ar') {
+                                                        $set('question.en', null);
+                                                    } else {
+                                                        $set('question.ar', null);
+                                                    }
+                                                }),
 
-                                                Forms\Components\Textarea::make('question.en')
-                                                    ->label(__('exam_questions.question_en'))
-                                                    ->required()
-                                                    ->rows(3),
-                                            ]),
+                                            Forms\Components\Textarea::make('question.ar')
+                                                ->label(__('exam_questions.question_ar'))
+                                                ->required(fn ($get) => $get('question_lang') === 'ar')
+                                                ->visible(fn ($get) => $get('question_lang') === 'ar')
+                                                ->dehydrated(fn ($get) => $get('question_lang') === 'ar')
+                                                ->rows(3),
+
+                                            Forms\Components\Textarea::make('question.en')
+                                                ->label(__('exam_questions.question_en'))
+                                                ->required(fn ($get) => $get('question_lang') === 'en')
+                                                ->visible(fn ($get) => $get('question_lang') === 'en')
+                                                ->dehydrated(fn ($get) => $get('question_lang') === 'en')
+                                                ->rows(3),
 
                                             // MCQ OPTIONS
                                             Forms\Components\Repeater::make('options')
@@ -161,10 +179,33 @@ class CreateExam extends CreateRecord
                                                 ->visible(fn ($get) => ($get('type') ?? '') === 'mcq')
                                                 ->defaultItems(4)
                                                 ->schema([
+                                                    Forms\Components\Radio::make('option_lang')
+                                                        ->label(__('exam_questions.option_language'))
+                                                        ->options([
+                                                            'ar' => __('general.arabic'),
+                                                            'en' => __('general.english'),
+                                                        ])
+                                                        ->default('en')
+                                                        ->live()
+                                                        ->afterStateUpdated(function ($state, $set) {
+                                                            if ($state === 'ar') {
+                                                                $set('option_en', null);
+                                                            } else {
+                                                                $set('option_ar', null);
+                                                            }
+                                                        }),
                                                     Forms\Components\Grid::make(2)->schema([
-                                                        Forms\Components\TextInput::make('option')
-                                                            ->label(__('exam_questions.option'))
-                                                            ->required(),
+                                                        Forms\Components\TextInput::make('option_ar')
+                                                            ->label(__('exam_questions.option_ar'))
+                                                            ->required(fn ($get) => $get('option_lang') === 'ar')
+                                                            ->visible(fn ($get) => $get('option_lang') === 'ar')
+                                                            ->dehydrated(fn ($get) => $get('option_lang') === 'ar'),
+
+                                                        Forms\Components\TextInput::make('option_en')
+                                                            ->label(__('exam_questions.option_en'))
+                                                            ->required(fn ($get) => $get('option_lang') === 'en')
+                                                            ->visible(fn ($get) => $get('option_lang') === 'en')
+                                                            ->dehydrated(fn ($get) => $get('option_lang') === 'en'),
 
                                                         Forms\Components\Toggle::make('is_correct')
                                                             ->label(__('exam_questions.is_correct'))
@@ -246,12 +287,40 @@ class CreateExam extends CreateRecord
         foreach ($this->pendingQuestions as $q) {
             $type = $q['type'] ?? 'mcq';
 
-            // لو MCQ: options لازم تكون array من [{option,is_correct}]
-            $options = ($type === 'mcq') ? ($q['options'] ?? []) : null;
+            // Process question - only save selected language
+            $questionLang = $q['question_lang'] ?? 'en';
+            $question = [];
+            if ($questionLang === 'ar' && !empty($q['question']['ar'])) {
+                $question = ['ar' => $q['question']['ar']];
+            } elseif ($questionLang === 'en' && !empty($q['question']['en'])) {
+                $question = ['en' => $q['question']['en']];
+            }
+
+            // لو MCQ: options لازم تكون array من [{option_ar/option_en,is_correct}]
+            $options = null;
+            if ($type === 'mcq' && !empty($q['options'])) {
+                $processedOptions = [];
+                foreach ($q['options'] as $opt) {
+                    $optionLang = $opt['option_lang'] ?? 'en';
+                    $optionText = '';
+                    if ($optionLang === 'ar' && !empty($opt['option_ar'])) {
+                        $optionText = $opt['option_ar'];
+                    } elseif ($optionLang === 'en' && !empty($opt['option_en'])) {
+                        $optionText = $opt['option_en'];
+                    }
+                    if ($optionText) {
+                        $processedOptions[] = [
+                            'option' => $optionText,
+                            'is_correct' => $opt['is_correct'] ?? false,
+                        ];
+                    }
+                }
+                $options = $processedOptions;
+            }
 
             $this->record->questions()->create([
                 'type'           => $type,
-                'question'       => $q['question'] ?? ['ar' => '', 'en' => ''],
+                'question'       => $question,
                 'points'         => (float) ($q['points'] ?? 0),
                 'options'        => $options,
                 'correct_answer' => $q['correct_answer'] ?? null,

@@ -472,7 +472,9 @@
         "general": {
           "all": "الكل",
           "reset": "إعادة ضبط",
-          "view": "عرض"
+          "view": "عرض",
+          "arabic": "عربي",
+          "english": "إنجليزي"
         },
         "courses": {
           "course": "الكورس"

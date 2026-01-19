@@ -37,5 +37,9 @@ return [
     'total_points' => 'Total Points',
     'question_number' => 'Question #',
     'essay_question' => 'Essay question',
+    'question_language' => 'Question Language',
+    'question_ar' => 'Question (Arabic)',
+    'question_en' => 'Question (English)',
+    'required' => 'Required',
 ];
 

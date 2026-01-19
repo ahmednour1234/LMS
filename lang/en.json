@@ -471,7 +471,9 @@
         "general": {
           "all": "All",
           "reset": "Reset",
-          "view": "View"
+          "view": "View",
+          "arabic": "Arabic",
+          "english": "English"
         },
         "courses": {
           "course": "Course"

@@ -69,18 +69,111 @@ class ExamQuestionResource extends Resource
                     ->required()
                     ->label(__('exam_questions.type'))
                     ->reactive(),
+                Forms\Components\Radio::make('question_lang')
+                    ->label(__('exam_questions.question_language'))
+                    ->options([
+                        'ar' => __('general.arabic'),
+                        'en' => __('general.english'),
+                    ])
+                    ->default('en')
+                    ->live()
+                    ->afterStateHydrated(function ($component, $state, $record) {
+                        if ($record && $record->question) {
+                            $question = is_array($record->question) ? $record->question : [];
+                            if (!empty($question['ar']) && empty($question['en'])) {
+                                $component->state('ar');
+                            } elseif (!empty($question['en']) && empty($question['ar'])) {
+                                $component->state('en');
+                            } elseif (!empty($question['ar'])) {
+                                $component->state('ar');
+                            } else {
+                                $component->state('en');
+                            }
+                        }
+                    })
+                    ->afterStateUpdated(function ($state, $set) {
+                        if ($state === 'ar') {
+                            $set('question.en', null);
+                        } else {
+                            $set('question.ar', null);
+                        }
+                    }),
                 Forms\Components\Textarea::make('question.ar')
                     ->label(__('exam_questions.question_ar'))
-                    ->required()
+                    ->required(fn ($get) => $get('question_lang') === 'ar')
+                    ->visible(fn ($get) => $get('question_lang') === 'ar')
+                    ->dehydrated(fn ($get) => $get('question_lang') === 'ar')
                     ->rows(3),
                 Forms\Components\Textarea::make('question.en')
                     ->label(__('exam_questions.question_en'))
-                    ->required()
+                    ->required(fn ($get) => $get('question_lang') === 'en')
+                    ->visible(fn ($get) => $get('question_lang') === 'en')
+                    ->dehydrated(fn ($get) => $get('question_lang') === 'en')
                     ->rows(3),
                 Forms\Components\Repeater::make('options')
                     ->schema([
-                        Forms\Components\TextInput::make('option')
-                            ->required()
+                        Forms\Components\Radio::make('option_lang')
+                            ->label(__('exam_questions.option_language'))
+                            ->options([
+                                'ar' => __('general.arabic'),
+                                'en' => __('general.english'),
+                            ])
+                            ->default('en')
+                            ->live()
+                            ->afterStateHydrated(function ($component, $state, $record) {
+                                if (is_array($record)) {
+                                    $option = $record;
+                                    if (!empty($option['option_ar']) && empty($option['option_en'])) {
+                                        $component->state('ar');
+                                    } elseif (!empty($option['option_en']) && empty($option['option_ar'])) {
+                                        $component->state('en');
+                                    } elseif (!empty($option['option_ar'])) {
+                                        $component->state('ar');
+                                    } elseif (isset($option['option']) && is_string($option['option'])) {
+                                        $component->state('en');
+                                    } else {
+                                        $component->state('en');
+                                    }
+                                }
+                            })
+                            ->afterStateUpdated(function ($state, $set) {
+                                if ($state === 'ar') {
+                                    $set('option_en', null);
+                                } else {
+                                    $set('option_ar', null);
+                                }
+                            }),
+                        Forms\Components\TextInput::make('option_ar')
+                            ->label(__('exam_questions.option_ar'))
+                            ->required(fn ($get) => $get('option_lang') === 'ar')
+                            ->visible(fn ($get) => $get('option_lang') === 'ar')
+                            ->dehydrated(fn ($get) => $get('option_lang') === 'ar')
+                            ->afterStateHydrated(function ($component, $state, $record) {
+                                if (is_array($record)) {
+                                    $option = $record;
+                                    if (isset($option['option_ar'])) {
+                                        $component->state($option['option_ar']);
+                                    } elseif (isset($option['option']) && is_string($option['option']) && !isset($option['option_en'])) {
+                                        $component->state($option['option']);
+                                    }
+                                }
+                            })
+                            ->maxLength(255),
+                        Forms\Components\TextInput::make('option_en')
+                            ->label(__('exam_questions.option_en'))
+                            ->required(fn ($get) => $get('option_lang') === 'en')
+                            ->visible(fn ($get) => $get('option_lang') === 'en')
+                            ->dehydrated(fn ($get) => $get('option_lang') === 'en')
+                            ->afterStateHydrated(function ($component, $state, $record) {
+                                if (is_array($record)) {
+                                    $option = $record;
+                                    if (isset($option['option_en'])) {
+                                        $component->state($option['option_en']);
+                                    } elseif (isset($option['option']) && is_string($option['option']) && !isset($option['option_ar'])) {
+                                        $component->state($option['option']);
+                                    }
+                                }
+                            })
                             ->maxLength(255),
                     ])
                     ->label(__('exam_questions.options'))
