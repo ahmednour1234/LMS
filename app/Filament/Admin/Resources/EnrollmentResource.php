@@ -744,21 +744,6 @@ class EnrollmentResource extends Resource
                     ->icon('heroicon-o-banknotes')
                     ->color('success')
                     ->form([
-                        Forms\Components\Select::make('installment_id')
-                            ->options(function (Enrollment $record) {
-                                if (!$record->arInvoice) {
-                                    return [];
-                                }
-                                return $record->arInvoice->arInstallments()
-                                    ->where('status', '!=', 'paid')
-                                    ->get()
-                                    ->mapWithKeys(function ($installment) {
-                                        return [$installment->id => 'Installment #' . $installment->installment_no . ' - ' . number_format($installment->amount, 2) . ' OMR (Due: ' . $installment->due_date->format('Y-m-d') . ')'];
-                                    });
-                            })
-                            ->label(__('payments.installment'))
-                            ->placeholder(__('payments.select_installment'))
-                            ->searchable(),
                         Forms\Components\TextInput::make('amount')
                             ->numeric()
                             ->required()
@@ -809,7 +794,6 @@ class EnrollmentResource extends Resource
                                 'enrollment_id' => $record->id,
                                 'user_id' => $userId, // This MUST be set
                                 'branch_id' => $branchId,
-                                'installment_id' => $data['installment_id'] ?? null,
                                 'amount' => $data['amount'],
                                 'method' => $data['method'],
                                 'gateway_ref' => $data['gateway_ref'] ?? null,

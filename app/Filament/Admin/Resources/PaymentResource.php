@@ -78,14 +78,6 @@ class PaymentResource extends Resource
                     ->preload()
                     ->required()
                     ->label(__('payments.user')),
-                Forms\Components\Select::make('installment_id')
-                    ->relationship('installment', 'installment_no', fn ($query, $get) => 
-                        $query->where('ar_invoice_id', 
-                            \App\Domain\Enrollment\Models\Enrollment::find($get('enrollment_id'))?->arInvoice?->id
-                        )
-                    )
-                    ->getOptionLabelUsing(fn ($value) => 'Installment #' . $value)
-                    ->label(__('payments.installment')),
                 Forms\Components\TextInput::make('amount')
                     ->numeric()
                     ->required()
