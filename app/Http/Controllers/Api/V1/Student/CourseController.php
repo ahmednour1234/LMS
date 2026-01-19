@@ -48,7 +48,7 @@ class CourseController extends ApiController
     public function index(Request $request): JsonResponse
     {
         $student = auth('students')->user();
-        
+
         $filters = [
             'q' => $request->input('q'),
             'program_id' => $request->input('program_id'),
@@ -62,7 +62,7 @@ class CourseController extends ApiController
         $perPage = (int) $request->input('per_page', 15);
         $courses = $this->courseService->getPaginated($filters, $perPage);
 
-        $courseIds = $courses->pluck('id')->toArray();
+        $courseIds = collect($courses->items())->pluck('id')->toArray();
         $enrollments = Enrollment::where('student_id', $student->id)
             ->whereIn('course_id', $courseIds)
             ->get()
@@ -76,9 +76,10 @@ class CourseController extends ApiController
             ->get()
             ->keyBy('enrollment_id');
 
-        $courses->getCollection()->transform(function ($course) use ($enrollments, $payments) {
+        $courses = $courses->through(function ($course) use ($enrollments, $payments) {
             $enrollment = $enrollments->get($course->id);
-            $paidAmount = $enrollment ? ($payments->get($enrollment->id)->total_paid ?? 0) : 0;
+            $payment = $enrollment ? $payments->get($enrollment->id) : null;
+            $paidAmount = $payment ? (float) $payment->total_paid : 0;
             $dueAmount = $enrollment ? max(0, ($enrollment->total_amount ?? 0) - $paidAmount) : 0;
             $isPaid = $dueAmount <= 0.01;
 
@@ -160,6 +161,80 @@ class CourseController extends ApiController
         return $this->successResponse(
             new \App\Http\Resources\V1\Student\CourseShowResource($courseModel),
             'Course retrieved successfully.'
+        );
+    }
+
+    /**
+     * Get Enrolled Courses
+     *
+     * Get courses where the authenticated student is enrolled.
+     *
+     * @queryParam status string optional Filter by enrollment status: active, pending, pending_payment, completed, cancelled. Example: active
+     * @queryParam per_page integer optional Number of items per page. Default: 15. Example: 15
+     * @queryParam page integer optional Page number. Example: 1
+     *
+     * @response 200 {
+     *   "success": true,
+     *   "message": "Enrolled courses retrieved successfully.",
+     *   "data": [...],
+     *   "meta": {
+     *     "pagination": {...}
+     *   }
+     * }
+     */
+    public function enrolled(Request $request): JsonResponse
+    {
+        $student = auth('students')->user();
+
+        $query = Enrollment::where('student_id', $student->id)
+            ->with(['course' => function ($q) {
+                $q->with(['program', 'branch']);
+            }]);
+
+        if ($request->has('status')) {
+            $query->where('status', $request->input('status'));
+        }
+
+        $perPage = (int) $request->input('per_page', 15);
+        $enrollments = $query->orderBy('created_at', 'desc')->paginate($perPage);
+
+        $enrollmentIds = $enrollments->items() ? array_map(fn($e) => $e->id, $enrollments->items()) : [];
+        $payments = Payment::whereIn('enrollment_id', $enrollmentIds)
+            ->where('status', 'completed')
+            ->selectRaw('enrollment_id, SUM(amount) as total_paid')
+            ->groupBy('enrollment_id')
+            ->get()
+            ->keyBy('enrollment_id');
+
+        $courses = collect($enrollments->items())->map(function ($enrollment) use ($payments) {
+            $payment = $payments->get($enrollment->id);
+            $paidAmount = $payment ? (float) $payment->total_paid : 0;
+            $dueAmount = max(0, ($enrollment->total_amount ?? 0) - $paidAmount);
+            $isPaid = $dueAmount <= 0.01;
+
+            $course = $enrollment->course;
+            $course->is_enrolled = true;
+            $course->enrollment_status = $enrollment->status->value;
+            $course->payment_status = $isPaid ? 'paid' : ($paidAmount > 0 ? 'partial' : 'unpaid');
+            $course->paid_amount = $paidAmount;
+            $course->due_amount = $dueAmount;
+            $course->enrollment_id = $enrollment->id;
+            $course->enrolled_at = $enrollment->created_at;
+
+            return $course;
+        });
+
+        $coursesPaginator = new \Illuminate\Pagination\LengthAwarePaginator(
+            $courses,
+            $enrollments->total(),
+            $enrollments->perPage(),
+            $enrollments->currentPage(),
+            ['path' => $request->url(), 'query' => $request->query()]
+        );
+
+        return $this->paginatedResponse(
+            \App\Http\Resources\V1\Student\CourseCardResource::collection($coursesPaginator),
+            'Enrolled courses retrieved successfully.'
         );
     }
 }

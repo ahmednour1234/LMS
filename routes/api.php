@@ -40,6 +40,7 @@ Route::prefix('v1')->group(function () {
 
             // Courses
             Route::get('/courses', [App\Http\Controllers\Api\V1\Student\CourseController::class, 'index']);
+            Route::get('/courses/enrolled', [App\Http\Controllers\Api\V1\Student\CourseController::class, 'enrolled']);
             Route::get('/courses/{course}', [App\Http\Controllers\Api\V1\Student\CourseController::class, 'show']);
 
             // Enrollments

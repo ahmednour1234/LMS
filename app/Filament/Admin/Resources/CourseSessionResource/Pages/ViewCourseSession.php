@@ -2,7 +2,7 @@
 
 namespace App\Filament\Admin\Resources\CourseSessionResource\Pages;
 
-use App\Domain\Training\Enums\LocationType;
+use App\Domain\Training\Enums\SessionLocationType;
 use App\Filament\Admin\Resources\CourseSessionResource;
 use Filament\Actions;
 use Filament\Infolists;
@@ -32,9 +32,9 @@ class ViewCourseSession extends ViewRecord
                     Infolists\Components\TextEntry::make('title')
                         ->label(__('attendance.title')),
                     Infolists\Components\TextEntry::make('location_type')
-                        ->formatStateUsing(fn ($state) => $state instanceof LocationType
+                        ->formatStateUsing(fn ($state) => $state instanceof SessionLocationType
                             ? __('attendance.location_type_options.' . $state->value)
-                            : __('attendance.location_type_options.' . $state))
+                            : __('attendance.location_type_options.' . ($state instanceof \BackedEnum ? $state->value : $state)))
                         ->badge()
                         ->label(__('attendance.location_type')),
                     Infolists\Components\TextEntry::make('starts_at')
@@ -53,7 +53,7 @@ class ViewCourseSession extends ViewRecord
                 ->columns(2),
         ];
 
-        if ($record->location_type === LocationType::ONSITE) {
+        if ($record->location_type === SessionLocationType::ONSITE) {
             $schema[] = Infolists\Components\Section::make(__('attendance.qr_code'))
                 ->schema([
                     Infolists\Components\TextEntry::make('onsite_qr_secret')
