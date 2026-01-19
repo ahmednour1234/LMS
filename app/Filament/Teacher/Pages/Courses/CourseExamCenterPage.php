@@ -568,11 +568,15 @@ class CourseExamCenterPage extends Page implements HasForms, HasTable
                                     ->label(__('exam_questions.options')),
                             ])
                             ->columns(2)
-                            ->itemLabel(fn (array $state): ?string => 
-                                isset($state['question']) && is_array($state['question'])
-                                    ? (MultilingualHelper::formatMultilingualField($state['question']) ?: __('exam_center.question'))
-                                    : __('exam_center.question')
-                            )
+                            ->itemLabel(function ($state): ?string {
+                                if ($state instanceof \App\Domain\Training\Models\ExamQuestion) {
+                                    return MultilingualHelper::formatMultilingualField($state->question ?? []) ?: __('exam_center.question');
+                                }
+                                if (is_array($state) && isset($state['question']) && is_array($state['question'])) {
+                                    return MultilingualHelper::formatMultilingualField($state['question']) ?: __('exam_center.question');
+                                }
+                                return __('exam_center.question');
+                            })
                             ->addActionLabel(__('exam_center.add_question'))
                             ->reorderableWithButtons()
                             ->collapsible()
