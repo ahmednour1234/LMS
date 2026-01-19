@@ -854,6 +854,16 @@ class CourseExamCenterPage extends Page implements HasForms, HasTable
         $this->selectedAttempt->refresh();
     }
 
+    public function getExamsListTableProperty(): Table
+    {
+        return $this->examsListTable($this->makeTable());
+    }
+
+    public function getAttemptsTableProperty(): Table
+    {
+        return $this->attemptsTable($this->makeTable());
+    }
+
     public function table(Table $table): Table
     {
         return $this->examsListTable($table);
