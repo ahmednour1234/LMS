@@ -158,7 +158,16 @@
                 @elseif($activeTab === 'tasks')
                     {{ $this->tasksTable }}
                 @elseif($activeTab === 'exams')
-                    {{ $this->examsTable }}
+                    <div class="space-y-6">
+                        <div class="relative">
+                            <h3 class="text-lg font-semibold mb-4">{{ __('course_dashboard.exams') ?? 'Exams' }}</h3>
+                            {{ $this->examsTable }}
+                        </div>
+                        <div class="relative">
+                            <h3 class="text-lg font-semibold mb-4">{{ __('course_dashboard.exam_attempts') ?? 'Exam Attempts' }}</h3>
+                            {{ $this->examAttemptsTable }}
+                        </div>
+                    </div>
                 @elseif($activeTab === 'sessions')
                     <div class="p-6 bg-gray-50 dark:bg-gray-800 rounded-lg">
                         <p class="text-gray-600 dark:text-gray-400">

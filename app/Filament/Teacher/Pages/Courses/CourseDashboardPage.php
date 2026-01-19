@@ -7,6 +7,7 @@ use App\Domain\Enrollment\Models\Student;
 use App\Domain\Accounting\Models\Payment;
 use App\Domain\Training\Models\Course;
 use App\Domain\Training\Models\Exam;
+use App\Domain\Training\Models\ExamAttempt;
 use App\Domain\Training\Models\Task;
 use App\Domain\Training\Models\TaskSubmission;
 use App\Domain\Training\Models\CourseSession;
@@ -114,6 +115,11 @@ class CourseDashboardPage extends Page implements HasForms, HasTable
     public function getExamsTableProperty(): Table
     {
         return $this->examsTable($this->makeTable());
+    }
+
+    public function getExamAttemptsTableProperty(): Table
+    {
+        return $this->examAttemptsTable($this->makeTable());
     }
 
     public function getLessonsTableProperty(): Table
@@ -500,9 +506,14 @@ class CourseDashboardPage extends Page implements HasForms, HasTable
         return $table
             ->query(
                 Exam::query()
-                    ->whereHas('lesson.section.course', fn (Builder $q) =>
-                        $q->where('id', $this->record->id)
-                          ->where('owner_teacher_id', auth('teacher')->id())
+                    ->where(function (Builder $q) {
+                        $q->where('course_id', $this->record->id)
+                          ->orWhereHas('lesson.section.course', fn (Builder $c) =>
+                              $c->where('id', $this->record->id)
+                          );
+                    })
+                    ->whereHas('course', fn (Builder $q) =>
+                        $q->where('owner_teacher_id', auth('teacher')->id())
                     )
                     ->withCount('questions')
                     ->with(['lesson.section'])
@@ -628,9 +639,14 @@ class CourseDashboardPage extends Page implements HasForms, HasTable
                     ->color('success')
                     ->action(function () {
                         $query = Exam::query()
-                            ->whereHas('lesson.section.course', fn (Builder $q) =>
-                                $q->where('id', $this->record->id)
-                                  ->where('owner_teacher_id', auth('teacher')->id())
+                            ->where(function (Builder $q) {
+                                $q->where('course_id', $this->record->id)
+                                  ->orWhereHas('lesson.section.course', fn (Builder $c) =>
+                                      $c->where('id', $this->record->id)
+                                  );
+                            })
+                            ->whereHas('course', fn (Builder $q) =>
+                                $q->where('owner_teacher_id', auth('teacher')->id())
                             )
                             ->withCount('questions')
                             ->with(['lesson.section']);
@@ -655,9 +671,14 @@ class CourseDashboardPage extends Page implements HasForms, HasTable
                     ->color('danger')
                     ->action(function () {
                         $query = Exam::query()
-                            ->whereHas('lesson.section.course', fn (Builder $q) =>
-                                $q->where('id', $this->record->id)
-                                  ->where('owner_teacher_id', auth('teacher')->id())
+                            ->where(function (Builder $q) {
+                                $q->where('course_id', $this->record->id)
+                                  ->orWhereHas('lesson.section.course', fn (Builder $c) =>
+                                      $c->where('id', $this->record->id)
+                                  );
+                            })
+                            ->whereHas('course', fn (Builder $q) =>
+                                $q->where('owner_teacher_id', auth('teacher')->id())
                             )
                             ->withCount('questions')
                             ->with(['lesson.section']);
@@ -677,6 +698,159 @@ class CourseDashboardPage extends Page implements HasForms, HasTable
                     }),
             ])
             ->defaultSort('created_at', 'desc');
+    }
+
+    public function examAttemptsTable(Table $table): Table
+    {
+        $teacherId = auth('teacher')->id();
+        $courseId = $this->record->id;
+
+        return $table
+            ->query(
+                ExamAttempt::query()
+                    ->whereHas('exam', fn (Builder $q) => 
+                        $q->where(function (Builder $q2) use ($courseId) {
+                            $q2->where('course_id', $courseId)
+                               ->orWhereHas('lesson.section.course', fn (Builder $c) => 
+                                   $c->where('id', $courseId)
+                               );
+                        })
+                        ->whereHas('course', fn (Builder $c) => 
+                            $c->where('owner_teacher_id', $teacherId)
+                        )
+                    )
+                    ->with(['student', 'enrollment', 'exam.questions'])
+                    ->withCount('answers')
+            )
+            ->columns([
+                TextColumn::make('student.name')
+                    ->searchable()
+                    ->sortable()
+                    ->label(__('exam_center.student_name') ?? 'Student Name'),
+
+                TextColumn::make('enrollment.reference')
+                    ->searchable()
+                    ->label(__('exam_center.enrollment_ref') ?? 'Enrollment Ref'),
+
+                TextColumn::make('exam.title')
+                    ->formatStateUsing(fn ($state) => is_array($state) ? MultilingualHelper::formatMultilingualField($state) : $state)
+                    ->label(__('exams.title') ?? 'Exam'),
+
+                TextColumn::make('started_at')
+                    ->dateTime()
+                    ->sortable()
+                    ->label(__('exam_center.started_at') ?? 'Started At'),
+
+                TextColumn::make('submitted_at')
+                    ->dateTime()
+                    ->sortable()
+                    ->label(__('exam_center.submitted_at') ?? 'Submitted At'),
+
+                TextColumn::make('status')
+                    ->badge()
+                    ->formatStateUsing(fn ($state) => __('attempts.status.' . $state) ?? $state)
+                    ->color(fn ($state) => match($state) {
+                        'in_progress' => 'warning',
+                        'submitted' => 'info',
+                        'graded' => 'success',
+                        default => 'gray',
+                    })
+                    ->label(__('attempts.status_label') ?? 'Status'),
+
+                TextColumn::make('score')
+                    ->formatStateUsing(fn ($state, $record) => 
+                        $record->max_score > 0 
+                            ? number_format($state ?? 0, 2) . ' / ' . number_format($record->max_score, 2)
+                            : '-'
+                    )
+                    ->label(__('exam_center.score') ?? 'Score'),
+
+                TextColumn::make('percentage')
+                    ->formatStateUsing(fn ($state) => $state ? number_format($state, 1) . '%' : '-')
+                    ->label(__('exam_center.percentage') ?? 'Percentage'),
+            ])
+            ->filters([
+                SelectFilter::make('exam_id')
+                    ->label(__('exams.title') ?? 'Exam')
+                    ->options(function () use ($courseId, $teacherId) {
+                        return Exam::query()
+                            ->where(function (Builder $q) use ($courseId) {
+                                $q->where('course_id', $courseId)
+                                  ->orWhereHas('lesson.section.course', fn (Builder $c) => 
+                                      $c->where('id', $courseId)
+                                  );
+                            })
+                            ->whereHas('course', fn (Builder $q) => 
+                                $q->where('owner_teacher_id', $teacherId)
+                            )
+                            ->get()
+                            ->mapWithKeys(function ($exam) {
+                                $title = is_array($exam->title) ? MultilingualHelper::formatMultilingualField($exam->title) : $exam->title;
+                                return [$exam->id => $title];
+                            });
+                    })
+                    ->query(function (Builder $query, $state): Builder {
+                        if (!$state || !isset($state['value']) || !$state['value']) {
+                            return $query;
+                        }
+                        return $query->where('exam_id', $state['value']);
+                    }),
+
+                SelectFilter::make('status')
+                    ->options([
+                        'in_progress' => __('attempts.status.in_progress') ?? 'In Progress',
+                        'submitted' => __('attempts.status.submitted') ?? 'Submitted',
+                        'graded' => __('attempts.status.graded') ?? 'Graded',
+                    ])
+                    ->label(__('attempts.status_label') ?? 'Status'),
+
+                Filter::make('started_at')
+                    ->form([
+                        DatePicker::make('started_from')
+                            ->label(__('filters.date_from')),
+                        DatePicker::make('started_until')
+                            ->label(__('filters.date_to')),
+                    ])
+                    ->query(function (Builder $query, array $data): Builder {
+                        return $query
+                            ->when(
+                                $data['started_from'],
+                                fn (Builder $query, $date): Builder => $query->whereDate('started_at', '>=', $date),
+                            )
+                            ->when(
+                                $data['started_until'],
+                                fn (Builder $query, $date): Builder => $query->whereDate('started_at', '<=', $date),
+                            );
+                    }),
+            ])
+            ->actions([
+                Action::make('grade')
+                    ->label(__('grading.grade') ?? 'Grade')
+                    ->icon('heroicon-o-check-circle')
+                    ->color('success')
+                    ->visible(fn ($record) => $record->status !== 'graded')
+                    ->url(fn ($record) => \App\Filament\Teacher\Pages\Courses\CourseExamCenterPage::getUrl(['record' => $this->record]) . '?attempt=' . $record->id),
+
+                Action::make('view')
+                    ->label(__('exam_center.view') ?? 'View')
+                    ->icon('heroicon-o-eye')
+                    ->modalHeading(fn ($record) => __('exam_center.attempt_details') ?? 'Attempt Details')
+                    ->modalContent(fn ($record) => view('filament.teacher.modals.exam-attempt-details', ['attempt' => $record]))
+                    ->modalSubmitAction(false)
+                    ->modalCancelActionLabel(__('exam_center.close') ?? 'Close'),
+
+                Action::make('export_pdf')
+                    ->label(__('exam_center.export_pdf') ?? 'Export PDF')
+                    ->icon('heroicon-o-document-arrow-down')
+                    ->color('danger')
+                    ->action(function (ExamAttempt $record) {
+                        $pdfService = app(PdfService::class);
+                        return $pdfService->render('pdf.exam-attempt', [
+                            'attempt' => $record->load(['student', 'enrollment', 'exam', 'answers.question']),
+                        ]);
+                    }),
+            ])
+            ->defaultSort('submitted_at', 'desc');
     }
 
     public function lessonsTable(Table $table): Table
