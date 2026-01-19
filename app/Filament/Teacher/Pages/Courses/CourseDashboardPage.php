@@ -111,6 +111,16 @@ class CourseDashboardPage extends Page implements HasForms, HasTable
         return $this->attendanceTable($this->makeTable());
     }
 
+    public function getExamsTableProperty(): Table
+    {
+        return $this->examsTable($this->makeTable());
+    }
+
+    public function getLessonsTableProperty(): Table
+    {
+        return $this->lessonsTable($this->makeTable());
+    }
+
     public function registrationsTable(Table $table): Table
     {
         return $table
@@ -118,7 +128,10 @@ class CourseDashboardPage extends Page implements HasForms, HasTable
                 Enrollment::query()
                     ->where('course_id', $this->record->id)
                     ->whereHas('course', fn (Builder $q) => $q->where('owner_teacher_id', auth('teacher')->id()))
-                    ->with(['student', 'course', 'payments', 'arInvoice'])
+                    ->withSum([
+                        'payments as paid_sum' => fn ($q) => $q->where('status', PaymentStatus::COMPLETED->value)
+                    ], 'amount')
+                    ->with(['student', 'course', 'arInvoice'])
             )
             ->columns([
                 TextColumn::make('reference')
@@ -148,17 +161,14 @@ class CourseDashboardPage extends Page implements HasForms, HasTable
                     ->sortable()
                     ->label(__('course_dashboard.total_amount')),
 
-                TextColumn::make('paid_amount')
+                TextColumn::make('paid_sum')
                     ->money('OMR')
-                    ->state(function ($record) {
-                        return $record->payments()->where('status', PaymentStatus::COMPLETED->value)->sum('amount');
-                    })
                     ->label(__('course_dashboard.paid_amount')),
 
                 TextColumn::make('due_amount')
                     ->money('OMR')
                     ->state(function ($record) {
-                        $paid = $record->payments()->where('status', PaymentStatus::COMPLETED->value)->sum('amount');
+                        $paid = $record->paid_sum ?? 0;
                         return max(0, $record->total_amount - $paid);
                     })
                     ->label(__('course_dashboard.due_amount')),
@@ -303,13 +313,11 @@ class CourseDashboardPage extends Page implements HasForms, HasTable
         return $table
             ->query(
                 TaskSubmission::query()
-                    ->whereHas('task', fn (Builder $q) => 
-                        $q->where('course_id', $this->record->id)
-                          ->whereHas('course', fn (Builder $q2) => 
-                              $q2->where('owner_teacher_id', auth('teacher')->id())
-                          )
+                    ->whereHas('task.lesson.section.course', fn (Builder $q) =>
+                        $q->where('id', $this->record->id)
+                          ->where('owner_teacher_id', auth('teacher')->id())
                     )
-                    ->with(['task', 'student', 'mediaFile'])
+                    ->with(['task.lesson.section', 'student', 'mediaFile'])
             )
             ->columns([
                 TextColumn::make('task.title')
@@ -350,8 +358,10 @@ class CourseDashboardPage extends Page implements HasForms, HasTable
                     ->label(__('course_dashboard.filter_by_task'))
                     ->options(function () {
                         return Task::query()
-                            ->where('course_id', $this->record->id)
-                            ->whereHas('course', fn (Builder $q) => $q->where('owner_teacher_id', auth('teacher')->id()))
+                            ->whereHas('lesson.section.course', fn (Builder $q) =>
+                                $q->where('id', $this->record->id)
+                                  ->where('owner_teacher_id', auth('teacher')->id())
+                            )
                             ->get()
                             ->mapWithKeys(function ($task) {
                                 $title = is_array($task->title) ? MultilingualHelper::formatMultilingualField($task->title) : $task->title;
@@ -436,13 +446,11 @@ class CourseDashboardPage extends Page implements HasForms, HasTable
                     ->color('success')
                     ->action(function () {
                         $query = TaskSubmission::query()
-                            ->whereHas('task', fn (Builder $q) => 
-                                $q->where('course_id', $this->record->id)
-                                  ->whereHas('course', fn (Builder $q2) => 
-                                      $q2->where('owner_teacher_id', auth('teacher')->id())
-                                  )
+                            ->whereHas('task.lesson.section.course', fn (Builder $q) =>
+                                $q->where('id', $this->record->id)
+                                  ->where('owner_teacher_id', auth('teacher')->id())
                             )
-                            ->with(['task', 'student']);
+                            ->with(['task.lesson.section', 'student']);
 
                         $columns = collect([
                             ['name' => 'task.title', 'label' => __('course_dashboard.task_title')],
@@ -464,13 +472,11 @@ class CourseDashboardPage extends Page implements HasForms, HasTable
                     ->color('danger')
                     ->action(function () {
                         $query = TaskSubmission::query()
-                            ->whereHas('task', fn (Builder $q) => 
-                                $q->where('course_id', $this->record->id)
-                                  ->whereHas('course', fn (Builder $q2) => 
-                                      $q2->where('owner_teacher_id', auth('teacher')->id())
-                                  )
+                            ->whereHas('task.lesson.section.course', fn (Builder $q) =>
+                                $q->where('id', $this->record->id)
+                                  ->where('owner_teacher_id', auth('teacher')->id())
                             )
-                            ->with(['task', 'student']);
+                            ->with(['task.lesson.section', 'student']);
 
                         $columns = collect([
                             ['name' => 'task.title', 'label' => __('course_dashboard.task_title')],
@@ -489,14 +495,244 @@ class CourseDashboardPage extends Page implements HasForms, HasTable
             ->defaultSort('created_at', 'desc');
     }
 
+    public function examsTable(Table $table): Table
+    {
+        return $table
+            ->query(
+                Exam::query()
+                    ->whereHas('lesson.section.course', fn (Builder $q) =>
+                        $q->where('id', $this->record->id)
+                          ->where('owner_teacher_id', auth('teacher')->id())
+                    )
+                    ->withCount('questions')
+                    ->with(['lesson.section'])
+            )
+            ->columns([
+                TextColumn::make('title')
+                    ->formatStateUsing(fn ($state) => is_array($state) ? MultilingualHelper::formatMultilingualField($state) : $state)
+                    ->searchable()
+                    ->sortable()
+                    ->label(__('course_dashboard.exam_title') ?? 'Title'),
+
+                TextColumn::make('lesson.title')
+                    ->formatStateUsing(fn ($state) => $state ? (is_array($state) ? MultilingualHelper::formatMultilingualField($state) : $state) : '-')
+                    ->label(__('course_dashboard.lesson') ?? 'Lesson'),
+
+                TextColumn::make('type')
+                    ->badge()
+                    ->formatStateUsing(fn ($state) => ucfirst($state))
+                    ->color(fn ($state) => match($state) {
+                        'mcq' => 'info',
+                        'essay' => 'warning',
+                        'mixed' => 'success',
+                        default => 'gray',
+                    })
+                    ->label(__('course_dashboard.exam_type') ?? 'Type'),
+
+                TextColumn::make('questions_count')
+                    ->label(__('course_dashboard.questions_count') ?? 'Questions'),
+
+                TextColumn::make('total_score')
+                    ->numeric(2)
+                    ->label(__('course_dashboard.total_score') ?? 'Total Score'),
+
+                TextColumn::make('duration_minutes')
+                    ->formatStateUsing(fn ($state) => $state ? $state . ' ' . __('course_dashboard.minutes') ?? 'min' : '-')
+                    ->label(__('course_dashboard.duration') ?? 'Duration'),
+
+                TextColumn::make('created_at')
+                    ->dateTime()
+                    ->sortable()
+                    ->label(__('course_dashboard.created_at') ?? 'Created At'),
+
+                TextColumn::make('is_active')
+                    ->badge()
+                    ->formatStateUsing(fn ($state) => $state ? __('course_dashboard.active') ?? 'Active' : __('course_dashboard.inactive') ?? 'Inactive')
+                    ->color(fn ($state) => $state ? 'success' : 'danger')
+                    ->label(__('course_dashboard.status') ?? 'Status'),
+            ])
+            ->filters([
+                SelectFilter::make('type')
+                    ->label(__('course_dashboard.exam_type') ?? 'Type')
+                    ->options([
+                        'mcq' => 'MCQ',
+                        'essay' => 'Essay',
+                        'mixed' => 'Mixed',
+                    ]),
+
+                SelectFilter::make('lesson_id')
+                    ->label(__('course_dashboard.filter_by_lesson') ?? 'Filter by Lesson')
+                    ->options(function () {
+                        return \App\Domain\Training\Models\Lesson::query()
+                            ->whereHas('section.course', fn (Builder $q) =>
+                                $q->where('id', $this->record->id)
+                                  ->where('owner_teacher_id', auth('teacher')->id())
+                            )
+                            ->get()
+                            ->mapWithKeys(function ($lesson) {
+                                $title = is_array($lesson->title) ? MultilingualHelper::formatMultilingualField($lesson->title) : $lesson->title;
+                                return [$lesson->id => $title];
+                            });
+                    }),
+
+                Filter::make('created_at')
+                    ->form([
+                        DatePicker::make('created_from')
+                            ->label(__('filters.date_from')),
+                        DatePicker::make('created_until')
+                            ->label(__('filters.date_to')),
+                    ])
+                    ->query(function (Builder $query, array $data): Builder {
+                        return $query
+                            ->when(
+                                $data['created_from'],
+                                fn (Builder $query, $date): Builder => $query->whereDate('created_at', '>=', $date),
+                            )
+                            ->when(
+                                $data['created_until'],
+                                fn (Builder $query, $date): Builder => $query->whereDate('created_at', '<=', $date),
+                            );
+                    }),
+            ])
+            ->actions([
+                Action::make('view')
+                    ->label(__('course_dashboard.view') ?? 'View')
+                    ->icon('heroicon-o-eye')
+                    ->url(fn ($record) => \App\Filament\Teacher\Resources\Training\ExamResource::getUrl('view', ['record' => $record->id])),
+
+                Action::make('edit')
+                    ->label(__('course_dashboard.edit') ?? 'Edit')
+                    ->icon('heroicon-o-pencil')
+                    ->url(fn ($record) => \App\Filament\Teacher\Resources\Training\ExamResource::getUrl('edit', ['record' => $record->id])),
+
+                Action::make('manage_questions')
+                    ->label(__('course_dashboard.manage_questions') ?? 'Manage Questions')
+                    ->icon('heroicon-o-question-mark-circle')
+                    ->url(fn ($record) => \App\Filament\Teacher\Resources\Training\ExamQuestionResource::getUrl('index', ['exam' => $record->id])),
+            ])
+            ->headerActions([
+                Action::make('exportExcel')
+                    ->label(__('course_dashboard.export_excel') ?? 'Export Excel')
+                    ->icon('heroicon-o-arrow-down-tray')
+                    ->color('success')
+                    ->action(function () {
+                        $query = Exam::query()
+                            ->whereHas('lesson.section.course', fn (Builder $q) =>
+                                $q->where('id', $this->record->id)
+                                  ->where('owner_teacher_id', auth('teacher')->id())
+                            )
+                            ->withCount('questions')
+                            ->with(['lesson.section']);
+
+                        $columns = collect([
+                            ['name' => 'title', 'label' => __('course_dashboard.exam_title') ?? 'Title'],
+                            ['name' => 'type', 'label' => __('course_dashboard.exam_type') ?? 'Type'],
+                            ['name' => 'questions_count', 'label' => __('course_dashboard.questions_count') ?? 'Questions'],
+                            ['name' => 'total_score', 'label' => __('course_dashboard.total_score') ?? 'Total Score'],
+                            ['name' => 'created_at', 'label' => __('course_dashboard.created_at') ?? 'Created At'],
+                        ]);
+
+                        $service = app(TableExportService::class);
+                        $filename = 'course_' . $this->record->code . '_exams_' . now()->format('Y-m-d');
+
+                        return $service->exportXlsxFromCached($query->get(), $columns, $filename);
+                    }),
+
+                Action::make('exportPdf')
+                    ->label(__('course_dashboard.export_pdf') ?? 'Export PDF')
+                    ->icon('heroicon-o-document-arrow-down')
+                    ->color('danger')
+                    ->action(function () {
+                        $query = Exam::query()
+                            ->whereHas('lesson.section.course', fn (Builder $q) =>
+                                $q->where('id', $this->record->id)
+                                  ->where('owner_teacher_id', auth('teacher')->id())
+                            )
+                            ->withCount('questions')
+                            ->with(['lesson.section']);
+
+                        $columns = collect([
+                            ['name' => 'title', 'label' => __('course_dashboard.exam_title') ?? 'Title'],
+                            ['name' => 'type', 'label' => __('course_dashboard.exam_type') ?? 'Type'],
+                            ['name' => 'questions_count', 'label' => __('course_dashboard.questions_count') ?? 'Questions'],
+                            ['name' => 'total_score', 'label' => __('course_dashboard.total_score') ?? 'Total Score'],
+                            ['name' => 'created_at', 'label' => __('course_dashboard.created_at') ?? 'Created At'],
+                        ]);
+
+                        $service = app(TableExportService::class);
+                        $filename = 'course_' . $this->record->code . '_exams_' . now()->format('Y-m-d');
+
+                        return $service->exportPdfFromCached($query->get(), $columns, $filename, __('course_dashboard.exams_report') ?? 'Exams Report');
+                    }),
+            ])
+            ->defaultSort('created_at', 'desc');
+    }
+
+    public function lessonsTable(Table $table): Table
+    {
+        return $table
+            ->query(
+                \App\Domain\Training\Models\CourseSection::query()
+                    ->where('course_id', $this->record->id)
+                    ->whereHas('course', fn (Builder $q) =>
+                        $q->where('owner_teacher_id', auth('teacher')->id())
+                    )
+                    ->withCount('lessons')
+            )
+            ->columns([
+                TextColumn::make('title')
+                    ->formatStateUsing(fn ($state) => is_array($state) ? MultilingualHelper::formatMultilingualField($state) : $state)
+                    ->searchable()
+                    ->sortable()
+                    ->label(__('course_dashboard.section_title') ?? 'Section'),
+
+                TextColumn::make('lessons_count')
+                    ->counts('lessons')
+                    ->label(__('course_dashboard.lessons_count') ?? 'Lessons'),
+
+                TextColumn::make('order')
+                    ->sortable()
+                    ->label(__('course_dashboard.order') ?? 'Order'),
+
+                TextColumn::make('is_active')
+                    ->badge()
+                    ->formatStateUsing(fn ($state) => $state ? __('course_dashboard.active') ?? 'Active' : __('course_dashboard.inactive') ?? 'Inactive')
+                    ->color(fn ($state) => $state ? 'success' : 'danger')
+                    ->label(__('course_dashboard.status') ?? 'Status'),
+
+                TextColumn::make('created_at')
+                    ->dateTime()
+                    ->sortable()
+                    ->label(__('course_dashboard.created_at') ?? 'Created At'),
+            ])
+            ->actions([
+                Action::make('manage_lessons')
+                    ->label(__('course_dashboard.manage_lessons') ?? 'Manage Lessons')
+                    ->icon('heroicon-o-list-bullet')
+                    ->url(fn ($record) => \App\Filament\Teacher\Resources\Training\LessonResource::getUrl('index', ['section' => $record->id])),
+
+                Action::make('create_lesson')
+                    ->label(__('course_dashboard.create_lesson') ?? 'Create Lesson')
+                    ->icon('heroicon-o-plus')
+                    ->color('success')
+                    ->url(fn ($record) => \App\Filament\Teacher\Resources\Training\LessonResource::getUrl('create', ['section' => $record->id])),
+            ])
+            ->bulkActions([
+                Tables\Actions\BulkActionGroup::make([
+                    Tables\Actions\DeleteBulkAction::make(),
+                ]),
+            ])
+            ->defaultSort('order', 'asc');
+    }
+
     public function attendanceTable(Table $table): Table
     {
         return $table
             ->query(
                 CourseSessionAttendance::query()
-                    ->whereHas('session', fn (Builder $q) => 
+                    ->whereHas('session', fn (Builder $q) =>
                         $q->where('course_id', $this->record->id)
-                          ->whereHas('course', fn (Builder $q2) => 
+                          ->whereHas('course', fn (Builder $q2) =>
                               $q2->where('owner_teacher_id', auth('teacher')->id())
                           )
                     )
@@ -593,9 +829,9 @@ class CourseDashboardPage extends Page implements HasForms, HasTable
                     ->color('success')
                     ->action(function () {
                         $query = CourseSessionAttendance::query()
-                            ->whereHas('session', fn (Builder $q) => 
+                            ->whereHas('session', fn (Builder $q) =>
                                 $q->where('course_id', $this->record->id)
-                                  ->whereHas('course', fn (Builder $q2) => 
+                                  ->whereHas('course', fn (Builder $q2) =>
                                       $q2->where('owner_teacher_id', auth('teacher')->id())
                                   )
                             )
@@ -621,9 +857,9 @@ class CourseDashboardPage extends Page implements HasForms, HasTable
                     ->color('danger')
                     ->action(function () {
                         $query = CourseSessionAttendance::query()
-                            ->whereHas('session', fn (Builder $q) => 
+                            ->whereHas('session', fn (Builder $q) =>
                                 $q->where('course_id', $this->record->id)
-                                  ->whereHas('course', fn (Builder $q2) => 
+                                  ->whereHas('course', fn (Builder $q2) =>
                                       $q2->where('owner_teacher_id', auth('teacher')->id())
                                   )
                             )
@@ -658,15 +894,15 @@ class CourseDashboardPage extends Page implements HasForms, HasTable
             ->get();
 
         $taskSubmissions = TaskSubmission::query()
-            ->whereHas('task', fn (Builder $q) => 
-                $q->where('course_id', $course->id)
-                  ->whereHas('course', fn (Builder $q2) => $q2->where('owner_teacher_id', auth('teacher')->id()))
+            ->whereHas('task.lesson.section.course', fn (Builder $q) =>
+                $q->where('id', $course->id)
+                  ->where('owner_teacher_id', auth('teacher')->id())
             )
-            ->with(['task', 'student'])
+            ->with(['task.lesson.section', 'student'])
             ->get();
 
         $attendance = CourseSessionAttendance::query()
-            ->whereHas('session', fn (Builder $q) => 
+            ->whereHas('session', fn (Builder $q) =>
                 $q->where('course_id', $course->id)
                   ->whereHas('course', fn (Builder $q2) => $q2->where('owner_teacher_id', auth('teacher')->id()))
             )
@@ -714,11 +950,11 @@ class CourseDashboardPage extends Page implements HasForms, HasTable
     public function exportTasksExcel()
     {
         $query = TaskSubmission::query()
-            ->whereHas('task', fn (Builder $q) => 
-                $q->where('course_id', $this->record->id)
-                  ->whereHas('course', fn (Builder $q2) => $q2->where('owner_teacher_id', auth('teacher')->id()))
+            ->whereHas('task.lesson.section.course', fn (Builder $q) =>
+                $q->where('id', $this->record->id)
+                  ->where('owner_teacher_id', auth('teacher')->id())
             )
-            ->with(['task', 'student']);
+            ->with(['task.lesson.section', 'student']);
 
         $columns = collect([
             ['name' => 'task.title', 'label' => __('course_dashboard.task_title') ?? 'Task'],
@@ -737,7 +973,7 @@ class CourseDashboardPage extends Page implements HasForms, HasTable
     public function exportAttendanceExcel()
     {
         $query = CourseSessionAttendance::query()
-            ->whereHas('session', fn (Builder $q) => 
+            ->whereHas('session', fn (Builder $q) =>
                 $q->where('course_id', $this->record->id)
                   ->whereHas('course', fn (Builder $q2) => $q2->where('owner_teacher_id', auth('teacher')->id()))
             )
@@ -765,16 +1001,17 @@ class CourseDashboardPage extends Page implements HasForms, HasTable
         $enrollments = Enrollment::query()
             ->where('course_id', $course->id)
             ->whereHas('course', fn (Builder $q) => $q->where('owner_teacher_id', $teacherId))
+            ->withSum([
+                'payments as paid_sum' => fn ($q) => $q->where('status', PaymentStatus::COMPLETED->value)
+            ], 'amount')
             ->get();
 
         $totalEnrolled = $enrollments->count();
-        
-        $totalPaid = $enrollments->sum(function ($enrollment) {
-            return $enrollment->payments()->where('status', PaymentStatus::COMPLETED->value)->sum('amount');
-        });
+
+        $totalPaid = $enrollments->sum('paid_sum') ?? 0;
 
         $totalDue = $enrollments->sum(function ($enrollment) {
-            $paid = $enrollment->payments()->where('status', PaymentStatus::COMPLETED->value)->sum('amount');
+            $paid = $enrollment->paid_sum ?? 0;
             return max(0, $enrollment->total_amount - $paid);
         });
 
@@ -782,14 +1019,23 @@ class CourseDashboardPage extends Page implements HasForms, HasTable
         $completionRate = $totalEnrolled > 0 ? ($completedEnrollments / $totalEnrolled) * 100 : 0;
 
         $tasksCount = Task::query()
-            ->where('course_id', $course->id)
-            ->whereHas('course', fn (Builder $q) => $q->where('owner_teacher_id', $teacherId))
+            ->whereHas('lesson.section.course', fn (Builder $q) =>
+                $q->where('id', $course->id)
+                  ->where('owner_teacher_id', $teacherId)
+            )
+            ->count();
+
+        $examsCount = Exam::query()
+            ->whereHas('lesson.section.course', fn (Builder $q) =>
+                $q->where('id', $course->id)
+                  ->where('owner_teacher_id', $teacherId)
+            )
             ->count();
 
         $pendingSubmissions = TaskSubmission::query()
-            ->whereHas('task', fn (Builder $q) => 
-                $q->where('course_id', $course->id)
-                  ->whereHas('course', fn (Builder $q2) => $q2->where('owner_teacher_id', $teacherId))
+            ->whereHas('task.lesson.section.course', fn (Builder $q) =>
+                $q->where('id', $course->id)
+                  ->where('owner_teacher_id', $teacherId)
             )
             ->where('status', 'pending')
             ->count();
@@ -800,14 +1046,14 @@ class CourseDashboardPage extends Page implements HasForms, HasTable
             ->count();
 
         $totalAttendanceRecords = CourseSessionAttendance::query()
-            ->whereHas('session', fn (Builder $q) => 
+            ->whereHas('session', fn (Builder $q) =>
                 $q->where('course_id', $course->id)
                   ->whereHas('course', fn (Builder $q2) => $q2->where('owner_teacher_id', $teacherId))
             )
             ->count();
 
         $presentCount = CourseSessionAttendance::query()
-            ->whereHas('session', fn (Builder $q) => 
+            ->whereHas('session', fn (Builder $q) =>
                 $q->where('course_id', $course->id)
                   ->whereHas('course', fn (Builder $q2) => $q2->where('owner_teacher_id', $teacherId))
             )
@@ -822,6 +1068,7 @@ class CourseDashboardPage extends Page implements HasForms, HasTable
             'total_due' => $totalDue,
             'completion_rate' => round($completionRate, 1),
             'tasks_count' => $tasksCount,
+            'exams_count' => $examsCount,
             'pending_submissions' => $pendingSubmissions,
             'sessions_count' => $sessionsCount,
             'attendance_rate' => round($attendanceRate, 1),

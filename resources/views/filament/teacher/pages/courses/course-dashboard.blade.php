@@ -15,17 +15,17 @@
                 </x-filament::tabs.item>
 
                 <x-filament::tabs.item
+                    wire:click="$set('activeTab', 'lessons')"
+                    :active="$activeTab === 'lessons'"
+                >
+                    {{ __('course_dashboard.tabs.lessons') ?? 'Lessons' }}
+                </x-filament::tabs.item>
+
+                <x-filament::tabs.item
                     wire:click="$set('activeTab', 'registrations')"
                     :active="$activeTab === 'registrations'"
                 >
                     {{ __('course_dashboard.tabs.registrations') ?? 'Registrations & Payments' }}
-                </x-filament::tabs.item>
-
-                <x-filament::tabs.item
-                    wire:click="$set('activeTab', 'exams')"
-                    :active="$activeTab === 'exams'"
-                >
-                    {{ __('course_dashboard.tabs.exams') ?? 'Exams & Grades' }}
                 </x-filament::tabs.item>
 
                 <x-filament::tabs.item
@@ -36,17 +36,24 @@
                 </x-filament::tabs.item>
 
                 <x-filament::tabs.item
+                    wire:click="$set('activeTab', 'exams')"
+                    :active="$activeTab === 'exams'"
+                >
+                    {{ __('course_dashboard.tabs.exams') ?? 'Exams & Grades' }}
+                </x-filament::tabs.item>
+
+                <x-filament::tabs.item
+                    wire:click="$set('activeTab', 'sessions')"
+                    :active="$activeTab === 'sessions'"
+                >
+                    {{ __('course_dashboard.tabs.sessions') ?? 'Sessions' }}
+                </x-filament::tabs.item>
+
+                <x-filament::tabs.item
                     wire:click="$set('activeTab', 'attendance')"
                     :active="$activeTab === 'attendance'"
                 >
                     {{ __('course_dashboard.tabs.attendance') ?? 'Attendance' }}
-                </x-filament::tabs.item>
-
-                <x-filament::tabs.item
-                    wire:click="$set('activeTab', 'reports')"
-                    :active="$activeTab === 'reports'"
-                >
-                    {{ __('course_dashboard.tabs.reports') ?? 'Reports & Exports' }}
                 </x-filament::tabs.item>
             </x-filament::tabs>
 
@@ -144,16 +151,20 @@
                             {{ __('course_dashboard.export_registrations_excel') ?? 'Export Registrations Excel' }}
                         </x-filament::button>
                     </div>
+                @elseif($activeTab === 'lessons')
+                    {{ $this->lessonsTable }}
                 @elseif($activeTab === 'registrations')
                     {{ $this->registrationsTable }}
-                @elseif($activeTab === 'exams')
-                    <div class="p-6 bg-gray-50 dark:bg-gray-800 rounded-lg">
-                        <p class="text-gray-600 dark:text-gray-400">
-                            {{ __('course_dashboard.exams_coming_soon') ?? 'Exams & Grades feature coming soon. Exam results model needs to be implemented.' }}
-                        </p>
-                    </div>
                 @elseif($activeTab === 'tasks')
                     {{ $this->tasksTable }}
+                @elseif($activeTab === 'exams')
+                    {{ $this->examsTable }}
+                @elseif($activeTab === 'sessions')
+                    <div class="p-6 bg-gray-50 dark:bg-gray-800 rounded-lg">
+                        <p class="text-gray-600 dark:text-gray-400">
+                            {{ __('course_dashboard.sessions_coming_soon') ?? 'Sessions management coming soon.' }}
+                        </p>
+                    </div>
                 @elseif($activeTab === 'attendance')
                     {{ $this->attendanceTable }}
                 @elseif($activeTab === 'reports')
