@@ -167,12 +167,19 @@ class EditExam extends EditRecord
                                                         }
                                                         $options = is_array($state) ? $state : [];
                                                         $correctIndex = $get('../../correct_answer') ?? null;
+                                                        $locale = app()->getLocale();
                                                         $html = '<ul class="list-disc list-inside space-y-1">';
                                                         foreach ($options as $index => $option) {
-                                                            $text = is_array($option) ? ($option['option'] ?? '') : $option;
-                                                            $isCorrect = $correctIndex !== null && (string)$index === (string)$correctIndex;
+                                                            if (is_array($option)) {
+                                                                $text = $option[$locale] ?? $option['en'] ?? $option['ar'] ?? '';
+                                                            } elseif (is_string($option)) {
+                                                                $text = $option;
+                                                            } else {
+                                                                $text = '';
+                                                            }
+                                                            $isCorrect = $correctIndex !== null && (int)$index === (int)$correctIndex;
                                                             $html .= '<li' . ($isCorrect ? ' class="font-bold text-success-600"' : '') . '>';
-                                                            $html .= $text;
+                                                            $html .= htmlspecialchars($text);
                                                             if ($isCorrect) {
                                                                 $html .= ' ✓';
                                                             }
@@ -186,7 +193,7 @@ class EditExam extends EditRecord
                                                     ->visible(fn ($get) => ($get('../../type') ?? '') === 'true_false')
                                                     ->content(function ($state, $get) {
                                                         $correct = $get('../../correct_answer');
-                                                        if ($correct === '1' || $correct === 1) {
+                                                        if ($correct === '1' || $correct === 1 || (int)$correct === 1) {
                                                             return __('exam_questions.true_false_true');
                                                         }
                                                         return __('exam_questions.true_false_false');

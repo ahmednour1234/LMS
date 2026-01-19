@@ -27,6 +27,7 @@ class ExamQuestion extends Model
         return [
             'question' => 'array',
             'options' => 'array',
+            'correct_answer' => 'integer',
             'points' => 'integer',
             'order' => 'integer',
             'is_active' => 'boolean',

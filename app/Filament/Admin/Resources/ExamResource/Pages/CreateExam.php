@@ -179,79 +179,45 @@ class CreateExam extends CreateRecord
                                                 ->visible(fn ($get) => ($get('type') ?? '') === 'mcq')
                                                 ->defaultItems(4)
                                                 ->schema([
-                                                    Forms\Components\Radio::make('option_lang')
-                                                        ->label(__('exam_questions.option_language'))
-                                                        ->options([
-                                                            'ar' => __('general.arabic'),
-                                                            'en' => __('general.english'),
-                                                        ])
-                                                        ->default('en')
-                                                        ->live()
-                                                        ->afterStateUpdated(function ($state, $set) {
-                                                            if ($state === 'ar') {
-                                                                $set('option_en', null);
-                                                            } else {
-                                                                $set('option_ar', null);
-                                                            }
-                                                        }),
-                                                    Forms\Components\Grid::make(2)->schema([
-                                                        Forms\Components\TextInput::make('option_ar')
-                                                            ->label(__('exam_questions.option_ar'))
-                                                            ->required(fn ($get) => $get('option_lang') === 'ar')
-                                                            ->visible(fn ($get) => $get('option_lang') === 'ar')
-                                                            ->dehydrated(fn ($get) => $get('option_lang') === 'ar'),
-
-                                                        Forms\Components\TextInput::make('option_en')
-                                                            ->label(__('exam_questions.option_en'))
-                                                            ->required(fn ($get) => $get('option_lang') === 'en')
-                                                            ->visible(fn ($get) => $get('option_lang') === 'en')
-                                                            ->dehydrated(fn ($get) => $get('option_lang') === 'en'),
-
-                                                        Forms\Components\Toggle::make('is_correct')
-                                                            ->label(__('exam_questions.is_correct'))
-                                                            ->default(false),
-                                                    ]),
+                                                    Forms\Components\TextInput::make('ar')
+                                                        ->label(__('exam_questions.option_ar'))
+                                                        ->maxLength(255),
+                                                    Forms\Components\TextInput::make('en')
+                                                        ->label(__('exam_questions.option_en'))
+                                                        ->required()
+                                                        ->maxLength(255),
                                                 ])
-                                                ->afterStateUpdated(function ($state, $set) {
-                                                    // enforce single correct
-                                                    if (!is_array($state)) return;
-
-                                                    $correctIndex = null;
-                                                    foreach ($state as $i => $row) {
-                                                        if (is_array($row) && !empty($row['is_correct'])) {
-                                                            $correctIndex = $i;
-                                                            break;
-                                                        }
-                                                    }
-
-                                                    if ($correctIndex !== null) {
-                                                        // Create a new array to avoid indirect modification
-                                                        $updatedState = [];
-                                                        foreach ($state as $i => $row) {
-                                                            $updatedRow = is_array($row) ? $row : [];
-                                                            $updatedRow['is_correct'] = ((string)$i === (string)$correctIndex);
-                                                            $updatedState[$i] = $updatedRow;
-                                                        }
-                                                        $set('options', $updatedState);
-                                                        $set('correct_answer', (string) $correctIndex);
-                                                    } else {
-                                                        $set('correct_answer', null);
-                                                    }
-                                                }),
+                                                ->reactive(),
 
                                             // True/False
                                             Forms\Components\Radio::make('correct_answer')
                                                 ->label(__('exam_questions.correct_answer'))
                                                 ->options([
-                                                    '1' => __('exam_questions.true_false_true'),
-                                                    '0' => __('exam_questions.true_false_false'),
+                                                    1 => __('exam_questions.true_false_true'),
+                                                    0 => __('exam_questions.true_false_false'),
                                                 ])
                                                 ->visible(fn ($get) => ($get('type') ?? '') === 'true_false')
                                                 ->required(fn ($get) => ($get('type') ?? '') === 'true_false'),
 
-                                            // MCQ correct index stored as string
-                                            Forms\Components\Hidden::make('correct_answer')
-                                                ->visible(fn ($get) => ($get('type') ?? '') === 'mcq'),
+                                            // MCQ correct answer as Select
+                                            Forms\Components\Select::make('correct_answer')
+                                                ->label(__('exam_questions.correct_answer'))
+                                                ->options(function ($get) {
+                                                    $options = $get('options') ?? [];
+                                                    $opts = [];
+                                                    foreach ($options as $index => $option) {
+                                                        if (is_array($option)) {
+                                                            $text = $option['en'] ?? $option['ar'] ?? "Option " . ($index + 1);
+                                                        } else {
+                                                            $text = "Option " . ($index + 1);
+                                                        }
+                                                        $opts[$index] = $text;
+                                                    }
+                                                    return $opts;
+                                                })
+                                                ->visible(fn ($get) => ($get('type') ?? '') === 'mcq')
+                                                ->required(fn ($get) => ($get('type') ?? '') === 'mcq')
+                                                ->reactive(),
                                         ]),
                                 ]),
                         ]),
@@ -303,31 +269,35 @@ class CreateExam extends CreateRecord
                 }
             }
 
-            // لو MCQ: options لازم تكون array من [{option_ar/option_en,is_correct}]
+            // MCQ options in canonical format [{"ar":"...","en":"..."}]
             $options = null;
+            $correctAnswer = null;
             if ($type === 'mcq' && isset($q['options']) && is_array($q['options'])) {
                 $processedOptions = [];
                 foreach ($q['options'] as $opt) {
                     if (!is_array($opt)) {
                         continue;
                     }
-                    $optionLang = $opt['option_lang'] ?? 'en';
-                    $optionText = '';
-                    if ($optionLang === 'ar' && isset($opt['option_ar']) && !empty($opt['option_ar'])) {
-                        $optionText = $opt['option_ar'];
-                    } elseif ($optionLang === 'en' && isset($opt['option_en']) && !empty($opt['option_en'])) {
-                        $optionText = $opt['option_en'];
-                    }
-                    if ($optionText) {
+                    $ar = $opt['ar'] ?? '';
+                    $en = $opt['en'] ?? '';
+                    if ($en || $ar) {
                         $processedOptions[] = [
-                            'option' => $optionText,
-                            'is_correct' => $opt['is_correct'] ?? false,
+                            'ar' => $ar ?: '',
+                            'en' => $en ?: '',
                         ];
                     }
                 }
                 if (!empty($processedOptions)) {
                     $options = $processedOptions;
                 }
+                
+                // Ensure correct_answer is integer
+                $correctAnswer = isset($q['correct_answer']) ? (int) $q['correct_answer'] : null;
+                if ($correctAnswer !== null && ($correctAnswer < 0 || $correctAnswer >= count($processedOptions))) {
+                    $correctAnswer = null;
+                }
+            } elseif ($type === 'true_false') {
+                $correctAnswer = isset($q['correct_answer']) ? (int) $q['correct_answer'] : null;
             }
 
             $this->record->questions()->create([
@@ -335,7 +305,7 @@ class CreateExam extends CreateRecord
                 'question'       => $question,
                 'points'         => (float) ($q['points'] ?? 0),
                 'options'        => $options,
-                'correct_answer' => $q['correct_answer'] ?? null,
+                'correct_answer' => $correctAnswer,
                 'order'          => (int) ($q['order'] ?? 0),
             ]);
         }

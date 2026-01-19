@@ -67,16 +67,26 @@ class ExamGradingService
 
                 $pointsAwarded = 0;
                 $isCorrect     = null;
+                $selectedIndex = null;
 
                 if ($question->type === 'mcq') {
                     $selected = $selectedOption ?? $answerText;
 
-                    // Normalize selection to string
-                    if (is_array($selected)) {
-                        $selected = json_encode($selected, JSON_UNESCAPED_UNICODE);
+                    // Normalize selection to integer index
+                    if (is_numeric($selected)) {
+                        $selectedIndex = (int) $selected;
+                    } elseif (is_string($selected) && is_numeric($selected)) {
+                        $selectedIndex = (int) $selected;
                     }
 
-                    $isCorrect = $this->checkAnswer($question, (string) $selected);
+                    // Validate index is within bounds
+                    if ($selectedIndex !== null && $question->options && is_array($question->options)) {
+                        if ($selectedIndex < 0 || $selectedIndex >= count($question->options)) {
+                            $selectedIndex = null;
+                        }
+                    }
+
+                    $isCorrect = $this->checkAnswer($question, $selectedIndex);
                     $pointsAwarded = $isCorrect ? (int) $question->points : 0;
                 }
 
@@ -88,7 +98,7 @@ class ExamGradingService
                     [
                         'answer'          => is_array($answerText) ? json_encode($answerText, JSON_UNESCAPED_UNICODE) : $answerText,
                         'answer_text'     => $question->type === 'essay' ? (is_array($answerText) ? json_encode($answerText, JSON_UNESCAPED_UNICODE) : $answerText) : null,
-                        'selected_option' => $question->type === 'mcq' ? (is_array($selectedOption) ? json_encode($selectedOption, JSON_UNESCAPED_UNICODE) : $selectedOption) : null,
+                        'selected_option' => $question->type === 'mcq' ? ($selectedIndex !== null ? (string) $selectedIndex : null) : null,
                         'points_awarded'  => $pointsAwarded,
                         'points_possible' => (float) $question->points,
                         'is_correct'      => $isCorrect,
@@ -124,11 +134,18 @@ class ExamGradingService
 
     public function autoGradeMcq(ExamAttempt $attempt): void
     {
-        $attempt->load('answers.question');
+            $attempt->load('answers.question');
 
         foreach ($attempt->answers as $answer) {
             if ($answer->question->type === 'mcq' && $answer->is_correct === null) {
-                $isCorrect = $this->checkAnswer($answer->question, $answer->selected_option);
+                $selectedIndex = null;
+                if (is_numeric($answer->selected_option)) {
+                    $selectedIndex = (int) $answer->selected_option;
+                } elseif (is_string($answer->selected_option) && is_numeric($answer->selected_option)) {
+                    $selectedIndex = (int) $answer->selected_option;
+                }
+
+                $isCorrect = $this->checkAnswer($answer->question, $selectedIndex);
                 $pointsAwarded = $isCorrect ? (int) $answer->question->points : 0;
 
                 $answer->update([
@@ -187,29 +204,23 @@ class ExamGradingService
         });
     }
 
-    private function checkAnswer(ExamQuestion $question, mixed $studentAnswer): bool
+    private function checkAnswer(ExamQuestion $question, ?int $selectedOptionIndex): bool
     {
+        if ($selectedOptionIndex === null) {
+            return false;
+        }
+
         $correctAnswer = $question->correct_answer;
 
         if ($question->type === 'true_false') {
-            return strtolower(trim((string) $studentAnswer)) === strtolower(trim((string) $correctAnswer));
+            return $selectedOptionIndex === (int) $correctAnswer;
         }
 
         if ($question->type === 'mcq') {
-            if (is_array($studentAnswer)) {
-                return $this->arraysEqual($studentAnswer, (array) $correctAnswer);
-            }
-            return (string) $studentAnswer === (string) $correctAnswer;
+            return $selectedOptionIndex === (int) $correctAnswer;
         }
 
         return false;
-    }
-
-    private function arraysEqual(array $a, array $b): bool
-    {
-        sort($a);
-        sort($b);
-        return $a === $b;
     }
 
     public function getLatestAttempt(Student $student, Exam $exam): ?ExamAttempt

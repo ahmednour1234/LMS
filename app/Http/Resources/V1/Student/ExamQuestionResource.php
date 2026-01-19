@@ -27,11 +27,14 @@ class ExamQuestionResource extends JsonResource
     protected function getTranslatedOptions($options, string $locale): ?array
     {
         if (!is_array($options)) {
-            return $options;
+            return null;
         }
 
         return array_map(function ($option) use ($locale) {
-            return is_array($option) ? $this->getTranslatedValue($option, $locale) : $option;
+            if (is_array($option)) {
+                return $this->getTranslatedValue($option, $locale) ?? '';
+            }
+            return is_string($option) ? $option : '';
         }, $options);
     }
 }

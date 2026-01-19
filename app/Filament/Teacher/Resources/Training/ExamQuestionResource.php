@@ -87,15 +87,38 @@ class ExamQuestionResource extends Resource
                     ->rows(3),
                 Forms\Components\Repeater::make('options')
                     ->schema([
-                        Forms\Components\TextInput::make('option')
+                        Forms\Components\TextInput::make('ar')
+                            ->label(__('exam_questions.option_ar'))
+                            ->maxLength(255),
+                        Forms\Components\TextInput::make('en')
+                            ->label(__('exam_questions.option_en'))
                             ->required()
                             ->maxLength(255),
                     ])
                     ->label(__('exam_questions.options'))
                     ->visible(fn ($get) => $get('type') === 'mcq'),
-                Forms\Components\TextInput::make('correct_answer')
+                Forms\Components\Select::make('correct_answer')
                     ->label(__('exam_questions.correct_answer'))
-                    ->visible(fn ($get) => $get('type') === 'mcq'),
+                    ->options(function ($get, $record) {
+                        $options = $get('options') ?? [];
+                        if ($record && $record->options) {
+                            $options = is_array($record->options) ? $record->options : [];
+                        }
+                        $opts = [];
+                        foreach ($options as $index => $option) {
+                            if (is_array($option)) {
+                                $text = $option['en'] ?? $option['ar'] ?? "Option " . ($index + 1);
+                            } elseif (is_string($option)) {
+                                $text = $option;
+                            } else {
+                                $text = "Option " . ($index + 1);
+                            }
+                            $opts[$index] = $text;
+                        }
+                        return $opts;
+                    })
+                    ->visible(fn ($get) => $get('type') === 'mcq')
+                    ->reactive(),
                 Forms\Components\TextInput::make('points')
                     ->numeric()
                     ->default(0)

@@ -18,7 +18,7 @@ class SubmitExamRequest extends FormRequest
             'answers.*.question_id' => 'required|integer|exists:exam_questions,id',
             'answers.*.answer' => 'nullable',
             'answers.*.answer_text' => 'nullable|string',
-            'answers.*.selected_option' => 'nullable|string',
+            'answers.*.selected_option' => 'nullable|integer',
         ];
     }
 }
