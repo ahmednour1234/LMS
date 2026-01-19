@@ -902,4 +902,62 @@ class CourseDashboardPage extends Page implements HasTable
             'attendance_rate' => round($attendanceRate, 1),
         ];
     }
+
+    public function exportCourseReportExcel()
+    {
+        // Get the registrations table
+        $table = $this->registrationsTable($this->makeTable());
+
+        // Get the query from the table
+        $query = $table->getQuery();
+
+        // Build column data from the registrations table columns
+        $columns = collect($table->getColumns())
+            ->filter(fn ($col) => method_exists($col, 'isHidden') ? !$col->isHidden() : true)
+            ->filter(fn ($col) => method_exists($col, 'getName') && filled($col->getName()));
+
+        $columnData = $columns->map(function ($column) {
+            $name = method_exists($column, 'getName') ? (string) $column->getName() : '';
+            $rawLabel = method_exists($column, 'getLabel') ? $column->getLabel() : '';
+
+            // Convert label to string
+            if ($rawLabel instanceof \Illuminate\Contracts\Support\Htmlable) {
+                $label = strip_tags($rawLabel->toHtml());
+            } elseif (is_object($rawLabel) && method_exists($rawLabel, '__toString')) {
+                $label = (string) $rawLabel;
+            } else {
+                $label = (string) $rawLabel;
+            }
+
+            $label = trim($label);
+            $label = $label !== '' ? $label : ($name !== '' ? $name : 'Column');
+
+            return [
+                'name'  => $name,
+                'label' => $label,
+            ];
+        })
+        ->filter(fn ($col) => filled($col['name']))
+        ->values()
+        ->all();
+
+        // Get records with limit
+        $records = $query->limit(10000)->get();
+
+        // Eager load relationships
+        static::eagerLoadRelationships($records, $columnData);
+
+        // Generate filename
+        $filename = 'Course_Registrations_' . ($this->record->code ?? 'Report') . '_' . now()->format('Y-m-d_His');
+
+        // Cache the export payload
+        $token = static::cacheExportPayload('export_excel_', [
+            'records'  => $records,
+            'columns'  => $columnData,
+            'filename' => $filename,
+        ]);
+
+        // Redirect to export route
+        return redirect()->route('filament.admin.exports.excel', ['token' => $token]);
+    }
 }
