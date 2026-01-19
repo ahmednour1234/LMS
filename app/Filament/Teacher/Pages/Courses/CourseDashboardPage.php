@@ -3,58 +3,46 @@
 namespace App\Filament\Teacher\Pages\Courses;
 
 use App\Domain\Enrollment\Models\Enrollment;
-use App\Domain\Enrollment\Models\Student;
-use App\Domain\Accounting\Models\Payment;
 use App\Domain\Training\Models\Course;
-use App\Domain\Training\Models\Exam;
-use App\Domain\Training\Models\ExamAttempt;
-use App\Domain\Training\Models\Task;
-use App\Domain\Training\Models\TaskSubmission;
 use App\Domain\Training\Models\CourseSession;
 use App\Domain\Training\Models\CourseSessionAttendance;
+use App\Domain\Training\Models\Exam;
+use App\Domain\Training\Models\ExamAttempt;
+use App\Domain\Training\Models\Lesson;
+use App\Domain\Training\Models\Task;
+use App\Domain\Training\Models\TaskSubmission;
 use App\Enums\EnrollmentStatus;
 use App\Enums\PaymentStatus;
 use App\Filament\Concerns\HasTableExports;
 use App\Services\PdfService;
 use App\Services\TableExportService;
 use App\Support\Helpers\MultilingualHelper;
+use Filament\Actions\Action as PageAction;
 use Filament\Forms;
 use Filament\Forms\Components\DatePicker;
-use Filament\Forms\Components\Select;
-use Filament\Forms\Concerns\InteractsWithForms;
-use Filament\Forms\Contracts\HasForms;
 use Filament\Notifications\Notification;
 use Filament\Pages\Page;
-use Filament\Actions\Action as PageAction;
 use Filament\Tables;
 use Filament\Tables\Actions\Action;
-use Filament\Tables\Columns\IconColumn;
-use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Concerns\InteractsWithTable;
 use Filament\Tables\Contracts\HasTable;
 use Filament\Tables\Filters\Filter;
 use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
-use Illuminate\Support\Carbon;
-use Illuminate\Support\Facades\DB;
 
-class CourseDashboardPage extends Page implements HasForms, HasTable
+class CourseDashboardPage extends Page implements HasTable
 {
-    use InteractsWithForms, InteractsWithTable, HasTableExports;
+    use InteractsWithTable, HasTableExports;
 
     protected static ?string $navigationIcon = 'heroicon-o-chart-bar';
-
     protected static string $view = 'filament.teacher.pages.courses.course-dashboard';
-
     protected static ?string $slug = 'courses/{record}/dashboard';
 
     public ?Course $record = null;
-
     public ?string $activeTab = 'overview';
 
     protected ?string $heading = null;
-
     protected ?string $subheading = null;
 
     public function mount(Course $record): void
@@ -71,6 +59,11 @@ class CourseDashboardPage extends Page implements HasForms, HasTable
         return false;
     }
 
+    public function getTitle(): string
+    {
+        return $this->heading ?? __('course_dashboard.title') ?? 'Course Dashboard';
+    }
+
     protected function getHeaderActions(): array
     {
         return [
@@ -82,20 +75,15 @@ class CourseDashboardPage extends Page implements HasForms, HasTable
         ];
     }
 
-    public function getTitle(): string
-    {
-        return $this->heading ?? __('course_dashboard.title') ?? 'Course Dashboard';
-    }
-
-    public function updatedActiveTab(): void
-    {
-        // Reset table state when switching tabs
-    }
-
+    /**
+     * Dummy table: الصفحة فيها Multi Tables
+     */
     public function table(Table $table): Table
     {
-        return $table->query(Enrollment::query()->where('id', -1));
+        return $table->query(Enrollment::query()->whereRaw('1=0'));
     }
+
+    // ========= Tables Getters =========
 
     public function getRegistrationsTableProperty(): Table
     {
@@ -127,33 +115,52 @@ class CourseDashboardPage extends Page implements HasForms, HasTable
         return $this->lessonsTable($this->makeTable());
     }
 
+    // ========= Helpers =========
+
+    protected function teacherId(): int
+    {
+        return (int) auth('teacher')->id();
+    }
+
+    protected function courseId(): int
+    {
+        return (int) $this->record->id;
+    }
+
+    protected function courseOwnedQuery(Builder $query): Builder
+    {
+        return $query->where('owner_teacher_id', $this->teacherId());
+    }
+
+    // ========= Registrations =========
+
     public function registrationsTable(Table $table): Table
     {
         return $table
             ->query(
                 Enrollment::query()
-                    ->where('course_id', $this->record->id)
-                    ->whereHas('course', fn (Builder $q) => $q->where('owner_teacher_id', auth('teacher')->id()))
+                    ->where('course_id', $this->courseId())
+                    ->whereHas('course', fn (Builder $q) => $this->courseOwnedQuery($q))
                     ->withSum([
-                        'payments as paid_sum' => fn ($q) => $q->where('status', PaymentStatus::COMPLETED->value)
+                        'payments as paid_sum' => fn ($q) => $q->where('status', PaymentStatus::COMPLETED->value),
                     ], 'amount')
                     ->with(['student', 'course', 'arInvoice'])
             )
             ->columns([
-                TextColumn::make('reference')
+                Tables\Columns\TextColumn::make('reference')
                     ->searchable()
                     ->sortable()
                     ->label(__('course_dashboard.reference')),
 
-                TextColumn::make('student.name')
+                Tables\Columns\TextColumn::make('student.name')
                     ->searchable()
                     ->sortable()
                     ->label(__('course_dashboard.student_name')),
 
-                TextColumn::make('status')
+                Tables\Columns\TextColumn::make('status')
                     ->badge()
-                    ->formatStateUsing(fn ($state) => __('enrollments.status_options.' . $state->value) ?? $state->value)
-                    ->color(fn ($state) => match($state) {
+                    ->formatStateUsing(fn ($state) => $state?->value ? (__('enrollments.status_options.' . $state->value) ?? $state->value) : (string) $state)
+                    ->color(fn ($state) => match ($state) {
                         EnrollmentStatus::ACTIVE => 'success',
                         EnrollmentStatus::PENDING_PAYMENT => 'warning',
                         EnrollmentStatus::COMPLETED => 'info',
@@ -162,24 +169,25 @@ class CourseDashboardPage extends Page implements HasForms, HasTable
                     })
                     ->label(__('course_dashboard.status')),
 
-                TextColumn::make('total_amount')
+                Tables\Columns\TextColumn::make('total_amount')
                     ->money('OMR')
                     ->sortable()
                     ->label(__('course_dashboard.total_amount')),
 
-                TextColumn::make('paid_sum')
+                Tables\Columns\TextColumn::make('paid_sum')
                     ->money('OMR')
                     ->label(__('course_dashboard.paid_amount')),
 
-                TextColumn::make('due_amount')
+                Tables\Columns\TextColumn::make('due_amount')
                     ->money('OMR')
                     ->state(function ($record) {
-                        $paid = $record->paid_sum ?? 0;
-                        return max(0, $record->total_amount - $paid);
+                        $paid = (float) ($record->paid_sum ?? 0);
+                        $total = (float) ($record->total_amount ?? 0);
+                        return max(0, $total - $paid);
                     })
                     ->label(__('course_dashboard.due_amount')),
 
-                TextColumn::make('created_at')
+                Tables\Columns\TextColumn::make('created_at')
                     ->dateTime()
                     ->sortable()
                     ->label(__('course_dashboard.created_at')),
@@ -187,21 +195,13 @@ class CourseDashboardPage extends Page implements HasForms, HasTable
             ->filters([
                 Filter::make('created_at')
                     ->form([
-                        DatePicker::make('created_from')
-                            ->label(__('filters.date_from')),
-                        DatePicker::make('created_until')
-                            ->label(__('filters.date_to')),
+                        DatePicker::make('created_from')->label(__('filters.date_from')),
+                        DatePicker::make('created_until')->label(__('filters.date_to')),
                     ])
                     ->query(function (Builder $query, array $data): Builder {
                         return $query
-                            ->when(
-                                $data['created_from'],
-                                fn (Builder $query, $date): Builder => $query->whereDate('created_at', '>=', $date),
-                            )
-                            ->when(
-                                $data['created_until'],
-                                fn (Builder $query, $date): Builder => $query->whereDate('created_at', '<=', $date),
-                            );
+                            ->when($data['created_from'] ?? null, fn (Builder $q, $date) => $q->whereDate('created_at', '>=', $date))
+                            ->when($data['created_until'] ?? null, fn (Builder $q, $date) => $q->whereDate('created_at', '<=', $date));
                     }),
 
                 SelectFilter::make('payment_status')
@@ -212,39 +212,42 @@ class CourseDashboardPage extends Page implements HasForms, HasTable
                         'pending' => __('course_dashboard.payment_status_pending'),
                     ])
                     ->query(function (Builder $query, $state): Builder {
-                        if (!$state || !isset($state['value']) || !$state['value']) {
-                            return $query;
-                        }
+                        $value = $state['value'] ?? null;
+                        if (!$value) return $query;
 
-                        $paidStatus = $state['value'];
+                        $completed = PaymentStatus::COMPLETED->value;
 
-                        return $query->where(function (Builder $q) use ($paidStatus) {
-                            if ($paidStatus === 'completed') {
+                        return $query->where(function (Builder $q) use ($value, $completed) {
+                            if ($value === 'completed') {
                                 $q->whereRaw('(
                                     SELECT COALESCE(SUM(amount), 0)
                                     FROM payments
                                     WHERE payments.enrollment_id = enrollments.id
                                     AND payments.status = ?
-                                ) >= enrollments.total_amount', [PaymentStatus::COMPLETED->value]);
-                            } elseif ($paidStatus === 'partial') {
+                                ) >= enrollments.total_amount', [$completed]);
+                            }
+
+                            if ($value === 'partial') {
                                 $q->whereRaw('(
                                     SELECT COALESCE(SUM(amount), 0)
                                     FROM payments
                                     WHERE payments.enrollment_id = enrollments.id
                                     AND payments.status = ?
-                                ) > 0', [PaymentStatus::COMPLETED->value])
-                                ->whereRaw('(
+                                ) > 0', [$completed])
+                                  ->whereRaw('(
                                     SELECT COALESCE(SUM(amount), 0)
                                     FROM payments
                                     WHERE payments.enrollment_id = enrollments.id
                                     AND payments.status = ?
-                                ) < enrollments.total_amount', [PaymentStatus::COMPLETED->value]);
-                            } else {
+                                  ) < enrollments.total_amount', [$completed]);
+                            }
+
+                            if ($value === 'pending') {
                                 $q->whereRaw('NOT EXISTS (
                                     SELECT 1 FROM payments
                                     WHERE payments.enrollment_id = enrollments.id
                                     AND payments.status = ?
-                                )', [PaymentStatus::COMPLETED->value]);
+                                )', [$completed]);
                             }
                         });
                     }),
@@ -253,66 +256,15 @@ class CourseDashboardPage extends Page implements HasForms, HasTable
                 Action::make('view')
                     ->label(__('course_dashboard.view'))
                     ->icon('heroicon-o-eye')
-                    ->modalHeading(fn ($record) => __('course_dashboard.enrollment_details'))
+                    ->modalHeading(fn () => __('course_dashboard.enrollment_details'))
                     ->modalContent(fn ($record) => view('filament.teacher.modals.enrollment-details', ['enrollment' => $record]))
                     ->modalSubmitAction(false)
                     ->modalCancelActionLabel(__('course_dashboard.close')),
             ])
-            ->headerActions([
-                Action::make('exportExcel')
-                    ->label(__('course_dashboard.export_excel'))
-                    ->icon('heroicon-o-arrow-down-tray')
-                    ->color('success')
-                    ->action(function () {
-                        $query = Enrollment::query()
-                            ->where('course_id', $this->record->id)
-                            ->whereHas('course', fn (Builder $q) => $q->where('owner_teacher_id', auth('teacher')->id()))
-                            ->with(['student', 'payments']);
-
-                        $columns = collect([
-                            ['name' => 'reference', 'label' => __('course_dashboard.reference')],
-                            ['name' => 'student.name', 'label' => __('course_dashboard.student_name')],
-                            ['name' => 'status', 'label' => __('course_dashboard.status')],
-                            ['name' => 'total_amount', 'label' => __('course_dashboard.total_amount')],
-                            ['name' => 'paid_amount', 'label' => __('course_dashboard.paid_amount')],
-                            ['name' => 'due_amount', 'label' => __('course_dashboard.due_amount')],
-                            ['name' => 'created_at', 'label' => __('course_dashboard.created_at')],
-                        ]);
-
-                        $service = app(TableExportService::class);
-                        $filename = 'course_' . $this->record->code . '_registrations_' . now()->format('Y-m-d');
-
-                        return $service->exportXlsxFromCached($query->get(), $columns, $filename);
-                    }),
-
-                Action::make('exportPdf')
-                    ->label(__('course_dashboard.export_pdf'))
-                    ->icon('heroicon-o-document-arrow-down')
-                    ->color('danger')
-                    ->action(function () {
-                        $query = Enrollment::query()
-                            ->where('course_id', $this->record->id)
-                            ->whereHas('course', fn (Builder $q) => $q->where('owner_teacher_id', auth('teacher')->id()))
-                            ->with(['student', 'payments']);
-
-                        $columns = collect([
-                            ['name' => 'reference', 'label' => __('course_dashboard.reference')],
-                            ['name' => 'student.name', 'label' => __('course_dashboard.student_name')],
-                            ['name' => 'status', 'label' => __('course_dashboard.status')],
-                            ['name' => 'total_amount', 'label' => __('course_dashboard.total_amount')],
-                            ['name' => 'paid_amount', 'label' => __('course_dashboard.paid_amount')],
-                            ['name' => 'due_amount', 'label' => __('course_dashboard.due_amount')],
-                            ['name' => 'created_at', 'label' => __('course_dashboard.created_at')],
-                        ]);
-
-                        $service = app(TableExportService::class);
-                        $filename = 'course_' . $this->record->code . '_registrations_' . now()->format('Y-m-d');
-
-                        return $service->exportPdfFromCached($query->get(), $columns, $filename, __('course_dashboard.registrations_report'));
-                    }),
-            ])
             ->defaultSort('created_at', 'desc');
     }
+
+    // ========= Tasks =========
 
     public function tasksTable(Table $table): Table
     {
@@ -320,44 +272,40 @@ class CourseDashboardPage extends Page implements HasForms, HasTable
             ->query(
                 TaskSubmission::query()
                     ->whereHas('task.lesson.section.course', fn (Builder $q) =>
-                        $q->where('id', $this->record->id)
-                          ->where('owner_teacher_id', auth('teacher')->id())
+                        $q->where('id', $this->courseId())
+                          ->where('owner_teacher_id', $this->teacherId())
                     )
-                    ->with(['task.lesson.section', 'student', 'mediaFile'])
+                    ->with(['task.lesson.section', 'student', 'mediaFile', 'task'])
             )
             ->columns([
-                TextColumn::make('task.title')
+                Tables\Columns\TextColumn::make('task.title')
                     ->formatStateUsing(fn ($state) => is_array($state) ? MultilingualHelper::formatMultilingualField($state) : $state)
                     ->searchable()
                     ->sortable()
                     ->label(__('course_dashboard.task_title')),
 
-                TextColumn::make('student.name')
+                Tables\Columns\TextColumn::make('student.name')
                     ->searchable()
                     ->sortable()
                     ->label(__('course_dashboard.student_name')),
 
-                TextColumn::make('created_at')
+                Tables\Columns\TextColumn::make('created_at')
                     ->dateTime()
                     ->label(__('course_dashboard.submitted_at')),
 
-                TextColumn::make('status')
+                Tables\Columns\TextColumn::make('status')
                     ->badge()
                     ->formatStateUsing(fn ($state) => __('course_dashboard.submission_status.' . $state) ?? $state)
-                    ->color(fn ($state) => match($state) {
+                    ->color(fn ($state) => match ($state) {
                         'pending' => 'warning',
                         'reviewed' => 'success',
                         default => 'gray',
                     })
                     ->label(__('course_dashboard.status')),
 
-                TextColumn::make('score')
-                    ->formatStateUsing(fn ($state, $record) => $state !== null ? number_format($state, 2) . ' / ' . ($record->task->max_score ?? 0) : '-')
+                Tables\Columns\TextColumn::make('score')
+                    ->formatStateUsing(fn ($state, $record) => $state !== null ? number_format((float)$state, 2) . ' / ' . ((float)($record->task->max_score ?? 0)) : '-')
                     ->label(__('course_dashboard.score')),
-
-                TextColumn::make('task.due_date')
-                    ->dateTime()
-                    ->label(__('course_dashboard.due_date')),
             ])
             ->filters([
                 SelectFilter::make('task_id')
@@ -365,39 +313,30 @@ class CourseDashboardPage extends Page implements HasForms, HasTable
                     ->options(function () {
                         return Task::query()
                             ->whereHas('lesson.section.course', fn (Builder $q) =>
-                                $q->where('id', $this->record->id)
-                                  ->where('owner_teacher_id', auth('teacher')->id())
+                                $q->where('id', $this->courseId())
+                                  ->where('owner_teacher_id', $this->teacherId())
                             )
                             ->get()
                             ->mapWithKeys(function ($task) {
                                 $title = is_array($task->title) ? MultilingualHelper::formatMultilingualField($task->title) : $task->title;
                                 return [$task->id => $title];
-                            });
+                            })
+                            ->all();
                     })
                     ->query(function (Builder $query, $state): Builder {
-                        if (!$state || !isset($state['value']) || !$state['value']) {
-                            return $query;
-                        }
-                        return $query->where('task_id', $state['value']);
+                        $value = $state['value'] ?? null;
+                        return $value ? $query->where('task_id', $value) : $query;
                     }),
 
                 Filter::make('created_at')
                     ->form([
-                        DatePicker::make('created_from')
-                            ->label(__('filters.date_from')),
-                        DatePicker::make('created_until')
-                            ->label(__('filters.date_to')),
+                        DatePicker::make('created_from')->label(__('filters.date_from')),
+                        DatePicker::make('created_until')->label(__('filters.date_to')),
                     ])
                     ->query(function (Builder $query, array $data): Builder {
                         return $query
-                            ->when(
-                                $data['created_from'],
-                                fn (Builder $query, $date): Builder => $query->whereDate('created_at', '>=', $date),
-                            )
-                            ->when(
-                                $data['created_until'],
-                                fn (Builder $query, $date): Builder => $query->whereDate('created_at', '<=', $date),
-                            );
+                            ->when($data['created_from'] ?? null, fn (Builder $q, $date) => $q->whereDate('created_at', '>=', $date))
+                            ->when($data['created_until'] ?? null, fn (Builder $q, $date) => $q->whereDate('created_at', '<=', $date));
                     }),
 
                 SelectFilter::make('status')
@@ -421,21 +360,21 @@ class CourseDashboardPage extends Page implements HasForms, HasTable
                     ->form([
                         Forms\Components\TextInput::make('score')
                             ->numeric()
-                            ->label(__('course_dashboard.score'))
                             ->required()
                             ->minValue(0)
-                            ->maxValue(fn ($record) => $record->task->max_score ?? 100),
+                            ->maxValue(fn ($record) => (float) ($record->task->max_score ?? 100))
+                            ->label(__('course_dashboard.score')),
 
                         Forms\Components\Textarea::make('feedback')
-                            ->label(__('course_dashboard.feedback'))
-                            ->rows(3),
+                            ->rows(3)
+                            ->label(__('course_dashboard.feedback')),
                     ])
                     ->action(function ($record, array $data) {
                         $record->update([
                             'score' => $data['score'],
                             'feedback' => $data['feedback'] ?? null,
                             'reviewed_at' => now(),
-                            'reviewed_by' => auth('teacher')->id(),
+                            'reviewed_by' => $this->teacherId(),
                             'status' => 'reviewed',
                         ]);
 
@@ -445,94 +384,42 @@ class CourseDashboardPage extends Page implements HasForms, HasTable
                             ->send();
                     }),
             ])
-            ->headerActions([
-                Action::make('exportExcel')
-                    ->label(__('course_dashboard.export_excel'))
-                    ->icon('heroicon-o-arrow-down-tray')
-                    ->color('success')
-                    ->action(function () {
-                        $query = TaskSubmission::query()
-                            ->whereHas('task.lesson.section.course', fn (Builder $q) =>
-                                $q->where('id', $this->record->id)
-                                  ->where('owner_teacher_id', auth('teacher')->id())
-                            )
-                            ->with(['task.lesson.section', 'student']);
-
-                        $columns = collect([
-                            ['name' => 'task.title', 'label' => __('course_dashboard.task_title')],
-                            ['name' => 'student.name', 'label' => __('course_dashboard.student_name')],
-                            ['name' => 'created_at', 'label' => __('course_dashboard.submitted_at')],
-                            ['name' => 'status', 'label' => __('course_dashboard.status')],
-                            ['name' => 'score', 'label' => __('course_dashboard.score')],
-                        ]);
-
-                        $service = app(TableExportService::class);
-                        $filename = 'course_' . $this->record->code . '_task_submissions_' . now()->format('Y-m-d');
-
-                        return $service->exportXlsxFromCached($query->get(), $columns, $filename);
-                    }),
-
-                Action::make('exportPdf')
-                    ->label(__('course_dashboard.export_pdf'))
-                    ->icon('heroicon-o-document-arrow-down')
-                    ->color('danger')
-                    ->action(function () {
-                        $query = TaskSubmission::query()
-                            ->whereHas('task.lesson.section.course', fn (Builder $q) =>
-                                $q->where('id', $this->record->id)
-                                  ->where('owner_teacher_id', auth('teacher')->id())
-                            )
-                            ->with(['task.lesson.section', 'student']);
-
-                        $columns = collect([
-                            ['name' => 'task.title', 'label' => __('course_dashboard.task_title')],
-                            ['name' => 'student.name', 'label' => __('course_dashboard.student_name')],
-                            ['name' => 'created_at', 'label' => __('course_dashboard.submitted_at')],
-                            ['name' => 'status', 'label' => __('course_dashboard.status')],
-                            ['name' => 'score', 'label' => __('course_dashboard.score')],
-                        ]);
-
-                        $service = app(TableExportService::class);
-                        $filename = 'course_' . $this->record->code . '_task_submissions_' . now()->format('Y-m-d');
-
-                        return $service->exportPdfFromCached($query->get(), $columns, $filename, __('course_dashboard.task_submissions_report'));
-                    }),
-            ])
             ->defaultSort('created_at', 'desc');
     }
 
+    // ========= Exams =========
+
     public function examsTable(Table $table): Table
     {
+        $courseId = $this->courseId();
+        $teacherId = $this->teacherId();
+
         return $table
             ->query(
                 Exam::query()
-                    ->where(function (Builder $q) {
-                        $q->where('course_id', $this->record->id)
-                          ->orWhereHas('lesson.section.course', fn (Builder $c) =>
-                              $c->where('id', $this->record->id)
-                          );
+                    ->where(function (Builder $q) use ($courseId) {
+                        $q->where('course_id', $courseId)
+                          ->orWhereHas('lesson.section', fn (Builder $s) => $s->where('course_id', $courseId));
                     })
-                    ->whereHas('course', fn (Builder $q) =>
-                        $q->where('owner_teacher_id', auth('teacher')->id())
-                    )
+                    ->whereHas('course', fn (Builder $q) => $q->where('owner_teacher_id', $teacherId))
                     ->withCount('questions')
                     ->with(['lesson.section'])
             )
             ->columns([
-                TextColumn::make('title')
+                Tables\Columns\TextColumn::make('title')
                     ->formatStateUsing(fn ($state) => is_array($state) ? MultilingualHelper::formatMultilingualField($state) : $state)
                     ->searchable()
                     ->sortable()
                     ->label(__('course_dashboard.exam_title') ?? 'Title'),
 
-                TextColumn::make('lesson.title')
+                Tables\Columns\TextColumn::make('lesson.title')
                     ->formatStateUsing(fn ($state) => $state ? (is_array($state) ? MultilingualHelper::formatMultilingualField($state) : $state) : '-')
                     ->label(__('course_dashboard.lesson') ?? 'Lesson'),
 
-                TextColumn::make('type')
+                Tables\Columns\TextColumn::make('type')
                     ->badge()
-                    ->formatStateUsing(fn ($state) => ucfirst($state))
-                    ->color(fn ($state) => match($state) {
+                    ->formatStateUsing(fn ($state) => ucfirst((string)$state))
+                    ->color(fn ($state) => match ((string)$state) {
                         'mcq' => 'info',
                         'essay' => 'warning',
                         'mixed' => 'success',
@@ -540,69 +427,56 @@ class CourseDashboardPage extends Page implements HasForms, HasTable
                     })
                     ->label(__('course_dashboard.exam_type') ?? 'Type'),
 
-                TextColumn::make('questions_count')
+                Tables\Columns\TextColumn::make('questions_count')
                     ->label(__('course_dashboard.questions_count') ?? 'Questions'),
 
-                TextColumn::make('total_score')
+                Tables\Columns\TextColumn::make('total_score')
                     ->numeric(2)
                     ->label(__('course_dashboard.total_score') ?? 'Total Score'),
 
-                TextColumn::make('duration_minutes')
-                    ->formatStateUsing(fn ($state) => $state ? $state . ' ' . __('course_dashboard.minutes') ?? 'min' : '-')
+                Tables\Columns\TextColumn::make('duration_minutes')
+                    ->formatStateUsing(fn ($state) => $state ? $state . ' ' . ((__('course_dashboard.minutes') ?? 'min')) : '-')
                     ->label(__('course_dashboard.duration') ?? 'Duration'),
 
-                TextColumn::make('created_at')
+                Tables\Columns\TextColumn::make('created_at')
                     ->dateTime()
                     ->sortable()
                     ->label(__('course_dashboard.created_at') ?? 'Created At'),
 
-                TextColumn::make('is_active')
+                Tables\Columns\TextColumn::make('is_active')
                     ->badge()
-                    ->formatStateUsing(fn ($state) => $state ? __('course_dashboard.active') ?? 'Active' : __('course_dashboard.inactive') ?? 'Inactive')
+                    ->formatStateUsing(fn ($state) => $state ? (__('course_dashboard.active') ?? 'Active') : (__('course_dashboard.inactive') ?? 'Inactive'))
                     ->color(fn ($state) => $state ? 'success' : 'danger')
                     ->label(__('course_dashboard.status') ?? 'Status'),
             ])
             ->filters([
                 SelectFilter::make('type')
                     ->label(__('course_dashboard.exam_type') ?? 'Type')
-                    ->options([
-                        'mcq' => 'MCQ',
-                        'essay' => 'Essay',
-                        'mixed' => 'Mixed',
-                    ]),
+                    ->options(['mcq' => 'MCQ', 'essay' => 'Essay', 'mixed' => 'Mixed']),
 
                 SelectFilter::make('lesson_id')
                     ->label(__('course_dashboard.filter_by_lesson') ?? 'Filter by Lesson')
-                    ->options(function () {
-                        return \App\Domain\Training\Models\Lesson::query()
-                            ->whereHas('section.course', fn (Builder $q) =>
-                                $q->where('id', $this->record->id)
-                                  ->where('owner_teacher_id', auth('teacher')->id())
-                            )
+                    ->options(function () use ($courseId, $teacherId) {
+                        return Lesson::query()
+                            ->whereHas('section', fn (Builder $s) => $s->where('course_id', $courseId))
+                            ->whereHas('section.course', fn (Builder $c) => $c->where('owner_teacher_id', $teacherId))
                             ->get()
                             ->mapWithKeys(function ($lesson) {
                                 $title = is_array($lesson->title) ? MultilingualHelper::formatMultilingualField($lesson->title) : $lesson->title;
                                 return [$lesson->id => $title];
-                            });
+                            })
+                            ->all();
                     }),
 
                 Filter::make('created_at')
                     ->form([
-                        DatePicker::make('created_from')
-                            ->label(__('filters.date_from')),
-                        DatePicker::make('created_until')
-                            ->label(__('filters.date_to')),
+                        DatePicker::make('created_from')->label(__('filters.date_from')),
+                        DatePicker::make('created_until')->label(__('filters.date_to')),
                     ])
                     ->query(function (Builder $query, array $data): Builder {
                         return $query
-                            ->when(
-                                $data['created_from'],
-                                fn (Builder $query, $date): Builder => $query->whereDate('created_at', '>=', $date),
-                            )
-                            ->when(
-                                $data['created_until'],
-                                fn (Builder $query, $date): Builder => $query->whereDate('created_at', '<=', $date),
-                            );
+                            ->when($data['created_from'] ?? null, fn (Builder $q, $date) => $q->whereDate('created_at', '>=', $date))
+                            ->when($data['created_until'] ?? null, fn (Builder $q, $date) => $q->whereDate('created_at', '<=', $date));
                     }),
             ])
             ->actions([
@@ -627,129 +501,57 @@ class CourseDashboardPage extends Page implements HasForms, HasTable
                     ->icon('heroicon-o-question-mark-circle')
                     ->url(fn ($record) => \App\Filament\Teacher\Resources\Training\ExamQuestionResource::getUrl('index', ['exam' => $record->id])),
             ])
-            ->headerActions([
-                Action::make('exam_center')
-                    ->label(__('course_dashboard.exam_center') ?? 'Exam Center')
-                    ->icon('heroicon-o-academic-cap')
-                    ->color('primary')
-                    ->url(fn () => \App\Filament\Teacher\Pages\Courses\CourseExamCenterPage::getUrl(['record' => $this->record])),
-                Action::make('exportExcel')
-                    ->label(__('course_dashboard.export_excel') ?? 'Export Excel')
-                    ->icon('heroicon-o-arrow-down-tray')
-                    ->color('success')
-                    ->action(function () {
-                        $query = Exam::query()
-                            ->where(function (Builder $q) {
-                                $q->where('course_id', $this->record->id)
-                                  ->orWhereHas('lesson.section.course', fn (Builder $c) =>
-                                      $c->where('id', $this->record->id)
-                                  );
-                            })
-                            ->whereHas('course', fn (Builder $q) =>
-                                $q->where('owner_teacher_id', auth('teacher')->id())
-                            )
-                            ->withCount('questions')
-                            ->with(['lesson.section']);
-
-                        $columns = collect([
-                            ['name' => 'title', 'label' => __('course_dashboard.exam_title') ?? 'Title'],
-                            ['name' => 'type', 'label' => __('course_dashboard.exam_type') ?? 'Type'],
-                            ['name' => 'questions_count', 'label' => __('course_dashboard.questions_count') ?? 'Questions'],
-                            ['name' => 'total_score', 'label' => __('course_dashboard.total_score') ?? 'Total Score'],
-                            ['name' => 'created_at', 'label' => __('course_dashboard.created_at') ?? 'Created At'],
-                        ]);
-
-                        $service = app(TableExportService::class);
-                        $filename = 'course_' . $this->record->code . '_exams_' . now()->format('Y-m-d');
-
-                        return $service->exportXlsxFromCached($query->get(), $columns, $filename);
-                    }),
-
-                Action::make('exportPdf')
-                    ->label(__('course_dashboard.export_pdf') ?? 'Export PDF')
-                    ->icon('heroicon-o-document-arrow-down')
-                    ->color('danger')
-                    ->action(function () {
-                        $query = Exam::query()
-                            ->where(function (Builder $q) {
-                                $q->where('course_id', $this->record->id)
-                                  ->orWhereHas('lesson.section.course', fn (Builder $c) =>
-                                      $c->where('id', $this->record->id)
-                                  );
-                            })
-                            ->whereHas('course', fn (Builder $q) =>
-                                $q->where('owner_teacher_id', auth('teacher')->id())
-                            )
-                            ->withCount('questions')
-                            ->with(['lesson.section']);
-
-                        $columns = collect([
-                            ['name' => 'title', 'label' => __('course_dashboard.exam_title') ?? 'Title'],
-                            ['name' => 'type', 'label' => __('course_dashboard.exam_type') ?? 'Type'],
-                            ['name' => 'questions_count', 'label' => __('course_dashboard.questions_count') ?? 'Questions'],
-                            ['name' => 'total_score', 'label' => __('course_dashboard.total_score') ?? 'Total Score'],
-                            ['name' => 'created_at', 'label' => __('course_dashboard.created_at') ?? 'Created At'],
-                        ]);
-
-                        $service = app(TableExportService::class);
-                        $filename = 'course_' . $this->record->code . '_exams_' . now()->format('Y-m-d');
-
-                        return $service->exportPdfFromCached($query->get(), $columns, $filename, __('course_dashboard.exams_report') ?? 'Exams Report');
-                    }),
-            ])
             ->defaultSort('created_at', 'desc');
     }
 
+    // ========= Exam Attempts =========
+
     public function examAttemptsTable(Table $table): Table
     {
-        $teacherId = auth('teacher')->id();
-        $courseId = $this->record->id;
+        $teacherId = $this->teacherId();
+        $courseId = $this->courseId();
 
         return $table
             ->query(
                 ExamAttempt::query()
-                    ->whereHas('exam', fn (Builder $q) => 
+                    ->whereHas('exam', function (Builder $q) use ($courseId, $teacherId) {
                         $q->where(function (Builder $q2) use ($courseId) {
                             $q2->where('course_id', $courseId)
-                               ->orWhereHas('lesson.section.course', fn (Builder $c) => 
-                                   $c->where('id', $courseId)
-                               );
+                               ->orWhereHas('lesson.section', fn (Builder $s) => $s->where('course_id', $courseId));
                         })
-                        ->whereHas('course', fn (Builder $c) => 
-                            $c->where('owner_teacher_id', $teacherId)
-                        )
-                    )
+                        ->whereHas('course', fn (Builder $c) => $c->where('owner_teacher_id', $teacherId));
+                    })
                     ->with(['student', 'enrollment', 'exam.questions'])
                     ->withCount('answers')
             )
             ->columns([
-                TextColumn::make('student.name')
+                Tables\Columns\TextColumn::make('student.name')
                     ->searchable()
                     ->sortable()
                     ->label(__('exam_center.student_name') ?? 'Student Name'),
 
-                TextColumn::make('enrollment.reference')
+                Tables\Columns\TextColumn::make('enrollment.reference')
                     ->searchable()
                     ->label(__('exam_center.enrollment_ref') ?? 'Enrollment Ref'),
 
-                TextColumn::make('exam.title')
+                Tables\Columns\TextColumn::make('exam.title')
                     ->formatStateUsing(fn ($state) => is_array($state) ? MultilingualHelper::formatMultilingualField($state) : $state)
                     ->label(__('exams.title') ?? 'Exam'),
 
-                TextColumn::make('started_at')
+                Tables\Columns\TextColumn::make('started_at')
                     ->dateTime()
                     ->sortable()
                     ->label(__('exam_center.started_at') ?? 'Started At'),
 
-                TextColumn::make('submitted_at')
+                Tables\Columns\TextColumn::make('submitted_at')
                     ->dateTime()
                     ->sortable()
                     ->label(__('exam_center.submitted_at') ?? 'Submitted At'),
 
-                TextColumn::make('status')
+                Tables\Columns\TextColumn::make('status')
                     ->badge()
                     ->formatStateUsing(fn ($state) => __('attempts.status.' . $state) ?? $state)
-                    ->color(fn ($state) => match($state) {
+                    ->color(fn ($state) => match ($state) {
                         'in_progress' => 'warning',
                         'submitted' => 'info',
                         'graded' => 'success',
@@ -757,16 +559,16 @@ class CourseDashboardPage extends Page implements HasForms, HasTable
                     })
                     ->label(__('attempts.status_label') ?? 'Status'),
 
-                TextColumn::make('score')
-                    ->formatStateUsing(fn ($state, $record) => 
-                        $record->max_score > 0 
-                            ? number_format($state ?? 0, 2) . ' / ' . number_format($record->max_score, 2)
+                Tables\Columns\TextColumn::make('score')
+                    ->formatStateUsing(fn ($state, $record) =>
+                        (float)($record->max_score ?? 0) > 0
+                            ? number_format((float)($state ?? 0), 2) . ' / ' . number_format((float)$record->max_score, 2)
                             : '-'
                     )
                     ->label(__('exam_center.score') ?? 'Score'),
 
-                TextColumn::make('percentage')
-                    ->formatStateUsing(fn ($state) => $state ? number_format($state, 1) . '%' : '-')
+                Tables\Columns\TextColumn::make('percentage')
+                    ->formatStateUsing(fn ($state) => $state !== null ? number_format((float)$state, 1) . '%' : '-')
                     ->label(__('exam_center.percentage') ?? 'Percentage'),
             ])
             ->filters([
@@ -776,51 +578,38 @@ class CourseDashboardPage extends Page implements HasForms, HasTable
                         return Exam::query()
                             ->where(function (Builder $q) use ($courseId) {
                                 $q->where('course_id', $courseId)
-                                  ->orWhereHas('lesson.section.course', fn (Builder $c) => 
-                                      $c->where('id', $courseId)
-                                  );
+                                  ->orWhereHas('lesson.section', fn (Builder $s) => $s->where('course_id', $courseId));
                             })
-                            ->whereHas('course', fn (Builder $q) => 
-                                $q->where('owner_teacher_id', $teacherId)
-                            )
+                            ->whereHas('course', fn (Builder $q) => $q->where('owner_teacher_id', $teacherId))
                             ->get()
                             ->mapWithKeys(function ($exam) {
                                 $title = is_array($exam->title) ? MultilingualHelper::formatMultilingualField($exam->title) : $exam->title;
                                 return [$exam->id => $title];
-                            });
+                            })
+                            ->all();
                     })
                     ->query(function (Builder $query, $state): Builder {
-                        if (!$state || !isset($state['value']) || !$state['value']) {
-                            return $query;
-                        }
-                        return $query->where('exam_id', $state['value']);
+                        $value = $state['value'] ?? null;
+                        return $value ? $query->where('exam_id', $value) : $query;
                     }),
 
                 SelectFilter::make('status')
+                    ->label(__('attempts.status_label') ?? 'Status')
                     ->options([
                         'in_progress' => __('attempts.status.in_progress') ?? 'In Progress',
                         'submitted' => __('attempts.status.submitted') ?? 'Submitted',
                         'graded' => __('attempts.status.graded') ?? 'Graded',
-                    ])
-                    ->label(__('attempts.status_label') ?? 'Status'),
+                    ]),
 
                 Filter::make('started_at')
                     ->form([
-                        DatePicker::make('started_from')
-                            ->label(__('filters.date_from')),
-                        DatePicker::make('started_until')
-                            ->label(__('filters.date_to')),
+                        DatePicker::make('started_from')->label(__('filters.date_from')),
+                        DatePicker::make('started_until')->label(__('filters.date_to')),
                     ])
                     ->query(function (Builder $query, array $data): Builder {
                         return $query
-                            ->when(
-                                $data['started_from'],
-                                fn (Builder $query, $date): Builder => $query->whereDate('started_at', '>=', $date),
-                            )
-                            ->when(
-                                $data['started_until'],
-                                fn (Builder $query, $date): Builder => $query->whereDate('started_at', '<=', $date),
-                            );
+                            ->when($data['started_from'] ?? null, fn (Builder $q, $date) => $q->whereDate('started_at', '>=', $date))
+                            ->when($data['started_until'] ?? null, fn (Builder $q, $date) => $q->whereDate('started_at', '<=', $date));
                     }),
             ])
             ->actions([
@@ -834,7 +623,7 @@ class CourseDashboardPage extends Page implements HasForms, HasTable
                 Action::make('view')
                     ->label(__('exam_center.view') ?? 'View')
                     ->icon('heroicon-o-eye')
-                    ->modalHeading(fn ($record) => __('exam_center.attempt_details') ?? 'Attempt Details')
+                    ->modalHeading(fn () => __('exam_center.attempt_details') ?? 'Attempt Details')
                     ->modalContent(fn ($record) => view('filament.teacher.modals.exam-attempt-details', ['attempt' => $record]))
                     ->modalSubmitAction(false)
                     ->modalCancelActionLabel(__('exam_center.close') ?? 'Close'),
@@ -853,62 +642,7 @@ class CourseDashboardPage extends Page implements HasForms, HasTable
             ->defaultSort('submitted_at', 'desc');
     }
 
-    public function lessonsTable(Table $table): Table
-    {
-        return $table
-            ->query(
-                \App\Domain\Training\Models\CourseSection::query()
-                    ->where('course_id', $this->record->id)
-                    ->whereHas('course', fn (Builder $q) =>
-                        $q->where('owner_teacher_id', auth('teacher')->id())
-                    )
-                    ->withCount('lessons')
-            )
-            ->columns([
-                TextColumn::make('title')
-                    ->formatStateUsing(fn ($state) => is_array($state) ? MultilingualHelper::formatMultilingualField($state) : $state)
-                    ->searchable()
-                    ->sortable()
-                    ->label(__('course_dashboard.section_title') ?? 'Section'),
-
-                TextColumn::make('lessons_count')
-                    ->counts('lessons')
-                    ->label(__('course_dashboard.lessons_count') ?? 'Lessons'),
-
-                TextColumn::make('order')
-                    ->sortable()
-                    ->label(__('course_dashboard.order') ?? 'Order'),
-
-                TextColumn::make('is_active')
-                    ->badge()
-                    ->formatStateUsing(fn ($state) => $state ? __('course_dashboard.active') ?? 'Active' : __('course_dashboard.inactive') ?? 'Inactive')
-                    ->color(fn ($state) => $state ? 'success' : 'danger')
-                    ->label(__('course_dashboard.status') ?? 'Status'),
-
-                TextColumn::make('created_at')
-                    ->dateTime()
-                    ->sortable()
-                    ->label(__('course_dashboard.created_at') ?? 'Created At'),
-            ])
-            ->actions([
-                Action::make('manage_lessons')
-                    ->label(__('course_dashboard.manage_lessons') ?? 'Manage Lessons')
-                    ->icon('heroicon-o-list-bullet')
-                    ->url(fn ($record) => \App\Filament\Teacher\Resources\Training\LessonResource::getUrl('index', ['section' => $record->id])),
-
-                Action::make('create_lesson')
-                    ->label(__('course_dashboard.create_lesson') ?? 'Create Lesson')
-                    ->icon('heroicon-o-plus')
-                    ->color('success')
-                    ->url(fn ($record) => \App\Filament\Teacher\Resources\Training\LessonResource::getUrl('create', ['section' => $record->id])),
-            ])
-            ->bulkActions([
-                Tables\Actions\BulkActionGroup::make([
-                    Tables\Actions\DeleteBulkAction::make(),
-                ]),
-            ])
-            ->defaultSort('order', 'asc');
-    }
+    // ========= Attendance =========
 
     public function attendanceTable(Table $table): Table
     {
@@ -916,28 +650,26 @@ class CourseDashboardPage extends Page implements HasForms, HasTable
             ->query(
                 CourseSessionAttendance::query()
                     ->whereHas('session', fn (Builder $q) =>
-                        $q->where('course_id', $this->record->id)
-                          ->whereHas('course', fn (Builder $q2) =>
-                              $q2->where('owner_teacher_id', auth('teacher')->id())
-                          )
+                        $q->where('course_id', $this->courseId())
+                          ->whereHas('course', fn (Builder $c) => $c->where('owner_teacher_id', $this->teacherId()))
                     )
                     ->with(['session', 'enrollment.student'])
             )
             ->columns([
-                TextColumn::make('session.starts_at')
+                Tables\Columns\TextColumn::make('session.starts_at')
                     ->dateTime()
                     ->sortable()
                     ->label(__('course_dashboard.session_date')),
 
-                TextColumn::make('enrollment.student.name')
+                Tables\Columns\TextColumn::make('enrollment.student.name')
                     ->searchable()
                     ->sortable()
                     ->label(__('course_dashboard.student_name')),
 
-                TextColumn::make('status')
+                Tables\Columns\TextColumn::make('status')
                     ->badge()
-                    ->formatStateUsing(fn ($state) => __('course_dashboard.attendance_status.' . ($state instanceof \App\Domain\Training\Enums\AttendanceStatus ? $state->value : $state)) ?? ($state instanceof \App\Domain\Training\Enums\AttendanceStatus ? $state->value : $state))
-                    ->color(fn ($state) => match($state instanceof \App\Domain\Training\Enums\AttendanceStatus ? $state->value : $state) {
+                    ->formatStateUsing(fn ($state) => __('course_dashboard.attendance_status.' . (is_object($state) && property_exists($state, 'value') ? $state->value : $state)) ?? (is_object($state) && property_exists($state, 'value') ? $state->value : $state))
+                    ->color(fn ($state) => match (is_object($state) && property_exists($state, 'value') ? $state->value : $state) {
                         'present' => 'success',
                         'absent' => 'danger',
                         'late' => 'warning',
@@ -946,11 +678,11 @@ class CourseDashboardPage extends Page implements HasForms, HasTable
                     })
                     ->label(__('course_dashboard.status')),
 
-                TextColumn::make('note')
+                Tables\Columns\TextColumn::make('note')
                     ->limit(50)
                     ->label(__('course_dashboard.notes')),
 
-                TextColumn::make('marked_at')
+                Tables\Columns\TextColumn::make('marked_at')
                     ->dateTime()
                     ->label(__('course_dashboard.marked_at')),
             ])
@@ -959,37 +691,16 @@ class CourseDashboardPage extends Page implements HasForms, HasTable
                     ->label(__('course_dashboard.filter_by_session'))
                     ->options(function () {
                         return CourseSession::query()
-                            ->where('course_id', $this->record->id)
-                            ->whereHas('course', fn (Builder $q) => $q->where('owner_teacher_id', auth('teacher')->id()))
+                            ->where('course_id', $this->courseId())
+                            ->whereHas('course', fn (Builder $q) => $q->where('owner_teacher_id', $this->teacherId()))
+                            ->orderBy('starts_at', 'desc')
                             ->get()
-                            ->mapWithKeys(function ($session) {
-                                return [$session->id => $session->starts_at?->format('Y-m-d H:i') ?? 'Session #' . $session->id];
-                            });
+                            ->mapWithKeys(fn ($s) => [$s->id => $s->starts_at?->format('Y-m-d H:i') ?? ('Session #' . $s->id)])
+                            ->all();
                     })
                     ->query(function (Builder $query, $state): Builder {
-                        if (!$state || !isset($state['value']) || !$state['value']) {
-                            return $query;
-                        }
-                        return $query->where('session_id', $state['value']);
-                    }),
-
-                Filter::make('marked_at')
-                    ->form([
-                        DatePicker::make('marked_from')
-                            ->label(__('filters.date_from')),
-                        DatePicker::make('marked_until')
-                            ->label(__('filters.date_to')),
-                    ])
-                    ->query(function (Builder $query, array $data): Builder {
-                        return $query
-                            ->when(
-                                $data['marked_from'],
-                                fn (Builder $query, $date): Builder => $query->whereDate('marked_at', '>=', $date),
-                            )
-                            ->when(
-                                $data['marked_until'],
-                                fn (Builder $query, $date): Builder => $query->whereDate('marked_at', '<=', $date),
-                            );
+                        $value = $state['value'] ?? null;
+                        return $value ? $query->where('session_id', $value) : $query;
                     }),
 
                 SelectFilter::make('status')
@@ -1001,246 +712,178 @@ class CourseDashboardPage extends Page implements HasForms, HasTable
                         'excused' => __('course_dashboard.attendance_status.excused'),
                     ])
                     ->query(function (Builder $query, $state): Builder {
-                        if (!$state || !isset($state['value']) || !$state['value']) {
-                            return $query;
-                        }
-                        return $query->where('status', $state['value']);
-                    }),
-            ])
-            ->headerActions([
-                Action::make('exportExcel')
-                    ->label(__('course_dashboard.export_excel'))
-                    ->icon('heroicon-o-arrow-down-tray')
-                    ->color('success')
-                    ->action(function () {
-                        $query = CourseSessionAttendance::query()
-                            ->whereHas('session', fn (Builder $q) =>
-                                $q->where('course_id', $this->record->id)
-                                  ->whereHas('course', fn (Builder $q2) =>
-                                      $q2->where('owner_teacher_id', auth('teacher')->id())
-                                  )
-                            )
-                            ->with(['session', 'enrollment.student']);
-
-                        $columns = collect([
-                            ['name' => 'session.starts_at', 'label' => __('course_dashboard.session_date')],
-                            ['name' => 'enrollment.student.name', 'label' => __('course_dashboard.student_name')],
-                            ['name' => 'status', 'label' => __('course_dashboard.status')],
-                            ['name' => 'note', 'label' => __('course_dashboard.notes')],
-                            ['name' => 'marked_at', 'label' => __('course_dashboard.marked_at')],
-                        ]);
-
-                        $service = app(TableExportService::class);
-                        $filename = 'course_' . $this->record->code . '_attendance_' . now()->format('Y-m-d');
-
-                        return $service->exportXlsxFromCached($query->get(), $columns, $filename);
+                        $value = $state['value'] ?? null;
+                        return $value ? $query->where('status', $value) : $query;
                     }),
 
-                Action::make('exportPdf')
-                    ->label(__('course_dashboard.export_pdf'))
-                    ->icon('heroicon-o-document-arrow-down')
-                    ->color('danger')
-                    ->action(function () {
-                        $query = CourseSessionAttendance::query()
-                            ->whereHas('session', fn (Builder $q) =>
-                                $q->where('course_id', $this->record->id)
-                                  ->whereHas('course', fn (Builder $q2) =>
-                                      $q2->where('owner_teacher_id', auth('teacher')->id())
-                                  )
-                            )
-                            ->with(['session', 'enrollment.student']);
-
-                        $columns = collect([
-                            ['name' => 'session.starts_at', 'label' => __('course_dashboard.session_date')],
-                            ['name' => 'enrollment.student.name', 'label' => __('course_dashboard.student_name')],
-                            ['name' => 'status', 'label' => __('course_dashboard.status')],
-                            ['name' => 'note', 'label' => __('course_dashboard.notes')],
-                            ['name' => 'marked_at', 'label' => __('course_dashboard.marked_at')],
-                        ]);
-
-                        $service = app(TableExportService::class);
-                        $filename = 'course_' . $this->record->code . '_attendance_' . now()->format('Y-m-d');
-
-                        return $service->exportPdfFromCached($query->get(), $columns, $filename, __('course_dashboard.attendance_report'));
+                Filter::make('marked_at')
+                    ->form([
+                        DatePicker::make('marked_from')->label(__('filters.date_from')),
+                        DatePicker::make('marked_until')->label(__('filters.date_to')),
+                    ])
+                    ->query(function (Builder $query, array $data): Builder {
+                        return $query
+                            ->when($data['marked_from'] ?? null, fn (Builder $q, $date) => $q->whereDate('marked_at', '>=', $date))
+                            ->when($data['marked_until'] ?? null, fn (Builder $q, $date) => $q->whereDate('marked_at', '<=', $date));
                     }),
             ])
             ->defaultSort('session.starts_at', 'desc');
     }
 
-    public function exportCourseReportPdf()
+    // ========= LESSONS (المطلوب) =========
+    // بدل CourseSection::query() -> هنجيب من جدول lessons مباشرة
+    // lessons.section_id -> course_sections.id -> course_sections.course_id -> courses.id
+    // courses.owner_teacher_id
+
+    public function lessonsTable(Table $table): Table
     {
-        $course = $this->record;
-        $stats = $this->getOverviewStats();
+        $courseId = $this->courseId();
+        $teacherId = $this->teacherId();
 
-        $enrollments = Enrollment::query()
-            ->where('course_id', $course->id)
-            ->whereHas('course', fn (Builder $q) => $q->where('owner_teacher_id', auth('teacher')->id()))
-            ->with(['student', 'payments'])
-            ->get();
-
-        $taskSubmissions = TaskSubmission::query()
-            ->whereHas('task.lesson.section.course', fn (Builder $q) =>
-                $q->where('id', $course->id)
-                  ->where('owner_teacher_id', auth('teacher')->id())
+        return $table
+            ->query(
+                Lesson::query()
+                    ->whereHas('section', fn (Builder $s) => $s->where('course_id', $courseId))
+                    ->whereHas('section.course', fn (Builder $c) => $c->where('owner_teacher_id', $teacherId))
+                    ->with(['section'])
             )
-            ->with(['task.lesson.section', 'student'])
-            ->get();
+            ->columns([
+                Tables\Columns\TextColumn::make('section.title')
+                    ->label(__('course_dashboard.section_title') ?? 'Section')
+                    ->formatStateUsing(fn ($state) => $state ? (is_array($state) ? MultilingualHelper::formatMultilingualField($state) : $state) : '-')
+                    ->sortable(),
 
-        $attendance = CourseSessionAttendance::query()
-            ->whereHas('session', fn (Builder $q) =>
-                $q->where('course_id', $course->id)
-                  ->whereHas('course', fn (Builder $q2) => $q2->where('owner_teacher_id', auth('teacher')->id()))
-            )
-            ->with(['session', 'enrollment.student'])
-            ->get();
+                Tables\Columns\TextColumn::make('title')
+                    ->label(__('course_dashboard.lesson') ?? 'Lesson')
+                    ->formatStateUsing(fn ($state) => is_array($state) ? MultilingualHelper::formatMultilingualField($state) : $state)
+                    ->searchable()
+                    ->sortable(),
 
-        $pdfService = app(PdfService::class);
-        return $pdfService->render('pdf.course-dashboard', [
-            'course' => $course,
-            'stats' => $stats,
-            'enrollments' => $enrollments,
-            'taskSubmissions' => $taskSubmissions,
-            'attendance' => $attendance,
-        ]);
+                Tables\Columns\TextColumn::make('order')
+                    ->label(__('course_dashboard.order') ?? 'Order')
+                    ->sortable(),
+
+                Tables\Columns\TextColumn::make('is_active')
+                    ->badge()
+                    ->label(__('course_dashboard.status') ?? 'Status')
+                    ->formatStateUsing(fn ($state) => $state ? (__('course_dashboard.active') ?? 'Active') : (__('course_dashboard.inactive') ?? 'Inactive'))
+                    ->color(fn ($state) => $state ? 'success' : 'danger'),
+
+                Tables\Columns\ aTextColumn::make('created_at')
+                    ->dateTime()
+                    ->label(__('course_dashboard.created_at') ?? 'Created At')
+                    ->sortable(),
+            ])
+            ->filters([
+                SelectFilter::make('section_id')
+                    ->label(__('course_dashboard.filter_by_section') ?? 'Filter by Section')
+                    ->options(function () use ($courseId, $teacherId) {
+                        return \App\Domain\Training\Models\CourseSection::query()
+                            ->where('course_id', $courseId)
+                            ->whereHas('course', fn (Builder $c) => $c->where('owner_teacher_id', $teacherId))
+                            ->orderBy('order')
+                            ->get()
+                            ->mapWithKeys(function ($section) {
+                                $title = is_array($section->title) ? MultilingualHelper::formatMultilingualField($section->title) : $section->title;
+                                return [$section->id => $title];
+                            })
+                            ->all();
+                    })
+                    ->query(function (Builder $query, $state): Builder {
+                        $value = $state['value'] ?? null;
+                        return $value ? $query->where('section_id', $value) : $query;
+                    }),
+
+                SelectFilter::make('is_active')
+                    ->label(__('course_dashboard.status') ?? 'Status')
+                    ->options([
+                        1 => __('course_dashboard.active') ?? 'Active',
+                        0 => __('course_dashboard.inactive') ?? 'Inactive',
+                    ])
+                    ->query(function (Builder $query, $state): Builder {
+                        $value = $state['value'] ?? null;
+                        return $value === null ? $query : $query->where('is_active', (int)$value);
+                    }),
+
+                Filter::make('created_at')
+                    ->form([
+                        DatePicker::make('created_from')->label(__('filters.date_from')),
+                        DatePicker::make('created_until')->label(__('filters.date_to')),
+                    ])
+                    ->query(function (Builder $query, array $data): Builder {
+                        return $query
+                            ->when($data['created_from'] ?? null, fn (Builder $q, $date) => $q->whereDate('created_at', '>=', $date))
+                            ->when($data['created_until'] ?? null, fn (Builder $q, $date) => $q->whereDate('created_at', '<=', $date));
+                    }),
+            ])
+            ->actions([
+                Action::make('manage')
+                    ->label(__('course_dashboard.manage_lesson') ?? 'Manage')
+                    ->icon('heroicon-o-pencil-square')
+                    ->url(fn ($record) => \App\Filament\Teacher\Resources\Training\LessonResource::getUrl('edit', ['record' => $record->id])),
+
+                Action::make('view')
+                    ->label(__('course_dashboard.view') ?? 'View')
+                    ->icon('heroicon-o-eye')
+                    ->url(fn ($record) => \App\Filament\Teacher\Resources\Training\LessonResource::getUrl('view', ['record' => $record->id])),
+            ])
+            ->defaultSort('created_at', 'desc');
     }
 
-    public function exportCourseReportExcel()
-    {
-        return $this->exportRegistrationsExcel();
-    }
-
-    public function exportRegistrationsExcel()
-    {
-        $query = Enrollment::query()
-            ->where('course_id', $this->record->id)
-            ->whereHas('course', fn (Builder $q) => $q->where('owner_teacher_id', auth('teacher')->id()))
-            ->with(['student', 'payments']);
-
-        $columns = collect([
-            ['name' => 'reference', 'label' => __('course_dashboard.reference') ?? 'Reference'],
-            ['name' => 'student.name', 'label' => __('course_dashboard.student_name') ?? 'Student'],
-            ['name' => 'status', 'label' => __('course_dashboard.status') ?? 'Status'],
-            ['name' => 'total_amount', 'label' => __('course_dashboard.total_amount') ?? 'Total'],
-            ['name' => 'paid_amount', 'label' => __('course_dashboard.paid_amount') ?? 'Paid'],
-            ['name' => 'due_amount', 'label' => __('course_dashboard.due_amount') ?? 'Due'],
-            ['name' => 'created_at', 'label' => __('course_dashboard.created_at') ?? 'Created At'],
-        ]);
-
-        $service = app(TableExportService::class);
-        $filename = 'course_' . $this->record->code . '_registrations_' . now()->format('Y-m-d');
-
-        return $service->exportXlsxFromCached($query->get(), $columns, $filename);
-    }
-
-    public function exportTasksExcel()
-    {
-        $query = TaskSubmission::query()
-            ->whereHas('task.lesson.section.course', fn (Builder $q) =>
-                $q->where('id', $this->record->id)
-                  ->where('owner_teacher_id', auth('teacher')->id())
-            )
-            ->with(['task.lesson.section', 'student']);
-
-        $columns = collect([
-            ['name' => 'task.title', 'label' => __('course_dashboard.task_title') ?? 'Task'],
-            ['name' => 'student.name', 'label' => __('course_dashboard.student_name') ?? 'Student'],
-            ['name' => 'created_at', 'label' => __('course_dashboard.submitted_at') ?? 'Submitted'],
-            ['name' => 'status', 'label' => __('course_dashboard.status') ?? 'Status'],
-            ['name' => 'score', 'label' => __('course_dashboard.score') ?? 'Score'],
-        ]);
-
-        $service = app(TableExportService::class);
-        $filename = 'course_' . $this->record->code . '_task_submissions_' . now()->format('Y-m-d');
-
-        return $service->exportXlsxFromCached($query->get(), $columns, $filename);
-    }
-
-    public function exportAttendanceExcel()
-    {
-        $query = CourseSessionAttendance::query()
-            ->whereHas('session', fn (Builder $q) =>
-                $q->where('course_id', $this->record->id)
-                  ->whereHas('course', fn (Builder $q2) => $q2->where('owner_teacher_id', auth('teacher')->id()))
-            )
-            ->with(['session', 'enrollment.student']);
-
-        $columns = collect([
-            ['name' => 'session.starts_at', 'label' => __('course_dashboard.session_date') ?? 'Session Date'],
-            ['name' => 'enrollment.student.name', 'label' => __('course_dashboard.student_name') ?? 'Student'],
-            ['name' => 'status', 'label' => __('course_dashboard.status') ?? 'Status'],
-            ['name' => 'note', 'label' => __('course_dashboard.notes') ?? 'Notes'],
-            ['name' => 'marked_at', 'label' => __('course_dashboard.marked_at') ?? 'Marked At'],
-        ]);
-
-        $service = app(TableExportService::class);
-        $filename = 'course_' . $this->record->code . '_attendance_' . now()->format('Y-m-d');
-
-        return $service->exportXlsxFromCached($query->get(), $columns, $filename);
-    }
+    // ========= Overview Stats (كما عندك) =========
 
     protected function getOverviewStats(): array
     {
-        $course = $this->record;
-        $teacherId = auth('teacher')->id();
+        $courseId = $this->courseId();
+        $teacherId = $this->teacherId();
 
         $enrollments = Enrollment::query()
-            ->where('course_id', $course->id)
+            ->where('course_id', $courseId)
             ->whereHas('course', fn (Builder $q) => $q->where('owner_teacher_id', $teacherId))
-            ->withSum([
-                'payments as paid_sum' => fn ($q) => $q->where('status', PaymentStatus::COMPLETED->value)
-            ], 'amount')
+            ->withSum(['payments as paid_sum' => fn ($q) => $q->where('status', PaymentStatus::COMPLETED->value)], 'amount')
             ->get();
 
         $totalEnrolled = $enrollments->count();
+        $totalPaid = (float) ($enrollments->sum('paid_sum') ?? 0);
 
-        $totalPaid = $enrollments->sum('paid_sum') ?? 0;
-
-        $totalDue = $enrollments->map(function ($enrollment) {
-            $paid = $enrollment->paid_sum ?? 0;
-            return max(0, $enrollment->total_amount - $paid);
+        $totalDue = (float) $enrollments->map(function ($enrollment) {
+            $paid = (float) ($enrollment->paid_sum ?? 0);
+            $total = (float) ($enrollment->total_amount ?? 0);
+            return max(0, $total - $paid);
         })->sum();
 
         $completedEnrollments = $enrollments->where('status', EnrollmentStatus::COMPLETED)->count();
         $completionRate = $totalEnrolled > 0 ? ($completedEnrollments / $totalEnrolled) * 100 : 0;
 
         $tasksCount = Task::query()
-            ->whereHas('lesson.section.course', fn (Builder $q) =>
-                $q->where('id', $course->id)
-                  ->where('owner_teacher_id', $teacherId)
-            )
+            ->whereHas('lesson.section.course', fn (Builder $q) => $q->where('id', $courseId)->where('owner_teacher_id', $teacherId))
             ->count();
 
         $examsCount = Exam::query()
-            ->whereHas('lesson.section.course', fn (Builder $q) =>
-                $q->where('id', $course->id)
-                  ->where('owner_teacher_id', $teacherId)
-            )
+            ->whereHas('lesson.section.course', fn (Builder $q) => $q->where('id', $courseId)->where('owner_teacher_id', $teacherId))
             ->count();
 
         $pendingSubmissions = TaskSubmission::query()
-            ->whereHas('task.lesson.section.course', fn (Builder $q) =>
-                $q->where('id', $course->id)
-                  ->where('owner_teacher_id', $teacherId)
-            )
+            ->whereHas('task.lesson.section.course', fn (Builder $q) => $q->where('id', $courseId)->where('owner_teacher_id', $teacherId))
             ->where('status', 'pending')
             ->count();
 
         $sessionsCount = CourseSession::query()
-            ->where('course_id', $course->id)
+            ->where('course_id', $courseId)
             ->whereHas('course', fn (Builder $q) => $q->where('owner_teacher_id', $teacherId))
             ->count();
 
         $totalAttendanceRecords = CourseSessionAttendance::query()
             ->whereHas('session', fn (Builder $q) =>
-                $q->where('course_id', $course->id)
-                  ->whereHas('course', fn (Builder $q2) => $q2->where('owner_teacher_id', $teacherId))
+                $q->where('course_id', $courseId)
+                  ->whereHas('course', fn (Builder $c) => $c->where('owner_teacher_id', $teacherId))
             )
             ->count();
 
         $presentCount = CourseSessionAttendance::query()
             ->whereHas('session', fn (Builder $q) =>
-                $q->where('course_id', $course->id)
-                  ->whereHas('course', fn (Builder $q2) => $q2->where('owner_teacher_id', $teacherId))
+                $q->where('course_id', $courseId)
+                  ->whereHas('course', fn (Builder $c) => $c->where('owner_teacher_id', $teacherId))
             )
             ->where('status', 'present')
             ->count();
