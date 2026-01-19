@@ -847,4 +847,57 @@ class CourseExamCenterPage extends Page implements HasForms, HasTable
     {
         return $this->examsListTable($table);
     }
+    public function getKpiStats(): array
+    {
+        $teacherId = auth('teacher')->id();
+        $courseId = $this->record?->id;
+
+        if (!$courseId) {
+            return [
+                'total_exams' => 0,
+                'total_attempts' => 0,
+                'pending_grading' => 0,
+                'avg_score' => 0,
+            ];
+        }
+
+        $totalExams = Exam::query()
+            ->where('course_id', $courseId)
+            ->whereHas('course', fn (Builder $q) => $q->where('owner_teacher_id', $teacherId))
+            ->count();
+
+        $totalAttempts = ExamAttempt::query()
+            ->whereHas('exam', fn (Builder $q) =>
+                $q->where('course_id', $courseId)
+                  ->whereHas('course', fn ($c) => $c->where('owner_teacher_id', $teacherId))
+            )
+            ->count();
+
+        $pendingGrading = ExamAttempt::query()
+            ->whereHas('exam', fn (Builder $q) =>
+                $q->where('course_id', $courseId)
+                  ->whereHas('course', fn ($c) => $c->where('owner_teacher_id', $teacherId))
+            )
+            ->where('status', 'submitted')
+            ->whereHas('answers.question', fn ($q) =>
+                $q->whereIn('type', ['essay', 'short_answer'])
+            )
+            ->count();
+
+        $avgScore = ExamAttempt::query()
+            ->whereHas('exam', fn (Builder $q) =>
+                $q->where('course_id', $courseId)
+                  ->whereHas('course', fn ($c) => $c->where('owner_teacher_id', $teacherId))
+            )
+            ->where('status', 'graded')
+            ->avg('percentage') ?? 0;
+
+        return [
+            'total_exams' => $totalExams,
+            'total_attempts' => $totalAttempts,
+            'pending_grading' => $pendingGrading,
+            'avg_score' => round((float) $avgScore, 1),
+        ];
+    }
+
 }
