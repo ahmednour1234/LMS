@@ -94,12 +94,12 @@ class ExamGradingService
     public function autoGradeMcq(ExamAttempt $attempt): void
     {
         $attempt->load('answers.question');
-        
+
         foreach ($attempt->answers as $answer) {
             if ($answer->question->type === 'mcq' && $answer->is_correct === null) {
                 $isCorrect = $this->checkAnswer($answer->question, $answer->selected_option);
                 $pointsAwarded = $isCorrect ? (int) $answer->question->points : 0;
-                
+
                 $answer->update([
                     'is_correct' => $isCorrect,
                     'points_awarded' => $pointsAwarded,
@@ -112,12 +112,12 @@ class ExamGradingService
     {
         $attempt->load('answers');
         $score = (int) $attempt->answers->sum('points_awarded');
-        
+
         $attempt->update([
             'score' => $score,
             'percentage' => $attempt->max_score > 0 ? ($score / $attempt->max_score) * 100 : 0,
         ]);
-        
+
         return $score;
     }
 
@@ -126,20 +126,20 @@ class ExamGradingService
         if ($exam->type === 'mcq') {
             return 'graded';
         }
-        
+
         $essayCount = $attempt->answers()
             ->whereHas('question', fn ($q) => $q->where('type', 'essay'))
             ->count();
-        
+
         if ($essayCount === 0) {
             return 'graded';
         }
-        
+
         $ungradedEssays = $attempt->answers()
             ->whereHas('question', fn ($q) => $q->where('type', 'essay'))
             ->whereNull('points_awarded')
             ->count();
-        
+
         return $ungradedEssays === 0 ? 'graded' : 'submitted';
     }
 
@@ -147,7 +147,7 @@ class ExamGradingService
     {
         DB::transaction(function () use ($attempt, $teacherId) {
             $this->computeAttemptScore($attempt);
-            
+
             $attempt->update([
                 'status' => 'graded',
                 'graded_by_teacher_id' => $teacherId,
