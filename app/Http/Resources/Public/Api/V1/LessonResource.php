@@ -49,4 +49,3 @@ class LessonResource extends JsonResource
         ];
     }
 }
-
