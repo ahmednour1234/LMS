@@ -8,9 +8,14 @@ use Illuminate\Database\Eloquent\Builder;
 
 class ExamService
 {
-    public function paginate(array $filters = [], int $perPage = 15): LengthAwarePaginator
+    public function paginate(array $filters = [], int $perPage = 15, ?int $teacherId = null): LengthAwarePaginator
     {
         $q = Exam::query()->withCount('questions');
+
+        // Filter by teacher ownership if teacherId is provided
+        if ($teacherId !== null) {
+            $q->whereHas('course', fn(Builder $b) => $b->where('owner_teacher_id', $teacherId));
+        }
 
         if (!empty($filters['course_id'])) $q->where('course_id', (int) $filters['course_id']);
         if (!empty($filters['lesson_id'])) $q->where('lesson_id', (int) $filters['lesson_id']);

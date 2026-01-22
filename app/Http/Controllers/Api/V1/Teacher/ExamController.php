@@ -43,7 +43,7 @@ class ExamController extends ApiController
             $this->guard->assertCourseOwner($teacherId, $course);
         }
 
-        $data = $this->service->paginate($filters, $perPage);
+        $data = $this->service->paginate($filters, $perPage, $teacherId);
 
         return $this->successResponse(
             ExamResource::collection($data)->response()->getData(true),
