@@ -19,7 +19,7 @@ class TeacherResource extends JsonResource
             'name' => $this->name,
             'email' => $this->email,
             'sex' => $this->sex,
-            'photo' => $this->photo,
+            'photo' => $this->photo ? asset('storage/' . $this->photo) : null,
             'active' => $this->active,
             'owned_courses_count' => $this->when(isset($this->owned_courses_count), $this->owned_courses_count),
             'assigned_courses_count' => $this->when(isset($this->assigned_courses_count), $this->assigned_courses_count),
