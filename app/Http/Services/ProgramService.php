@@ -188,9 +188,11 @@ class ProgramService
         }
 
         // active default=1 (only active)
-        $active = $filters['active'] ?? 1;
-        if ($active !== null && $active !== '') {
-            $query->where('is_active', (bool) $active);
+        if (isset($filters['active']) && $filters['active'] !== null && $filters['active'] !== '') {
+            $query->where('is_active', (bool) $filters['active']);
+        } else {
+            // Default to active only if not specified
+            $query->where('is_active', true);
         }
 
         // code exact
@@ -249,9 +251,11 @@ class ProgramService
             });
         }
 
-        $active = $filters['active'] ?? 1;
-        if ($active !== null && $active !== '') {
-            $query->where('is_active', (bool) $active);
+        if (isset($filters['active']) && $filters['active'] !== null && $filters['active'] !== '') {
+            $query->where('is_active', (bool) $filters['active']);
+        } else {
+            // Default to active only if not specified
+            $query->where('is_active', true);
         }
 
         if (!empty($filters['delivery_type'])) {

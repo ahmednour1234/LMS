@@ -26,7 +26,7 @@ class TeacherTaskService
             $q->where('lesson_id', (int) $filters['lesson_id']);
         }
 
-        if (!empty($filters['active']) || $filters['active'] === '0') {
+        if (isset($filters['active']) && (!empty($filters['active']) || $filters['active'] === '0')) {
             $q->where('is_active', (bool) $filters['active']);
         }
 
