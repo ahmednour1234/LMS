@@ -2,11 +2,14 @@
 
 namespace App\Http\Resources\Api\V1\Teacher;
 
+use App\Support\Traits\HasTranslatableFields;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
 
 class TaskResource extends JsonResource
 {
+    use HasTranslatableFields;
+
     /**
      * Transform the resource into an array.
      *
@@ -14,13 +17,15 @@ class TaskResource extends JsonResource
      */
     public function toArray(Request $request): array
     {
+        $locale = app()->getLocale();
+
         return [
             'id' => $this->id,
             'course_id' => $this->course_id,
             'lesson_id' => $this->lesson_id,
 
-            'title' => $this->title,
-            'description' => $this->description,
+            'title' => $this->getTranslatedValue($this->title, $locale),
+            'description' => $this->getTranslatedValue($this->description, $locale),
 
             'submission_type' => $this->submission_type,
             'max_score' => $this->max_score,
@@ -32,11 +37,11 @@ class TaskResource extends JsonResource
 
             'course' => $this->whenLoaded('course', fn() => [
                 'id' => $this->course->id,
-                'name' => $this->course->name,
+                'name' => $this->getTranslatedValue($this->course->name, $locale),
             ]),
             'lesson' => $this->whenLoaded('lesson', fn() => [
                 'id' => $this->lesson->id,
-                'title' => $this->lesson->title,
+                'title' => $this->getTranslatedValue($this->lesson->title, $locale),
             ]),
         ];
     }
