@@ -78,7 +78,10 @@ class TeacherAuthController extends ApiController
     {
         $teacher = Auth::guard('teacher-api')->user();
 
-        return $this->successResponse($teacher, 'Teacher profile retrieved successfully.');
+        return $this->successResponse(
+            new TeacherResource($teacher),
+            'Teacher profile retrieved successfully.'
+        );
     }
 
     public function refresh(): JsonResponse
