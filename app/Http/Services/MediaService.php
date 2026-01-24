@@ -8,7 +8,7 @@ use Illuminate\Support\Facades\Storage;
 
 class MediaService
 {
-    public function upload(UploadedFile $file, int $userId, bool $isPrivate = false, ?int $branchId = null): MediaFile
+    public function upload(UploadedFile $file, ?int $userId, bool $isPrivate = false, ?int $branchId = null, ?int $teacherId = null): MediaFile
     {
         $disk = 'public';
         $path = $file->store('media', $disk);
@@ -21,6 +21,7 @@ class MediaService
             'disk' => $disk,
             'path' => $path,
             'user_id' => $userId,
+            'teacher_id' => $teacherId,
             'branch_id' => $branchId,
             'is_private' => $isPrivate,
             'access_token' => null,

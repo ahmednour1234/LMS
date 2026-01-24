@@ -26,11 +26,13 @@ class TeacherMediaController extends ApiController
         $file = $request->file('file');
         $isPrivate = (bool) ($request->input('is_private', false));
 
-        // teacher isn't User model? store as user_id = null or map teacher->user_id if exists
-        // Here: assume Teacher has user_id nullable, else set user_id = null
-        $userId = $teacher->user_id ?? null;
-
-        $media = $this->mediaService->upload($file, $userId ?? 0, $isPrivate);
+        // Use teacher_id, set user_id to null
+        $media = $this->mediaService->upload(
+            file: $file,
+            userId: null,
+            isPrivate: $isPrivate,
+            teacherId: $teacher->id
+        );
 
         return $this->successResponse(new MediaFileResource($media), 'Uploaded', 201);
     }

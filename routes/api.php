@@ -321,20 +321,20 @@ Route::prefix('v1')->group(function () {
                 Route::put('/{question}', [App\Http\Controllers\Api\V1\Teacher\ExamQuestionController::class, 'update']);
                 Route::delete('/{question}', [App\Http\Controllers\Api\V1\Teacher\ExamQuestionController::class, 'destroy']);
             });
-        });
-        /*
-|--------------------------------------------------------------------------
-| Teacher Reports & Analytics (JWT)
-|--------------------------------------------------------------------------
-| Base: /api/v1/teacher/reports
-*/
-Route::prefix('reports')->group(function () {
-    Route::get('/revenue', [App\Http\Controllers\Api\V1\Teacher\TeacherReportController::class, 'revenue']);
-    Route::get('/stats', [App\Http\Controllers\Api\V1\Teacher\TeacherReportController::class, 'stats']);
-    Route::get('/attendance', [App\Http\Controllers\Api\V1\Teacher\TeacherReportController::class, 'attendanceSummary']);
-    Route::get('/students', [App\Http\Controllers\Api\V1\Teacher\TeacherReportController::class, 'studentsReport']);
-    Route::get('/students/{student}', [App\Http\Controllers\Api\V1\Teacher\TeacherReportController::class, 'studentDetails']);
-});
 
+            /*
+            |--------------------------------------------------------------------------
+            | Teacher Reports & Analytics (JWT)
+            |--------------------------------------------------------------------------
+            | Base: /api/v1/teacher/reports
+            */
+            Route::prefix('reports')->group(function () {
+                Route::get('/revenue', [App\Http\Controllers\Api\V1\Teacher\TeacherReportController::class, 'revenue']);
+                Route::get('/stats', [App\Http\Controllers\Api\V1\Teacher\TeacherReportController::class, 'stats']);
+                Route::get('/attendance', [App\Http\Controllers\Api\V1\Teacher\TeacherReportController::class, 'attendanceSummary']);
+                Route::get('/students', [App\Http\Controllers\Api\V1\Teacher\TeacherReportController::class, 'studentsReport']);
+                Route::get('/students/{student}', [App\Http\Controllers\Api\V1\Teacher\TeacherReportController::class, 'studentDetails']);
+            });
+        });
     });
 });

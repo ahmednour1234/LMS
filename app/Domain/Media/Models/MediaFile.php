@@ -23,6 +23,7 @@ class MediaFile extends Model
         'disk',
         'path',
         'user_id',
+        'teacher_id',
         'branch_id',
         'is_private',
         'access_token',
