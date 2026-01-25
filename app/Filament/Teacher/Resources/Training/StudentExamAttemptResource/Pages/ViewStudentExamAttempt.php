@@ -9,6 +9,7 @@ use App\Support\Helpers\MultilingualHelper;
 use Filament\Actions;
 use Filament\Forms;
 use Filament\Forms\Form;
+use Filament\Notifications\Notification;
 use Filament\Resources\Pages\ViewRecord;
 use Illuminate\Support\HtmlString;
 
@@ -129,7 +130,10 @@ class ViewStudentExamAttempt extends ViewRecord
 
                     $this->record->save();
 
-                    $this->notify('success', __('exams.graded_successfully'));
+                    Notification::make()
+                        ->title(__('exams.graded_successfully'))
+                        ->success()
+                        ->send();
                     $this->form->fill($this->getFillData());
                 }),
         ];
@@ -338,7 +342,10 @@ class ViewStudentExamAttempt extends ViewRecord
                                                 $answer->save();
 
                                                 $this->recalculateTotals();
-                                                $this->notify('success', __('exams.answer_saved'));
+                                                Notification::make()
+                                                    ->title(__('exams.answer_saved'))
+                                                    ->success()
+                                                    ->send();
                                             }
                                         }),
                                 ])
@@ -407,7 +414,10 @@ class ViewStudentExamAttempt extends ViewRecord
         // status remains submitted unless you finalize
         $this->record->save();
 
-        $this->notify('success', __('exams.grades_saved'));
+        Notification::make()
+            ->title(__('exams.grades_saved'))
+            ->success()
+            ->send();
 
         // refresh form from DB to be safe
         $this->form->fill($this->getFillData());
