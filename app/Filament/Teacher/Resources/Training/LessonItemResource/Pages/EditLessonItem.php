@@ -15,24 +15,7 @@ class EditLessonItem extends EditRecord
 
     public function mount(int | string $record): void
     {
-        $teacherId = auth('teacher')->id();
-        abort_if(!$teacherId, 403);
-
-        // Resolve the record manually with teacher authorization
-        $resolvedRecord = LessonItem::query()
-            ->whereKey($record)
-            ->whereHas('lesson.section.course', fn ($q) => $q->where('owner_teacher_id', $teacherId))
-            ->with(['lesson.section.course'])
-            ->first();
-
-        abort_if(!$resolvedRecord, 404);
-
-        // Set the record property directly
-        $this->record = $resolvedRecord;
-
-        // Manually call the methods that parent::mount() would call
-        $this->authorizeAccess();
-        $this->fillForm();
+        parent::mount($record);
     }
 
     protected function resolveRecord(int | string $key): Model
