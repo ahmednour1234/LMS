@@ -17,7 +17,7 @@ class ViewStudentExamAttempt extends ViewRecord
     protected static string $resource = StudentExamAttemptResource::class;
 
     /** Filament form state */
-    public array $data = [];
+    public ?array $data = [];
 
     public float $calculatedScore = 0;
     public float $calculatedMaxScore = 0;
