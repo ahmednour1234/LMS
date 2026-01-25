@@ -14,6 +14,10 @@ class EditLessonItem extends EditRecord
     public function mount(int | string $record): void
     {
         parent::mount($record);
+
+        if (!$this->record) {
+            abort(404);
+        }
     }
 
     protected function mutateFormDataBeforeSave(array $data): array
