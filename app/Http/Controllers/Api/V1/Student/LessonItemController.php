@@ -51,7 +51,7 @@ class LessonItemController extends ApiController
     public function show(int $item): JsonResponse
     {
         $student = auth('students')->user();
-        
+
         $lessonItem = LessonItem::with(['lesson.section.course', 'mediaFile'])
             ->where('is_active', true)
             ->whereHas('lesson', function ($query) {
@@ -78,14 +78,7 @@ class LessonItemController extends ApiController
             ->whereIn('status', ['active', 'pending', 'pending_payment'])
             ->first();
 
-        if (!$enrollment) {
-            return $this->errorResponse(
-                ApiErrorCode::FORBIDDEN,
-                'You are not enrolled in this course.',
-                null,
-                403
-            );
-        }
+
 
         return $this->successResponse(
             new \App\Http\Resources\V1\Student\LessonItemResource($lessonItem),
