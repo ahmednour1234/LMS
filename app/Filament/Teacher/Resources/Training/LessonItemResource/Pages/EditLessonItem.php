@@ -13,14 +13,19 @@ class EditLessonItem extends EditRecord
 {
     protected static string $resource = LessonItemResource::class;
 
-    protected function resolveRecord(int | string $key): Model
+    protected function resolveRecord(int|string $key): Model
     {
         $teacherId = auth('teacher')->id();
         abort_if(!$teacherId, 403);
 
-        $record = static::getResource()::getEloquentQuery()
+        // ✅ لا تعتمد على getEloquentQuery() الخاصة بالـ Resource (قد تكون راجعة Builder بدون Model)
+        $record = LessonItem::query()
             ->whereKey($key)
             ->with(['lesson.section.course'])
+            // ✅ تأكيد الملكية للمدرس (عدّل الأعمدة حسب تصميمك)
+            ->whereHas('lesson.section.course', function ($q) use ($teacherId) {
+                $q->where('teacher_id', $teacherId);
+            })
             ->first();
 
         abort_if(!$record, 404);
@@ -33,21 +38,23 @@ class EditLessonItem extends EditRecord
         $teacherId = auth('teacher')->id();
         abort_if(!$teacherId, 403);
 
-        // لو link: امسح أي ميديا
-        if (($data['type'] ?? null) === 'link') {
+        $type = $data['type'] ?? null;
+
+        // ✅ لو link: امسح أي ميديا + اترك external_url كما هو (لو عندك input للرابط)
+        if ($type === 'link') {
             $data['media_file_id'] = null;
             unset($data['media_upload']);
             return $data;
         }
 
-        // لو Upload جديد -> أنشئ MediaFile وخزّن id في media_file_id
+        // ✅ لو Upload جديد -> أنشئ MediaFile وخزّن id في media_file_id
         if (!empty($data['media_upload'])) {
+            // مهم: خلي الديسك مطابق للي FileUpload بيستخدمه في Filament
+            // لو أنت فعلاً رافع على local اتركها، لكن كثير بيكون public.
             $disk = 'local';
-            $path = $data['media_upload']; // media/xxxx
+            $path = $data['media_upload']; // مثال: media/xxxx
 
-            // حماية بسيطة: تأكد الملف موجود
             if (!Storage::disk($disk)->exists($path)) {
-                // لو الملف مش موجود لأي سبب (cleanup/temporary)، سيبها تفشل برسالة واضحة
                 throw new \RuntimeException("Uploaded file not found on disk: {$disk}:{$path}");
             }
 
@@ -65,10 +72,11 @@ class EditLessonItem extends EditRecord
                 'size'              => $size,
             ]);
 
-            $fileUrl = Storage::disk($disk)->url($path);
-
             $data['media_file_id'] = $media->id;
-            $data['external_url'] = $fileUrl;
+
+            // اختياري: لو بتستخدم external_url لعرض الملف
+            $data['external_url'] = Storage::disk($disk)->url($path);
+
             unset($data['media_upload']);
         }
 
