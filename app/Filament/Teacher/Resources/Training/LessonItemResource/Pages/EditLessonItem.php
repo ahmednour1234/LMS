@@ -37,7 +37,6 @@ class EditLessonItem extends EditRecord
         // لو link: امسح أي ميديا
         if (($data['type'] ?? null) === 'link') {
             $data['media_file_id'] = null;
-            $data['external_url'] = $data['external_url'] ?? null;
             unset($data['media_upload']);
             return $data;
         }
@@ -67,12 +66,10 @@ class EditLessonItem extends EditRecord
                 'size'              => $size,
             ]);
 
-            // ✅ لو انت عايز external_url يتعبّى تلقائيًا عند upload
-            // ملاحظة: لو visibility private و disk local => url() ممكن يكون غير قابل للوصول مباشرة
-            // خليها اختيارية حسب نظامك:
-            $data['external_url'] = $data['external_url'] ?? null;
+            $fileUrl = Storage::disk($disk)->url($path);
 
             $data['media_file_id'] = $media->id;
+            $data['external_url'] = $fileUrl;
             unset($data['media_upload']);
         }
 

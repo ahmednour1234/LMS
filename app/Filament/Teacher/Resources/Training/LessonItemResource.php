@@ -45,12 +45,12 @@ class LessonItemResource extends Resource
     {
         $teacherId = auth('teacher')->id();
 
+        if (!$teacherId) {
+            return LessonItem::query()->whereRaw('1=0');
+        }
+
         return LessonItem::query()
-            ->when(
-                $teacherId,
-                fn (Builder $q) => $q->whereHas('lesson.section.course', fn (Builder $qq) => $qq->where('owner_teacher_id', $teacherId)),
-                fn (Builder $q) => $q->whereRaw('1=0') // لو مش authenticated => مفيش بيانات
-            );
+            ->whereHas('lesson.section.course', fn (Builder $q) => $q->where('owner_teacher_id', $teacherId));
     }
 
 
