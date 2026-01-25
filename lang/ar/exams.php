@@ -67,5 +67,7 @@ return [
     'auto_grade_mcq' => 'تصحيح MCQ تلقائياً',
     'finalize_grade' => 'إنهاء التصحيح',
     'option' => 'خيار',
+    'student_answer' => 'إجابة الطالب',
+    'no_answer' => 'لم يتم تقديم إجابة',
 ];
 

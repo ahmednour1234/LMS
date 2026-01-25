@@ -67,5 +67,7 @@ return [
     'auto_grade_mcq' => 'Auto Grade MCQ',
     'finalize_grade' => 'Finalize Grade',
     'option' => 'Option',
+    'student_answer' => 'Student Answer',
+    'no_answer' => 'No answer provided',
 ];
 
