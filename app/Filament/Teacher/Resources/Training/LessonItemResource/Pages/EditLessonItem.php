@@ -3,26 +3,29 @@
 namespace App\Filament\Teacher\Resources\Training\LessonItemResource\Pages;
 
 use App\Domain\Media\Models\MediaFile;
+use App\Domain\Training\Models\LessonItem;
 use App\Filament\Teacher\Resources\Training\LessonItemResource;
 use Filament\Resources\Pages\EditRecord;
+use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\Storage;
 
 class EditLessonItem extends EditRecord
 {
     protected static string $resource = LessonItemResource::class;
 
-    public function mount(int | string $record): void
+    protected function resolveRecord(int | string $key): Model
     {
-        parent::mount($record);
-
         $teacherId = auth('teacher')->id();
         abort_if(!$teacherId, 403);
 
-        $this->record->loadMissing('lesson.section.course');
+        $record = static::getResource()::getEloquentQuery()
+            ->whereKey($key)
+            ->with(['lesson.section.course'])
+            ->first();
 
-        if ($this->record->lesson->section->course->owner_teacher_id !== $teacherId) {
-            abort(404);
-        }
+        abort_if(!$record, 404);
+
+        return $record;
     }
 
     protected function mutateFormDataBeforeSave(array $data): array
