@@ -299,46 +299,49 @@ class ViewStudentExamAttempt extends ViewRecord
                                     }),
 
                                 // POINTS AWARDED
-                                Forms\Components\Group::make([
-                                    Forms\Components\TextInput::make('points_awarded')
-                                        ->label(__('exams.points_awarded'))
-                                        ->numeric()
-                                        ->default(0)
-                                        ->suffix(fn (Forms\Get $get) => '/' . (float) ($get('question_data.points') ?? 0))
-                                        ->maxValue(fn (Forms\Get $get) => (float) ($get('question_data.points') ?? 0))
-                                        ->minValue(0)
-                                        ->step(0.01)
-                                        ->required(false)
-                                        ->reactive()
-                                        ->afterStateUpdated(fn () => $this->recalculateTotals())
-                                        ->dehydrated(true)
-                                        ->live(onBlur: true)
-                                        ->extraInputAttributes(['style' => 'cursor: text;'])
-                                        ->columnSpan(2),
-                                    Forms\Components\Actions::make([
-                                        Forms\Components\Actions\Action::make('set_full_points')
-                                            ->label('✓')
-                                            ->icon('heroicon-o-check')
-                                            ->color('success')
-                                            ->tooltip(__('exams.set_full_points'))
-                                            ->action(function (Forms\Set $set, Forms\Get $get) {
+                                Forms\Components\TextInput::make('points_awarded')
+                                    ->label(__('exams.points_awarded'))
+                                    ->numeric()
+                                    ->default(0)
+                                    ->suffix(fn (Forms\Get $get) => '/' . (float) ($get('question_data.points') ?? 0))
+                                    ->maxValue(fn (Forms\Get $get) => (float) ($get('question_data.points') ?? 0))
+                                    ->minValue(0)
+                                    ->step(0.01)
+                                    ->required(false)
+                                    ->reactive()
+                                    ->afterStateUpdated(fn () => $this->recalculateTotals())
+                                    ->dehydrated(true)
+                                    ->live(onBlur: true),
+
+                                // SAVE BUTTON FOR THIS ANSWER
+                                Forms\Components\Actions::make([
+                                    Forms\Components\Actions\Action::make('save_answer')
+                                        ->label(__('exams.save'))
+                                        ->icon('heroicon-o-check')
+                                        ->color('success')
+                                        ->size('sm')
+                                        ->action(function (Forms\Get $get, Forms\Set $set) {
+                                            $answerId = $get('id');
+                                            if (!$answerId) {
+                                                return;
+                                            }
+
+                                            $answer = \App\Domain\Training\Models\ExamAnswer::find($answerId);
+                                            if ($answer) {
+                                                $pointsAwarded = (float) ($get('points_awarded') ?? 0);
                                                 $maxPoints = (float) ($get('question_data.points') ?? 0);
-                                                $set('points_awarded', $maxPoints);
+
+                                                if ($pointsAwarded < 0) $pointsAwarded = 0;
+                                                if ($pointsAwarded > $maxPoints) $pointsAwarded = $maxPoints;
+
+                                                $answer->points_awarded = $pointsAwarded;
+                                                $answer->save();
+
                                                 $this->recalculateTotals();
-                                            }),
-                                        Forms\Components\Actions\Action::make('set_zero_points')
-                                            ->label('✗')
-                                            ->icon('heroicon-o-x-mark')
-                                            ->color('danger')
-                                            ->tooltip(__('exams.set_zero_points'))
-                                            ->action(function (Forms\Set $set) {
-                                                $set('points_awarded', 0);
-                                                $this->recalculateTotals();
-                                            }),
-                                    ])
-                                        ->columnSpan(1),
+                                                $this->notify('success', __('exams.answer_saved'));
+                                            }
+                                        }),
                                 ])
-                                    ->columns(3)
                                     ->columnSpanFull(),
                             ])
                             ->collapsible()

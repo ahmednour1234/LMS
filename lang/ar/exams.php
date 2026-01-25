@@ -77,5 +77,7 @@ return [
     'answer' => 'إجابة',
     'grades_saved' => 'تم حفظ الدرجات بنجاح',
     'graded_successfully' => 'تم تصحيح الامتحان بنجاح',
+    'save' => 'حفظ',
+    'answer_saved' => 'تم حفظ الإجابة بنجاح',
 ];
 

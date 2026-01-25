@@ -77,5 +77,7 @@ return [
     'answer' => 'Answer',
     'grades_saved' => 'Grades saved successfully',
     'graded_successfully' => 'Exam graded successfully',
+    'save' => 'Save',
+    'answer_saved' => 'Answer saved successfully',
 ];
 
