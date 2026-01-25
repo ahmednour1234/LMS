@@ -104,6 +104,7 @@ class ViewStudentExamAttempt extends ViewRecord
             Actions\Action::make('save')
                 ->label(__('exams.save_grades'))
                 ->icon('heroicon-o-check')
+                ->color('success')
                 ->visible(fn () => $this->record->status !== 'graded')
                 ->action(function () {
                     $this->saveGrades();
@@ -138,6 +139,7 @@ class ViewStudentExamAttempt extends ViewRecord
     {
         return $form
             ->statePath('data')
+            ->disabled(false)
             ->schema([
                 Forms\Components\Section::make(__('exams.attempt_information'))
                     ->schema([
@@ -297,19 +299,47 @@ class ViewStudentExamAttempt extends ViewRecord
                                     }),
 
                                 // POINTS AWARDED
-                                Forms\Components\TextInput::make('points_awarded')
-                                    ->label(__('exams.points_awarded'))
-                                    ->numeric()
-                                    ->default(0)
-                                    ->suffix(fn (Forms\Get $get) => '/' . (float) ($get('question_data.points') ?? 0))
-                                    ->maxValue(fn (Forms\Get $get) => (float) ($get('question_data.points') ?? 0))
-                                    ->minValue(0)
-                                    ->step(0.01)
-                                    ->required(false)
-                                    ->reactive()
-                                    ->afterStateUpdated(fn () => $this->recalculateTotals())
-                                    ->dehydrated(true)
-                                    ->live(onBlur: true),
+                                Forms\Components\Group::make([
+                                    Forms\Components\TextInput::make('points_awarded')
+                                        ->label(__('exams.points_awarded'))
+                                        ->numeric()
+                                        ->default(0)
+                                        ->suffix(fn (Forms\Get $get) => '/' . (float) ($get('question_data.points') ?? 0))
+                                        ->maxValue(fn (Forms\Get $get) => (float) ($get('question_data.points') ?? 0))
+                                        ->minValue(0)
+                                        ->step(0.01)
+                                        ->required(false)
+                                        ->reactive()
+                                        ->afterStateUpdated(fn () => $this->recalculateTotals())
+                                        ->dehydrated(true)
+                                        ->live(onBlur: true)
+                                        ->extraInputAttributes(['style' => 'cursor: text;'])
+                                        ->columnSpan(2),
+                                    Forms\Components\Actions::make([
+                                        Forms\Components\Actions\Action::make('set_full_points')
+                                            ->label('✓')
+                                            ->icon('heroicon-o-check')
+                                            ->color('success')
+                                            ->tooltip(__('exams.set_full_points'))
+                                            ->action(function (Forms\Set $set, Forms\Get $get) {
+                                                $maxPoints = (float) ($get('question_data.points') ?? 0);
+                                                $set('points_awarded', $maxPoints);
+                                                $this->recalculateTotals();
+                                            }),
+                                        Forms\Components\Actions\Action::make('set_zero_points')
+                                            ->label('✗')
+                                            ->icon('heroicon-o-x-mark')
+                                            ->color('danger')
+                                            ->tooltip(__('exams.set_zero_points'))
+                                            ->action(function (Forms\Set $set) {
+                                                $set('points_awarded', 0);
+                                                $this->recalculateTotals();
+                                            }),
+                                    ])
+                                        ->columnSpan(1),
+                                ])
+                                    ->columns(3)
+                                    ->columnSpanFull(),
                             ])
                             ->collapsible()
                             ->reorderable(false)

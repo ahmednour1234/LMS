@@ -70,5 +70,12 @@ return [
     'student_answer' => 'إجابة الطالب',
     'no_answer' => 'لم يتم تقديم إجابة',
     'score_auto_calculated' => 'يتم حساب الدرجة تلقائياً من النقاط الممنوحة، ولكن يمكن تعديلها يدوياً',
+    'set_full_points' => 'تعيين النقاط الكاملة',
+    'set_zero_points' => 'تعيين صفر نقاط',
+    'attempt_information' => 'معلومات المحاولة',
+    'questions_answers' => 'الأسئلة والإجابات',
+    'answer' => 'إجابة',
+    'grades_saved' => 'تم حفظ الدرجات بنجاح',
+    'graded_successfully' => 'تم تصحيح الامتحان بنجاح',
 ];
 

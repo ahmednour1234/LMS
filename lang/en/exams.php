@@ -70,5 +70,12 @@ return [
     'student_answer' => 'Student Answer',
     'no_answer' => 'No answer provided',
     'score_auto_calculated' => 'Score is automatically calculated from points awarded, but can be manually adjusted',
+    'set_full_points' => 'Set full points',
+    'set_zero_points' => 'Set zero points',
+    'attempt_information' => 'Attempt Information',
+    'questions_answers' => 'Questions & Answers',
+    'answer' => 'Answer',
+    'grades_saved' => 'Grades saved successfully',
+    'graded_successfully' => 'Exam graded successfully',
 ];
 
