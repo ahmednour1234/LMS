@@ -106,7 +106,6 @@ class ViewStudentExamAttempt extends ViewRecord
                 ->label(__('exams.save_all_grades'))
                 ->icon('heroicon-o-check')
                 ->color('success')
-                ->visible(fn () => $this->record->status !== 'graded')
                 ->action(function () {
                     $this->saveGrades();
                 }),
