@@ -103,7 +103,7 @@ class ViewStudentExamAttempt extends ViewRecord
                 }),
 
             Actions\Action::make('save')
-                ->label(__('exams.save_grades'))
+                ->label(__('exams.save_all_grades'))
                 ->icon('heroicon-o-check')
                 ->color('success')
                 ->visible(fn () => $this->record->status !== 'graded')
@@ -316,40 +316,6 @@ class ViewStudentExamAttempt extends ViewRecord
                                     ->afterStateUpdated(fn () => $this->recalculateTotals())
                                     ->dehydrated(true)
                                     ->live(onBlur: true),
-
-                                // SAVE BUTTON FOR THIS ANSWER
-                                Forms\Components\Actions::make([
-                                    Forms\Components\Actions\Action::make('save_answer')
-                                        ->label(__('exams.save'))
-                                        ->icon('heroicon-o-check')
-                                        ->color('success')
-                                        ->size('sm')
-                                        ->action(function (Forms\Get $get, Forms\Set $set) {
-                                            $answerId = $get('id');
-                                            if (!$answerId) {
-                                                return;
-                                            }
-
-                                            $answer = \App\Domain\Training\Models\ExamAnswer::find($answerId);
-                                            if ($answer) {
-                                                $pointsAwarded = (float) ($get('points_awarded') ?? 0);
-                                                $maxPoints = (float) ($get('question_data.points') ?? 0);
-
-                                                if ($pointsAwarded < 0) $pointsAwarded = 0;
-                                                if ($pointsAwarded > $maxPoints) $pointsAwarded = $maxPoints;
-
-                                                $answer->points_earned = $pointsAwarded;
-                                                $answer->save();
-
-                                                $this->recalculateTotals();
-                                                Notification::make()
-                                                    ->title(__('exams.answer_saved'))
-                                                    ->success()
-                                                    ->send();
-                                            }
-                                        }),
-                                ])
-                                    ->columnSpanFull(),
                             ])
                             ->collapsible()
                             ->reorderable(false)
