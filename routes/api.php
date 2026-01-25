@@ -71,6 +71,9 @@ Route::prefix('v1')->group(function () {
             
             // Lesson Items
             Route::get('/lesson-items/{item}', [App\Http\Controllers\Api\V1\Student\LessonItemController::class, 'show']);
+            
+            // Media Files
+            Route::get('/media/{media}/download', [App\Http\Controllers\Api\V1\Student\MediaController::class, 'download'])->name('api.v1.student.media.download');
 
             // Exams
             Route::middleware([\App\Http\Middleware\EnsureEnrolledInCourse::class])->group(function () {
