@@ -113,7 +113,6 @@ class ViewStudentExamAttempt extends ViewRecord
             Actions\Action::make('finalize_grade')
                 ->label(__('exams.finalize_grade'))
                 ->icon('heroicon-o-flag')
-                ->visible(fn () => $this->record->status === 'submitted')
                 ->requiresConfirmation()
                 ->action(function () {
                     // Ensure totals are correct
