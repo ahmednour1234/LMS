@@ -295,6 +295,15 @@ class ViewStudentExamAttempt extends ViewRecord
 
                                         return __('exams.no_answer');
                                     }),
+
+                                // POINTS AWARDED
+                                Forms\Components\TextInput::make('points_awarded')
+                                    ->label(__('exams.points_awarded'))
+                                    ->numeric()
+                                    ->suffix(fn (Forms\Get $get) => '/' . (float) ($get('question_data.points') ?? 0))
+                                    ->maxValue(fn (Forms\Get $get) => (float) ($get('question_data.points') ?? 0))
+                                    ->reactive()
+                                    ->afterStateUpdated(fn () => $this->recalculateTotals()),
                             ])
                             ->collapsible()
                             ->reorderable(false)
