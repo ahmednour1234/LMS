@@ -20,11 +20,6 @@ class EditLessonItem extends EditRecord
 
     protected function resolveRecord(int | string $key): Model
     {
-        // If record is already set (from mount), return it
-        if ($this->record && $this->record->getKey() == $key) {
-            return $this->record;
-        }
-
         $teacherId = auth('teacher')->id();
         abort_if(!$teacherId, 403);
 
