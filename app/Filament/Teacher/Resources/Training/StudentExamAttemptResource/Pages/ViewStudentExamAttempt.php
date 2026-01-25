@@ -3,7 +3,6 @@
 namespace App\Filament\Teacher\Resources\Training\StudentExamAttemptResource\Pages;
 
 use App\Domain\Training\Models\ExamAnswer;
-use App\Domain\Training\Models\ExamQuestion;
 use App\Filament\Teacher\Resources\Training\StudentExamAttemptResource;
 use App\Support\Helpers\MultilingualHelper;
 use Filament\Actions;
@@ -18,7 +17,7 @@ class ViewStudentExamAttempt extends ViewRecord
     protected static string $resource = StudentExamAttemptResource::class;
 
     /** Filament form state */
-    public ?array $data = [];
+    public array $data = [];
 
     public float $calculatedScore = 0;
     public float $calculatedMaxScore = 0;
@@ -28,10 +27,7 @@ class ViewStudentExamAttempt extends ViewRecord
     {
         parent::mount($record);
 
-        // Fill form state
         $this->form->fill($this->getFillData());
-
-        // Initial calculation
         $this->recalculateTotals();
     }
 
@@ -51,18 +47,19 @@ class ViewStudentExamAttempt extends ViewRecord
             'started_at'   => $this->formatDateTime($this->record->started_at),
             'submitted_at' => $this->formatDateTime($this->record->submitted_at),
 
-            // IMPORTANT: Repeater data must include question_data
             'answers' => $this->record->answers->map(function (ExamAnswer $answer) {
                 $q = $answer->question;
 
                 return [
-                    'id'              => $answer->id,
-                    'question_id'      => $answer->question_id,
-                    'answer'           => $answer->answer,
-                    'answer_text'      => $answer->answer_text,
-                    'selected_option'  => $answer->selected_option,
-                    'points_awarded'   => (float) ($answer->points_earned ?? 0),
-                    'feedback'         => $answer->feedback,
+                    'id'             => $answer->id,
+                    'question_id'     => $answer->question_id,
+                    'answer'          => $answer->answer,
+                    'answer_text'     => $answer->answer_text,
+                    'selected_option' => $answer->selected_option,
+
+                    // IMPORTANT: We will use points_earned (because your table has points_earned)
+                    'points_awarded'  => (float) ($answer->points_earned ?? 0),
+                    'feedback'        => $answer->feedback,
 
                     'question_data' => $q ? [
                         'type'           => $q->type,
@@ -79,63 +76,12 @@ class ViewStudentExamAttempt extends ViewRecord
     protected function getHeaderActions(): array
     {
         return [
-            Actions\Action::make('auto_grade_mcq')
-                ->label(__('exams.auto_grade_mcq'))
-                ->icon('heroicon-o-check-circle')
-                ->visible(fn () => $this->record->status === 'submitted')
-                ->requiresConfirmation()
-                ->action(function () {
-                    $answers = $this->data['answers'] ?? [];
-
-                    foreach ($answers as $i => $row) {
-                        $q = $row['question_data'] ?? null;
-                        if (!$q || ($q['type'] ?? null) !== 'mcq') {
-                            continue;
-                        }
-
-                        $points = (float) ($q['points'] ?? 0);
-                        $isCorrect = $this->isMcqCorrect($row, $q);
-
-                        $this->data['answers'][$i]['points_awarded'] = $isCorrect ? $points : 0;
-                    }
-
-                    $this->recalculateTotals();
-                }),
-
             Actions\Action::make('save')
                 ->label(__('exams.save_all_grades'))
                 ->icon('heroicon-o-check')
                 ->color('success')
                 ->visible(fn () => $this->record->status !== 'graded')
-                ->action(function () {
-                    $this->saveGrades();
-                }),
-
-            Actions\Action::make('finalize_grade')
-                ->label(__('exams.finalize_grade'))
-                ->icon('heroicon-o-flag')
-                ->visible(fn () => $this->record->status === 'submitted')
-                ->requiresConfirmation()
-                ->action(function () {
-                    // Ensure totals are correct
-                    $this->recalculateTotals();
-
-                    $this->record->status = 'graded';
-                    $this->record->graded_at = now();
-                    $this->record->graded_by_teacher_id = auth('teacher')->id();
-
-                    $this->record->score = $this->calculatedScore;
-                    $this->record->max_score = $this->calculatedMaxScore;
-                    $this->record->percentage = $this->calculatedPercentage;
-
-                    $this->record->save();
-
-                    Notification::make()
-                        ->title(__('exams.graded_successfully'))
-                        ->success()
-                        ->send();
-                    $this->form->fill($this->getFillData());
-                }),
+                ->action(fn () => $this->saveGrades()),
         ];
     }
 
@@ -143,7 +89,6 @@ class ViewStudentExamAttempt extends ViewRecord
     {
         return $form
             ->statePath('data')
-            ->disabled(false)
             ->schema([
                 Forms\Components\Section::make(__('exams.attempt_information'))
                     ->schema([
@@ -167,10 +112,7 @@ class ViewStudentExamAttempt extends ViewRecord
                                 'graded'      => __('exams.status.graded'),
                             ])
                             ->disabled(fn () => $this->record->status === 'graded')
-                            ->reactive()
-                            ->afterStateUpdated(function () {
-                                // nothing here, finalize button controls graded fields
-                            }),
+                            ->reactive(),
 
                         Forms\Components\Placeholder::make('score_display')
                             ->label(__('exams.score'))
@@ -195,14 +137,11 @@ class ViewStudentExamAttempt extends ViewRecord
                     ->schema([
                         Forms\Components\Repeater::make('answers')
                             ->schema([
-                                // QUESTION
                                 Forms\Components\Placeholder::make('question_display')
                                     ->label(__('exams.question'))
                                     ->content(function (Forms\Get $get) {
                                         $q = $get('question_data');
-                                        if (!$q || !isset($q['question'])) {
-                                            return '';
-                                        }
+                                        if (!$q || !isset($q['question'])) return '';
 
                                         return new HtmlString(
                                             '<div class="text-base font-medium text-gray-900 dark:text-gray-100 whitespace-pre-wrap">' .
@@ -211,25 +150,20 @@ class ViewStudentExamAttempt extends ViewRecord
                                         );
                                     }),
 
-                                // TYPE
                                 Forms\Components\Placeholder::make('type_display')
                                     ->label(__('exams.type'))
                                     ->content(function (Forms\Get $get) {
-                                        $q = $get('question_data');
-                                        $type = $q['type'] ?? null;
+                                        $type = $get('question_data.type');
                                         return $type ? __('exams.type_options.' . $type) : '';
                                     }),
 
-                                // OPTIONS (MCQ)
                                 Forms\Components\Placeholder::make('options_display')
                                     ->label(__('exams.options'))
                                     ->visible(fn (Forms\Get $get) => (($get('question_data.type') ?? '') === 'mcq'))
                                     ->content(function (Forms\Get $get) {
                                         $q = $get('question_data');
                                         $options = $q['options'] ?? [];
-                                        if (!is_array($options) || empty($options)) {
-                                            return '';
-                                        }
+                                        if (!is_array($options) || empty($options)) return '';
 
                                         $correct = $q['correct_answer'] ?? null;
 
@@ -237,6 +171,7 @@ class ViewStudentExamAttempt extends ViewRecord
                                         foreach ($options as $idx => $opt) {
                                             $text = is_array($opt) ? ($opt['text'] ?? '') : (string) $opt;
                                             $isCorrect = ($correct !== null && (string)$idx === (string)$correct);
+
                                             $html .= '<div class="' . ($isCorrect ? 'text-green-600 dark:text-green-400 font-semibold' : 'text-gray-700 dark:text-gray-300') . '">'
                                                 . ($isCorrect ? '✓ ' : '')
                                                 . ($idx + 1) . '. ' . e($text)
@@ -247,19 +182,15 @@ class ViewStudentExamAttempt extends ViewRecord
                                         return new HtmlString($html);
                                     }),
 
-                                // STUDENT ANSWER
                                 Forms\Components\Placeholder::make('student_answer_display')
                                     ->label(__('exams.student_answer'))
                                     ->content(function (Forms\Get $get) {
-                                        $q = $get('question_data');
-                                        $type = $q['type'] ?? null;
+                                        $type = $get('question_data.type');
 
                                         // Essay
                                         if ($type === 'essay') {
                                             $answerText = $get('answer_text');
-                                            if (!$answerText) {
-                                                return __('exams.no_answer');
-                                            }
+                                            if (!$answerText) return __('exams.no_answer');
 
                                             return new HtmlString(
                                                 '<div class="text-base text-gray-900 dark:text-gray-100 whitespace-pre-wrap bg-gray-50 dark:bg-gray-800 p-3 rounded border">' .
@@ -270,8 +201,9 @@ class ViewStudentExamAttempt extends ViewRecord
 
                                         // MCQ
                                         if ($type === 'mcq') {
+                                            $q = $get('question_data');
                                             $options = $q['options'] ?? [];
-                                            $selected = $get('selected_option') ?? $get('answer'); // sometimes stored here
+                                            $selected = $get('selected_option') ?? $get('answer');
 
                                             $selectedIndex = $this->normalizeSelectedOptionToIndex($selected, $options);
                                             if ($selectedIndex === null || !isset($options[$selectedIndex])) {
@@ -302,7 +234,7 @@ class ViewStudentExamAttempt extends ViewRecord
                                         return __('exams.no_answer');
                                     }),
 
-                                // POINTS AWARDED
+                                // Teacher grading: ONLY editable for essay (and not graded)
                                 Forms\Components\TextInput::make('points_awarded')
                                     ->label(__('exams.points_awarded'))
                                     ->numeric()
@@ -311,21 +243,29 @@ class ViewStudentExamAttempt extends ViewRecord
                                     ->maxValue(fn (Forms\Get $get) => (float) ($get('question_data.points') ?? 0))
                                     ->minValue(0)
                                     ->step(0.01)
-                                    ->required(false)
+                                    ->disabled(fn (Forms\Get $get) =>
+                                        $this->record->status === 'graded' ||
+                                        (($get('question_data.type') ?? '') !== 'essay')
+                                    )
                                     ->reactive()
                                     ->afterStateUpdated(fn () => $this->recalculateTotals())
                                     ->dehydrated(true)
                                     ->live(onBlur: true),
+
+                                Forms\Components\Textarea::make('feedback')
+                                    ->label(__('exams.feedback'))
+                                    ->rows(3)
+                                    ->visible(fn (Forms\Get $get) => (($get('question_data.type') ?? '') === 'essay'))
+                                    ->disabled(fn () => $this->record->status === 'graded'),
                             ])
                             ->collapsible()
                             ->reorderable(false)
                             ->deletable(false)
-                            ->addable(true)
+                            ->addable(false) // ✅ removes "Add to answers"
                             ->itemLabel(function (array $state) {
                                 $q = $state['question_data']['question'] ?? null;
                                 if ($q) {
-                                    $text = MultilingualHelper::formatMultilingualField($q);
-                                    $text = strip_tags($text);
+                                    $text = strip_tags(MultilingualHelper::formatMultilingualField($q));
                                     return mb_substr($text, 0, 60) . '...';
                                 }
                                 return __('exams.answer');
@@ -342,42 +282,37 @@ class ViewStudentExamAttempt extends ViewRecord
         $max = 0;
 
         foreach ($answers as $row) {
-            if (empty($row['id'])) {
-                continue;
-            }
+            if (empty($row['id'])) continue;
 
-            /** @var ExamAnswer|null $answer */
             $answer = ExamAnswer::query()->with('question')->find($row['id']);
-            if (!$answer) {
-                continue;
-            }
+            if (!$answer) continue;
 
             $q = $answer->question;
             $qPoints = (float) ($q?->points ?? 0);
-
             $max += $qPoints;
 
-            // For MCQ: keep points_awarded as is (auto grade or manual if you allow)
-            // For Essay: teacher enters points_awarded
             $awarded = (float) ($row['points_awarded'] ?? 0);
             if ($awarded < 0) $awarded = 0;
             if ($awarded > $qPoints) $awarded = $qPoints;
 
-            $answer->points_earned = $awarded;
-            $answer->save();
+            // Save only essay grading (MCQ remains unchanged)
+            if (($q?->type ?? null) === 'essay') {
+                $answer->points_earned = $awarded;
+                $answer->feedback = $row['feedback'] ?? null;
+                $answer->save();
+            }
 
-            $total += $awarded;
+            $total += (float) ($answer->points_earned ?? 0);
         }
 
         $this->calculatedScore = $total;
         $this->calculatedMaxScore = $max;
         $this->calculatedPercentage = $max > 0 ? ($total / $max) * 100 : 0;
 
-        $this->record->score = $total;
-        $this->record->max_score = $max;
+        $this->record->score = $this->calculatedScore;
+        $this->record->max_score = $this->calculatedMaxScore;
         $this->record->percentage = $this->calculatedPercentage;
 
-        // status remains submitted unless you finalize
         $this->record->save();
 
         Notification::make()
@@ -385,7 +320,6 @@ class ViewStudentExamAttempt extends ViewRecord
             ->success()
             ->send();
 
-        // refresh form from DB to be safe
         $this->form->fill($this->getFillData());
         $this->recalculateTotals();
     }
@@ -400,9 +334,9 @@ class ViewStudentExamAttempt extends ViewRecord
         foreach ($answers as $row) {
             $q = $row['question_data'] ?? null;
             $qPoints = (float) ($q['points'] ?? 0);
-
             $max += $qPoints;
 
+            // total uses current state points_awarded (for essay) + existing points_earned for mcq from DB fill
             $awarded = (float) ($row['points_awarded'] ?? 0);
             if ($awarded < 0) $awarded = 0;
             if ($awarded > $qPoints) $awarded = $qPoints;
@@ -423,48 +357,28 @@ class ViewStudentExamAttempt extends ViewRecord
         $selected = $answerRow['selected_option'] ?? ($answerRow['answer'] ?? null);
         $selectedIndex = $this->normalizeSelectedOptionToIndex($selected, $options);
 
-        if ($selectedIndex === null || $correct === null) {
-            return false;
-        }
+        if ($selectedIndex === null || $correct === null) return false;
 
         return (string) $selectedIndex === (string) $correct;
     }
 
-    /**
-     * Normalize stored selected option to index:
-     * - if "A" => 0, "B" => 1 ...
-     * - if "1" and you store as index => 1
-     * - if store as 1-based number => convert to 0-based when necessary
-     */
     protected function normalizeSelectedOptionToIndex($selected, array $options): ?int
     {
-        if ($selected === null || $selected === '') {
-            return null;
-        }
+        if ($selected === null || $selected === '') return null;
 
-        // If letter like A,B,C...
         if (is_string($selected) && preg_match('/^[A-Za-z]$/', $selected)) {
             $idx = ord(strtoupper($selected)) - ord('A');
             return ($idx >= 0) ? $idx : null;
         }
 
-        // Numeric
         if (is_numeric($selected)) {
             $n = (int) $selected;
 
-            // if options count matches and value looks 1-based
-            // Example: selected = 1 means first option
+            // assume 1-based if within options count
             if ($n >= 1 && $n <= count($options)) {
-                // treat as 1-based if it would overflow as index
-                // If you store 0-based already, then 1 is second option; hard to know.
-                // We'll assume 0-based ONLY if 0 exists.
-                if ($n === 0) return 0;
-
-                // Common case in your DB screenshot: stored "1", "3" => usually 1-based
                 return $n - 1;
             }
 
-            // otherwise assume already index
             return $n;
         }
 
