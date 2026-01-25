@@ -41,7 +41,10 @@ class CreateLessonItem extends CreateRecord
                 'size'              => $size,
             ]);
 
+            $fileUrl = Storage::disk($disk)->url($path);
+
             $data['media_file_id'] = $media->id;
+            $data['external_url'] = $fileUrl;
             unset($data['media_upload']);
         }
 

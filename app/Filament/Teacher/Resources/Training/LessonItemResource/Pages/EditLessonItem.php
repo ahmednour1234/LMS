@@ -11,6 +11,15 @@ class EditLessonItem extends EditRecord
 {
     protected static string $resource = LessonItemResource::class;
 
+    public function mount(int | string $record): void
+    {
+        parent::mount($record);
+
+        if ($this->record->lesson->section->course->owner_teacher_id !== auth('teacher')->id()) {
+            abort(404);
+        }
+    }
+
     protected function mutateFormDataBeforeSave(array $data): array
     {
         $teacherId = auth('teacher')->id();
@@ -39,7 +48,10 @@ class EditLessonItem extends EditRecord
                 'size'              => $size,
             ]);
 
+            $fileUrl = Storage::disk($disk)->url($path);
+
             $data['media_file_id'] = $media->id;
+            $data['external_url'] = $fileUrl;
             unset($data['media_upload']);
         }
 
