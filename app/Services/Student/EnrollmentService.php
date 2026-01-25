@@ -37,9 +37,7 @@ class EnrollmentService
         }
 
         $deliveryTypeEnum = DeliveryType::from($deliveryType);
-        if ($course->delivery_type && $course->delivery_type !== $deliveryTypeEnum) {
-            throw new BusinessException('Delivery type not allowed for this course.');
-        }
+
 
         if ($deliveryTypeEnum === DeliveryType::Onsite && !$branchId) {
             throw new BusinessException('Branch is required for onsite courses.');
