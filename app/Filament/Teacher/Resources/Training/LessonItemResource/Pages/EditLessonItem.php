@@ -13,14 +13,40 @@ class EditLessonItem extends EditRecord
 {
     protected static string $resource = LessonItemResource::class;
 
+    public function mount(int | string $record): void
+    {
+        $teacherId = auth('teacher')->id();
+        abort_if(!$teacherId, 403);
+
+        // Resolve the record manually with teacher authorization
+        $resolvedRecord = LessonItem::query()
+            ->whereKey($record)
+            ->whereHas('lesson.section.course', fn ($q) => $q->where('owner_teacher_id', $teacherId))
+            ->with(['lesson.section.course'])
+            ->first();
+
+        abort_if(!$resolvedRecord, 404);
+
+        // Set the record property directly
+        $this->record = $resolvedRecord;
+
+        // Manually call the methods that parent::mount() would call
+        $this->authorizeAccess();
+        $this->fillForm();
+    }
+
     /**
      * حل مشكلة hydrate() on null:
      * نجلب الـ record يدويًا وبشكل صريح مع شرط صلاحية المدرس.
      */
     protected function resolveRecord(int | string $key): Model
     {
-        $teacherId = auth('teacher')->id();
+        // If record is already set (from mount), return it
+        if ($this->record && $this->record->getKey() == $key) {
+            return $this->record;
+        }
 
+        $teacherId = auth('teacher')->id();
         abort_if(!$teacherId, 403);
 
         $record = LessonItem::query()
@@ -29,9 +55,7 @@ class EditLessonItem extends EditRecord
             ->with(['lesson.section.course'])
             ->first();
 
-        if (!$record) {
-            abort(404);
-        }
+        abort_if(!$record, 404);
 
         return $record;
     }
