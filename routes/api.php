@@ -68,6 +68,9 @@ Route::prefix('v1')->group(function () {
             });
             Route::get('/lessons', [App\Http\Controllers\Api\V1\Student\LessonController::class, 'index']);
             Route::get('/lessons/{lesson}', [App\Http\Controllers\Api\V1\Student\LessonController::class, 'show']);
+            
+            // Lesson Items
+            Route::get('/lesson-items/{item}', [App\Http\Controllers\Api\V1\Student\LessonItemController::class, 'show']);
 
             // Exams
             Route::middleware([\App\Http\Middleware\EnsureEnrolledInCourse::class])->group(function () {
