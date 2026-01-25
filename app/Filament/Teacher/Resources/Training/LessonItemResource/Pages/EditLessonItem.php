@@ -17,16 +17,23 @@ class EditLessonItem extends EditRecord
      * حل مشكلة hydrate() on null:
      * نجلب الـ record يدويًا وبشكل صريح مع شرط صلاحية المدرس.
      */
-    protected function resolveRecord($key): Model
+    protected function resolveRecord(int | string $key): Model
     {
         $teacherId = auth('teacher')->id();
 
         abort_if(!$teacherId, 403);
 
-        return LessonItem::query()
+        $record = LessonItem::query()
             ->whereKey($key)
             ->whereHas('lesson.section.course', fn ($q) => $q->where('owner_teacher_id', $teacherId))
-            ->firstOrFail();
+            ->with(['lesson.section.course'])
+            ->first();
+
+        if (!$record) {
+            abort(404);
+        }
+
+        return $record;
     }
 
     protected function mutateFormDataBeforeSave(array $data): array
