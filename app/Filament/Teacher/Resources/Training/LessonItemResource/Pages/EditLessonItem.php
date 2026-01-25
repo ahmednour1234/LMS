@@ -35,10 +35,6 @@ class EditLessonItem extends EditRecord
         $this->fillForm();
     }
 
-    /**
-     * حل مشكلة hydrate() on null:
-     * نجلب الـ record يدويًا وبشكل صريح مع شرط صلاحية المدرس.
-     */
     protected function resolveRecord(int | string $key): Model
     {
         // If record is already set (from mount), return it
