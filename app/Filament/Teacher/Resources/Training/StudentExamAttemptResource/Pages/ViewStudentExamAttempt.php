@@ -295,30 +295,11 @@ class ViewStudentExamAttempt extends ViewRecord
 
                                         return __('exams.no_answer');
                                     }),
-
-                                // POINTS AWARDED
-                                Forms\Components\TextInput::make('points_awarded')
-                                    ->label(__('exams.points_awarded'))
-                                    ->numeric()
-                                    ->disabled(fn () => $this->record->status === 'graded')
-                                    ->required(fn (Forms\Get $get) => (($get('question_data.type') ?? '') === 'essay') && $this->record->status !== 'graded')
-                                    ->suffix(fn (Forms\Get $get) => '/' . (float) ($get('question_data.points') ?? 0))
-                                    ->maxValue(fn (Forms\Get $get) => (float) ($get('question_data.points') ?? 0))
-                                    ->reactive()
-                                    ->afterStateUpdated(fn () => $this->recalculateTotals()),
-
-                                // FEEDBACK (only essay)
-                                Forms\Components\Textarea::make('feedback')
-                                    ->label(__('exams.feedback'))
-                                    ->rows(3)
-                                    ->visible(fn (Forms\Get $get) => (($get('question_data.type') ?? '') === 'essay'))
-                                    ->disabled(fn () => $this->record->status === 'graded'),
                             ])
                             ->collapsible()
                             ->reorderable(false)
                             ->deletable(false)
                             ->addable(false)
-                            ->disabled(fn () => $this->record->status === 'graded')
                             ->itemLabel(function (array $state) {
                                 $q = $state['question_data']['question'] ?? null;
                                 if ($q) {
@@ -362,11 +343,6 @@ class ViewStudentExamAttempt extends ViewRecord
             if ($awarded > $qPoints) $awarded = $qPoints;
 
             $answer->points_awarded = $awarded;
-
-            if (($q?->type ?? null) === 'essay') {
-                $answer->feedback = $row['feedback'] ?? null;
-            }
-
             $answer->save();
 
             $total += $awarded;
