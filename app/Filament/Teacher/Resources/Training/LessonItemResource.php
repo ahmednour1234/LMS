@@ -145,29 +145,7 @@ class LessonItemResource extends Resource
                 ->maxSize(102400)
                 ->visible(fn (Forms\Get $get) => in_array($get('type'), ['video', 'pdf', 'file'], true))
                 ->required(fn (Forms\Get $get) => in_array($get('type'), ['video', 'pdf', 'file'], true))
-                ->dehydrated(false)
-                ->afterStateUpdated(function ($state, Forms\Set $set, Forms\Get $get) use ($teacherId) {
-                    if ($state) {
-                        $filePath = is_array($state) ? $state[0] : $state;
-                        $fullPath = Storage::disk('local')->path($filePath);
-                        $originalName = basename($filePath);
-                        $mimeType = mime_content_type($fullPath);
-                        $size = filesize($fullPath);
-
-                        $mediaFile = MediaFile::create([
-                            'filename' => $filePath,
-                            'original_filename' => $originalName,
-                            'mime_type' => $mimeType,
-                            'size' => $size,
-                            'disk' => 'local',
-                            'path' => $filePath,
-                            'teacher_id' => $teacherId,
-                            'is_private' => true,
-                        ]);
-
-                        $set('media_file_id', $mediaFile->id);
-                    }
-                }),
+                ->dehydrated(false),
 
             Forms\Components\Select::make('media_file_id')
                 ->label(__('lesson_items.media_file'))
