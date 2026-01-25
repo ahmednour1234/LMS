@@ -22,22 +22,22 @@ class CreateLessonItem extends CreateRecord
     {
         $teacherId = auth('teacher')->id();
         $formData = $this->form->getState();
-        
+
         if (isset($formData['media_upload']) && $formData['media_upload']) {
             $filePath = is_array($formData['media_upload']) ? $formData['media_upload'][0] : $formData['media_upload'];
-            
+
             if ($filePath) {
                 try {
                     $disk = Storage::disk('local');
-                    
+
                     if (!$disk->exists($filePath)) {
                         return;
                     }
-                    
+
                     $originalName = basename($filePath);
                     $mimeType = 'application/octet-stream';
                     $size = 0;
-                    
+
                     try {
                         if ($disk->exists($filePath)) {
                             $mimeType = $disk->mimeType($filePath) ?: 'application/octet-stream';
@@ -45,7 +45,7 @@ class CreateLessonItem extends CreateRecord
                     } catch (\Exception $e) {
                         \Log::warning('Failed to get mime type for ' . $filePath . ': ' . $e->getMessage());
                     }
-                    
+
                     try {
                         if ($disk->exists($filePath)) {
                             $size = $disk->size($filePath);
@@ -53,7 +53,7 @@ class CreateLessonItem extends CreateRecord
                     } catch (\Exception $e) {
                         \Log::warning('Failed to get file size for ' . $filePath . ': ' . $e->getMessage());
                     }
-                    
+
                     $mediaFile = MediaFile::create([
                         'filename' => $filePath,
                         'original_filename' => $originalName,
@@ -64,8 +64,13 @@ class CreateLessonItem extends CreateRecord
                         'teacher_id' => $teacherId,
                         'is_private' => true,
                     ]);
-                    
-                    $this->record->update(['media_file_id' => $mediaFile->id]);
+
+                    $fileUrl = Storage::disk('local')->url($filePath);
+
+                    $this->record->update([
+                        'media_file_id' => $mediaFile->id,
+                        'external_url' => $fileUrl
+                    ]);
                 } catch (\Exception $e) {
                     \Log::error('Failed to create MediaFile: ' . $e->getMessage());
                 }
