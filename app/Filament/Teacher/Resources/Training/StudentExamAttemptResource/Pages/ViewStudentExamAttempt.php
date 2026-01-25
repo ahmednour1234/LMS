@@ -90,11 +90,25 @@ class ViewStudentExamAttempt extends ViewRecord
                             ->disabled(),
                         Forms\Components\TextInput::make('started_at')
                             ->label(__('exams.started_at'))
-                            ->formatStateUsing(fn ($state) => $state ? $state->format('Y-m-d H:i:s') : '')
+                            ->formatStateUsing(function ($state) {
+                                if (!$state) return '';
+                                if (is_string($state)) return $state;
+                                if (is_object($state) && method_exists($state, 'format')) {
+                                    return $state->format('Y-m-d H:i:s');
+                                }
+                                return (string)$state;
+                            })
                             ->disabled(),
                         Forms\Components\TextInput::make('submitted_at')
                             ->label(__('exams.submitted_at'))
-                            ->formatStateUsing(fn ($state) => $state ? $state->format('Y-m-d H:i:s') : '')
+                            ->formatStateUsing(function ($state) {
+                                if (!$state) return '';
+                                if (is_string($state)) return $state;
+                                if (is_object($state) && method_exists($state, 'format')) {
+                                    return $state->format('Y-m-d H:i:s');
+                                }
+                                return (string)$state;
+                            })
                             ->disabled(),
                     ]),
                 Forms\Components\Section::make('Questions & Answers')
