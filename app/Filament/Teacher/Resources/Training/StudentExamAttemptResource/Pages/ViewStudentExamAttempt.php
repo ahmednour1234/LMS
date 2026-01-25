@@ -300,10 +300,16 @@ class ViewStudentExamAttempt extends ViewRecord
                                 Forms\Components\TextInput::make('points_awarded')
                                     ->label(__('exams.points_awarded'))
                                     ->numeric()
+                                    ->default(0)
                                     ->suffix(fn (Forms\Get $get) => '/' . (float) ($get('question_data.points') ?? 0))
                                     ->maxValue(fn (Forms\Get $get) => (float) ($get('question_data.points') ?? 0))
+                                    ->minValue(0)
+                                    ->step(0.01)
+                                    ->required(false)
                                     ->reactive()
-                                    ->afterStateUpdated(fn () => $this->recalculateTotals()),
+                                    ->afterStateUpdated(fn () => $this->recalculateTotals())
+                                    ->dehydrated(true)
+                                    ->live(onBlur: true),
                             ])
                             ->collapsible()
                             ->reorderable(false)
