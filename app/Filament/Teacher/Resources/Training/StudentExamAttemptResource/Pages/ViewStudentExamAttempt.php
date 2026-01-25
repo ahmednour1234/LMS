@@ -188,6 +188,18 @@ class ViewStudentExamAttempt extends ViewRecord
                         Forms\Components\TextInput::make('submitted_at')
                             ->label(__('exams.submitted_at'))
                             ->disabled(),
+
+                        Forms\Components\Actions::make([
+                            Forms\Components\Actions\Action::make('save_attempt')
+                                ->label(__('exams.save_all_grades'))
+                                ->icon('heroicon-o-check')
+                                ->color('success')
+                                ->visible(fn () => $this->record->status !== 'graded')
+                                ->action(function () {
+                                    $this->saveGrades();
+                                }),
+                        ])
+                        ->fullWidth(),
                     ])
                     ->columns(2),
 
