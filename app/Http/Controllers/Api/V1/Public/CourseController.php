@@ -66,6 +66,17 @@ class CourseController extends ApiController
         $perPage = (int) $request->input('per_page', 15);
         $courses = $this->courseService->getPaginated($filters, $perPage);
 
+        $enrolledCourseIds = [];
+        $student = auth('students')->user();
+        if ($student) {
+            $enrolledCourseIds = \App\Domain\Enrollment\Models\Enrollment::where('student_id', $student->id)
+                ->whereIn('status', ['pending', 'pending_payment', 'active'])
+                ->pluck('course_id')
+                ->toArray();
+        }
+
+        CourseListResource::setEnrolledCourseIds($enrolledCourseIds);
+
         return $this->paginatedResponse(
             CourseListResource::collection($courses),
             'Courses retrieved successfully.'

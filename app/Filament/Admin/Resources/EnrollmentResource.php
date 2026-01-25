@@ -634,13 +634,13 @@ class EnrollmentResource extends Resource
                 Tables\Columns\TextColumn::make('paid_amount')
                     ->money('OMR')
                     ->default(function ($record) {
-                        return $record->payments()->where('status', 'paid')->sum('amount');
+                        return $record->payments()->where('status', \App\Enums\PaymentStatus::COMPLETED->value)->sum('amount');
                     })
                     ->label(__('enrollments.paid_amount')),
                 Tables\Columns\TextColumn::make('due_amount')
                     ->money('OMR')
                     ->default(function ($record) {
-                        $paid = $record->payments()->where('status', 'paid')->sum('amount');
+                        $paid = $record->payments()->where('status', \App\Enums\PaymentStatus::COMPLETED->value)->sum('amount');
                         return $record->total_amount - $paid;
                     })
                     ->label(__('enrollments.due_amount')),
@@ -797,8 +797,8 @@ class EnrollmentResource extends Resource
                                 'amount' => $data['amount'],
                                 'method' => $data['method'],
                                 'gateway_ref' => $data['gateway_ref'] ?? null,
-                                'status' => $data['status'] ?? 'paid',
-                                'paid_at' => ($data['status'] ?? 'paid') === 'paid' ? now() : null,
+                                'status' => $data['status'] ?? \App\Enums\PaymentStatus::COMPLETED->value,
+                                'paid_at' => ($data['status'] ?? \App\Enums\PaymentStatus::COMPLETED->value) === \App\Enums\PaymentStatus::COMPLETED->value ? now() : null,
                                 'created_by' => auth()->id(),
                             ];
 

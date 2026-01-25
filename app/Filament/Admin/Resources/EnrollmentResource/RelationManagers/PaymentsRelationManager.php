@@ -2,6 +2,7 @@
 
 namespace App\Filament\Admin\Resources\EnrollmentResource\RelationManagers;
 
+use App\Enums\PaymentStatus;
 use Filament\Forms;
 use Filament\Forms\Form;
 use Filament\Resources\RelationManagers\RelationManager;
@@ -32,14 +33,20 @@ class PaymentsRelationManager extends RelationManager
                     ->label(__('payments.method')),
                 Forms\Components\Select::make('status')
                     ->options([
-                        'pending' => __('payments.status_options.pending'),
-                        'paid' => __('payments.status_options.paid'),
-                        'failed' => __('payments.status_options.failed'),
-                        'refunded' => __('payments.status_options.refunded'),
+                        PaymentStatus::PENDING->value => __('payments.status_options.pending'),
+                        PaymentStatus::COMPLETED->value => __('payments.status_options.paid'),
+                        PaymentStatus::FAILED->value => __('payments.status_options.failed'),
                     ])
-                    ->default('pending')
+                    ->default(PaymentStatus::PENDING->value)
                     ->required()
-                    ->label(__('payments.status')),
+                    ->label(__('payments.status'))
+                    ->afterStateUpdated(function ($state, $record, Forms\Set $set) {
+                        if ($state === PaymentStatus::COMPLETED->value && !$record?->paid_at) {
+                            $set('paid_at', now());
+                        } elseif ($state !== PaymentStatus::COMPLETED->value) {
+                            $set('paid_at', null);
+                        }
+                    }),
                 Forms\Components\DateTimePicker::make('paid_at')
                     ->label(__('payments.paid_at')),
             ]);
@@ -60,11 +67,16 @@ class PaymentsRelationManager extends RelationManager
                     ->label(__('payments.method')),
                 Tables\Columns\TextColumn::make('status')
                     ->badge()
-                    ->formatStateUsing(fn ($state) => __('payments.status_options.' . $state))
+                    ->formatStateUsing(fn ($state) => match($state) {
+                        PaymentStatus::COMPLETED->value => __('payments.status_options.paid'),
+                        PaymentStatus::FAILED->value => __('payments.status_options.failed'),
+                        PaymentStatus::PENDING->value => __('payments.status_options.pending'),
+                        default => $state,
+                    })
                     ->color(fn ($state) => match($state) {
-                        'paid' => 'success',
-                        'failed' => 'danger',
-                        'refunded' => 'warning',
+                        PaymentStatus::COMPLETED->value => 'success',
+                        PaymentStatus::FAILED->value => 'danger',
+                        PaymentStatus::PENDING->value => 'gray',
                         default => 'gray',
                     })
                     ->label(__('payments.status')),
@@ -84,8 +96,20 @@ class PaymentsRelationManager extends RelationManager
                 Tables\Actions\CreateAction::make(),
             ])
             ->actions([
-                Tables\Actions\EditAction::make(),
-                Tables\Actions\DeleteAction::make(),
+                Tables\Actions\EditAction::make()
+                    ->after(function ($record, array $data) {
+                        $enrollment = $record->enrollment;
+                        if ($enrollment) {
+                            $enrollment->touch();
+                        }
+                    }),
+                Tables\Actions\DeleteAction::make()
+                    ->after(function ($record) {
+                        $enrollment = $record->enrollment;
+                        if ($enrollment) {
+                            $enrollment->touch();
+                        }
+                    }),
             ])
             ->bulkActions([
                 Tables\Actions\BulkActionGroup::make([

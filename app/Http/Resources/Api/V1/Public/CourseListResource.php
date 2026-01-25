@@ -11,6 +11,13 @@ class CourseListResource extends JsonResource
 {
     use HasTranslatableFields;
 
+    protected static ?array $enrolledCourseIds = null;
+
+    public static function setEnrolledCourseIds(array $ids): void
+    {
+        static::$enrolledCourseIds = $ids;
+    }
+
     /**
      * Transform the resource into an array.
      *
@@ -19,6 +26,8 @@ class CourseListResource extends JsonResource
     public function toArray(Request $request): array
     {
         $locale = app()->getLocale();
+        $enrolledCourseIds = static::$enrolledCourseIds ?? [];
+        $isRegistered = in_array($this->id, $enrolledCourseIds);
 
         return [
             'id' => $this->id,
@@ -44,6 +53,7 @@ class CourseListResource extends JsonResource
             'duration_hours' => $this->duration_hours,
             'code' => $this->code,
             'image' => ImageHelper::getFullImageUrl($this->image),
+            'is_registered' => $isRegistered,
             'created_at' => $this->created_at?->toIso8601String(),
         ];
     }

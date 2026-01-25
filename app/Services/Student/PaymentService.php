@@ -50,8 +50,8 @@ class PaymentService
                 'method' => $paymentMethodId,
                 'gateway_ref' => $gatewayReference,
                 'installment_id' => $installmentId,
-                'status' =>'paid',
-                'paid_at' => now(),
+                'status' => PaymentStatus::PENDING->value,
+                'paid_at' => null,
                 'branch_id' => $enrollment->branch_id,
             ]);
 
