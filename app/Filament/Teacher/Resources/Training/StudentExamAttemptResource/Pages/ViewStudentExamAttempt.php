@@ -308,7 +308,7 @@ class ViewStudentExamAttempt extends ViewRecord
                             ->collapsible()
                             ->reorderable(false)
                             ->deletable(false)
-                            ->addable(false)
+                            ->addable(true)
                             ->itemLabel(function (array $state) {
                                 $q = $state['question_data']['question'] ?? null;
                                 if ($q) {
