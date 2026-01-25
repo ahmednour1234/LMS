@@ -144,7 +144,6 @@ class LessonItemResource extends Resource
                 ->acceptedFileTypes(['video/*', 'application/pdf', 'application/*'])
                 ->maxSize(102400)
                 ->visible(fn (Forms\Get $get) => in_array($get('type'), ['video', 'pdf', 'file'], true))
-                ->required(fn (Forms\Get $get) => in_array($get('type'), ['video', 'pdf', 'file'], true))
                 ->dehydrated(false),
 
             Forms\Components\Select::make('media_file_id')

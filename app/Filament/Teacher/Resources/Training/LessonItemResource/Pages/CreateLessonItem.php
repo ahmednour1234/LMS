@@ -57,6 +57,7 @@ class CreateLessonItem extends CreateRecord
                     $mediaFile = MediaFile::create([
                         'filename' => $filePath,
                         'original_filename' => $originalName,
+                        'teacher_id' => $teacherId,
                         'mime_type' => $mimeType,
                         'size' => $size,
                         'disk' => 'local',
