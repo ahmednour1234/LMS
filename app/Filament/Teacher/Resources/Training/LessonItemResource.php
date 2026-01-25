@@ -13,6 +13,7 @@ use Filament\Resources\Resource;
 use Filament\Tables;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Support\Facades\Storage;
 
 class LessonItemResource extends Resource
 {
@@ -82,8 +83,11 @@ class LessonItemResource extends Resource
     public static function form(Form $form): Form
     {
         $teacherId = auth('teacher')->id();
-        
+
         return $form->schema([
+            Forms\Components\Hidden::make('teacher_id')
+                ->default($teacherId),
+
             Forms\Components\Select::make('lesson_id')
                 ->label(__('lesson_items.lesson'))
                 ->required()
@@ -132,11 +136,44 @@ class LessonItemResource extends Resource
                 ->required()
                 ->maxLength(255),
 
+            Forms\Components\FileUpload::make('media_upload')
+                ->label(__('lesson_items.media_file'))
+                ->disk('local')
+                ->directory('media')
+                ->visibility('private')
+                ->acceptedFileTypes(['video/*', 'application/pdf', 'application/*'])
+                ->maxSize(102400)
+                ->visible(fn (Forms\Get $get) => in_array($get('type'), ['video', 'pdf', 'file'], true))
+                ->required(fn (Forms\Get $get) => in_array($get('type'), ['video', 'pdf', 'file'], true))
+                ->dehydrated(false)
+                ->afterStateUpdated(function ($state, Forms\Set $set, Forms\Get $get) use ($teacherId) {
+                    if ($state) {
+                        $filePath = is_array($state) ? $state[0] : $state;
+                        $fullPath = Storage::disk('local')->path($filePath);
+                        $originalName = basename($filePath);
+                        $mimeType = mime_content_type($fullPath);
+                        $size = filesize($fullPath);
+
+                        $mediaFile = MediaFile::create([
+                            'filename' => $filePath,
+                            'original_filename' => $originalName,
+                            'mime_type' => $mimeType,
+                            'size' => $size,
+                            'disk' => 'local',
+                            'path' => $filePath,
+                            'teacher_id' => $teacherId,
+                            'is_private' => true,
+                        ]);
+
+                        $set('media_file_id', $mediaFile->id);
+                    }
+                }),
+
             Forms\Components\Select::make('media_file_id')
                 ->label(__('lesson_items.media_file'))
                 ->searchable()
                 ->preload()
-                ->relationship('mediaFile', 'id')
+                ->relationship('mediaFile', 'id', modifyQueryUsing: fn (Builder $query) => $query->where('teacher_id', $teacherId))
                 ->getOptionLabelFromRecordUsing(function ($record): string {
                     if (!$record) return 'Untitled File';
 
@@ -146,8 +183,8 @@ class LessonItemResource extends Resource
 
                     return (is_string($name) && trim($name) !== '') ? $name : 'Untitled File';
                 })
-                ->visible(fn (Forms\Get $get) => in_array($get('type'), ['video', 'pdf', 'file'], true))
-                ->required(fn (Forms\Get $get) => in_array($get('type'), ['video', 'pdf', 'file'], true)),
+                ->visible(fn (Forms\Get $get) => in_array($get('type'), ['video', 'pdf', 'file'], true) && !$get('media_upload'))
+                ->required(fn (Forms\Get $get) => in_array($get('type'), ['video', 'pdf', 'file'], true) && !$get('media_upload')),
 
             Forms\Components\TextInput::make('external_url')
                 ->label(__('lesson_items.external_url'))

@@ -13,6 +13,7 @@ class LessonItem extends Model
 
     protected $fillable = [
         'lesson_id',
+        'teacher_id',
         'type',
         'title',
         'media_file_id',
