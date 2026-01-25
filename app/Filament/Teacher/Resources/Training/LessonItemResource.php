@@ -6,23 +6,19 @@ use App\Domain\Media\Models\MediaFile;
 use App\Domain\Training\Models\Lesson;
 use App\Domain\Training\Models\LessonItem;
 use App\Filament\Teacher\Resources\Training\LessonItemResource\Pages;
-use App\Support\Helpers\MultilingualHelper;
 use Filament\Forms;
 use Filament\Forms\Form;
 use Filament\Resources\Resource;
 use Filament\Tables;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
-use Illuminate\Support\Facades\Storage;
 
 class LessonItemResource extends Resource
 {
     protected static ?string $model = LessonItem::class;
 
     protected static ?string $navigationIcon = 'heroicon-o-list-bullet';
-
     protected static ?string $navigationGroup = 'Training';
-
     protected static ?int $navigationSort = 6;
 
     public static function getNavigationLabel(): string
@@ -48,20 +44,18 @@ class LessonItemResource extends Resource
     public static function getEloquentQuery(): Builder
     {
         $teacherId = auth('teacher')->id();
-        return parent::getEloquentQuery()->whereHas('lesson.section.course', fn (Builder $q) => $q->where('owner_teacher_id', $teacherId));
+
+        return parent::getEloquentQuery()
+            ->whereHas('lesson.section.course', fn (Builder $q) => $q->where('owner_teacher_id', $teacherId));
     }
 
     protected static function normalizeTrans($value): array
     {
-        if (is_array($value)) {
-            return $value;
-        }
+        if (is_array($value)) return $value;
 
         if (is_string($value) && $value !== '') {
             $decoded = json_decode($value, true);
-            if (is_array($decoded)) {
-                return $decoded;
-            }
+            if (is_array($decoded)) return $decoded;
         }
 
         return [];
@@ -72,10 +66,7 @@ class LessonItemResource extends Resource
         $arr = static::normalizeTrans($value);
         $locale = app()->getLocale();
 
-        $result = $arr[$locale]
-            ?? $arr['en']
-            ?? $arr['ar']
-            ?? null;
+        $result = $arr[$locale] ?? $arr['en'] ?? $arr['ar'] ?? null;
 
         return (is_string($result) && trim($result) !== '') ? $result : $fallback;
     }
@@ -85,8 +76,7 @@ class LessonItemResource extends Resource
         $teacherId = auth('teacher')->id();
 
         return $form->schema([
-            Forms\Components\Hidden::make('teacher_id')
-                ->default($teacherId),
+            Forms\Components\Hidden::make('teacher_id')->default($teacherId),
 
             Forms\Components\Select::make('lesson_id')
                 ->label(__('lesson_items.lesson'))
@@ -97,7 +87,9 @@ class LessonItemResource extends Resource
                     name: 'lesson',
                     titleAttribute: 'id',
                     modifyQueryUsing: function (Builder $query) use ($teacherId) {
-                        return $query->whereHas('section.course', fn ($q) => $q->where('owner_teacher_id', $teacherId))->orderBy('id');
+                        return $query
+                            ->whereHas('section.course', fn ($q) => $q->where('owner_teacher_id', $teacherId))
+                            ->orderBy('id');
                     }
                 )
                 ->getOptionLabelFromRecordUsing(function ($record) {
@@ -136,6 +128,11 @@ class LessonItemResource extends Resource
                 ->required()
                 ->maxLength(255),
 
+            /**
+             * Upload جديد:
+             * - بنسيبه يرفع ويطلع path
+             * - وهنحوّله لـ MediaFile record في Create/Edit Pages
+             */
             Forms\Components\FileUpload::make('media_upload')
                 ->label(__('lesson_items.media_file'))
                 ->disk('local')
@@ -144,19 +141,22 @@ class LessonItemResource extends Resource
                 ->acceptedFileTypes(['video/*', 'application/pdf', 'application/*'])
                 ->maxSize(102400)
                 ->visible(fn (Forms\Get $get) => in_array($get('type'), ['video', 'pdf', 'file'], true))
-                ->dehydrated(false),
+                ->dehydrated(true) // مهم: نخليها تدخل الداتا عشان نلقطها في Pages
+                ->required(fn (Forms\Get $get) => in_array($get('type'), ['video', 'pdf', 'file'], true) && !$get('media_file_id')),
 
+            /**
+             * اختيار ملف موجود:
+             * يظهر لو مفيش Upload
+             */
             Forms\Components\Select::make('media_file_id')
                 ->label(__('lesson_items.media_file'))
                 ->searchable()
                 ->preload()
-                ->relationship('mediaFile', 'id', modifyQueryUsing: fn (Builder $query) => $query->where('teacher_id', $teacherId))
+                ->relationship('mediaFile', 'id', modifyQueryUsing: fn (Builder $q) => $q->where('teacher_id', $teacherId))
                 ->getOptionLabelFromRecordUsing(function ($record): string {
                     if (!$record) return 'Untitled File';
 
-                    $name = $record->original_filename
-                        ?? $record->filename
-                        ?? null;
+                    $name = $record->original_filename ?? $record->filename ?? null;
 
                     return (is_string($name) && trim($name) !== '') ? $name : 'Untitled File';
                 })
@@ -183,29 +183,21 @@ class LessonItemResource extends Resource
     public static function table(Table $table): Table
     {
         return $table
-            ->modifyQueryUsing(function (Builder $query) {
-                $query->with(['lesson', 'mediaFile']);
-            })
+            ->modifyQueryUsing(fn (Builder $query) => $query->with(['lesson', 'mediaFile']))
             ->columns([
                 Tables\Columns\TextColumn::make('lesson_display')
                     ->label(__('lesson_items.lesson'))
                     ->getStateUsing(function (LessonItem $record) {
-                        if (!$record->relationLoaded('lesson')) {
-                            $record->load('lesson');
-                        }
+                        $record->loadMissing('lesson');
 
                         if ($record->lesson && isset($record->lesson->title)) {
                             $title = static::transValue($record->lesson->title, '');
-                            if ($title !== '') {
-                                return $title;
-                            }
+                            if ($title !== '') return $title;
                         }
 
                         return $record->lesson_id ? "Lesson #{$record->lesson_id}" : '';
                     })
-                    ->sortable(query: function (Builder $query, string $direction) {
-                        $query->orderBy('lesson_id', $direction);
-                    }),
+                    ->sortable(query: fn (Builder $q, string $dir) => $q->orderBy('lesson_id', $dir)),
 
                 Tables\Columns\TextColumn::make('type')
                     ->label(__('lesson_items.type'))
@@ -214,13 +206,10 @@ class LessonItemResource extends Resource
 
                 Tables\Columns\TextColumn::make('title_display')
                     ->label(__('lesson_items.title'))
-                    ->getStateUsing(fn (LessonItem $record) => static::transValue($record->title, ''))
-                    ->searchable(query: function (Builder $query, string $search) {
-                        $query->where('title->en', 'like', "%{$search}%")
-                              ->orWhere('title->ar', 'like', "%{$search}%");
-                    })
-                    ->sortable(query: function (Builder $query, string $direction) {
-                        $query->orderBy('id', $direction);
+                    ->getStateUsing(fn (LessonItem $r) => static::transValue($r->title, ''))
+                    ->searchable(query: function (Builder $q, string $search) {
+                        $q->where('title->en', 'like', "%{$search}%")
+                          ->orWhere('title->ar', 'like', "%{$search}%");
                     }),
 
                 Tables\Columns\TextColumn::make('order')
