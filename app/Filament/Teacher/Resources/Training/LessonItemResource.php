@@ -45,9 +45,14 @@ class LessonItemResource extends Resource
     {
         $teacherId = auth('teacher')->id();
 
-        return parent::getEloquentQuery()
-            ->whereHas('lesson.section.course', fn (Builder $q) => $q->where('owner_teacher_id', $teacherId));
+        return LessonItem::query()
+            ->when(
+                $teacherId,
+                fn (Builder $q) => $q->whereHas('lesson.section.course', fn (Builder $qq) => $qq->where('owner_teacher_id', $teacherId)),
+                fn (Builder $q) => $q->whereRaw('1=0') // لو مش authenticated => مفيش بيانات
+            );
     }
+
 
     protected static function normalizeTrans($value): array
     {

@@ -3,40 +3,59 @@
 namespace App\Filament\Teacher\Resources\Training\LessonItemResource\Pages;
 
 use App\Domain\Media\Models\MediaFile;
+use App\Domain\Training\Models\LessonItem;
 use App\Filament\Teacher\Resources\Training\LessonItemResource;
 use Filament\Resources\Pages\EditRecord;
+use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\Storage;
 
 class EditLessonItem extends EditRecord
 {
     protected static string $resource = LessonItemResource::class;
 
-    public function mount(int | string $record): void
+    /**
+     * حل مشكلة hydrate() on null:
+     * نجلب الـ record يدويًا وبشكل صريح مع شرط صلاحية المدرس.
+     */
+    protected function resolveRecord($key): Model
     {
-        parent::mount($record);
+        $teacherId = auth('teacher')->id();
 
-        if (!$this->record) {
-            abort(404);
-        }
+        abort_if(!$teacherId, 403);
+
+        return LessonItem::query()
+            ->whereKey($key)
+            ->whereHas('lesson.section.course', fn ($q) => $q->where('owner_teacher_id', $teacherId))
+            ->firstOrFail();
     }
 
     protected function mutateFormDataBeforeSave(array $data): array
     {
         $teacherId = auth('teacher')->id();
+        abort_if(!$teacherId, 403);
 
+        // لو link: امسح أي ميديا
         if (($data['type'] ?? null) === 'link') {
             $data['media_file_id'] = null;
+            $data['external_url'] = $data['external_url'] ?? null;
             unset($data['media_upload']);
             return $data;
         }
 
+        // لو Upload جديد -> أنشئ MediaFile وخزّن id في media_file_id
         if (!empty($data['media_upload'])) {
-            $path = $data['media_upload'];
             $disk = 'local';
+            $path = $data['media_upload']; // media/xxxx
+
+            // حماية بسيطة: تأكد الملف موجود
+            if (!Storage::disk($disk)->exists($path)) {
+                // لو الملف مش موجود لأي سبب (cleanup/temporary)، سيبها تفشل برسالة واضحة
+                throw new \RuntimeException("Uploaded file not found on disk: {$disk}:{$path}");
+            }
 
             $originalName = basename($path);
-            $mime = Storage::disk($disk)->mimeType($path);
-            $size = Storage::disk($disk)->size($path);
+            $mime = Storage::disk($disk)->mimeType($path) ?? 'application/octet-stream';
+            $size = Storage::disk($disk)->size($path) ?? 0;
 
             $media = MediaFile::create([
                 'teacher_id'        => $teacherId,
@@ -48,10 +67,12 @@ class EditLessonItem extends EditRecord
                 'size'              => $size,
             ]);
 
-            $fileUrl = Storage::disk($disk)->url($path);
+            // ✅ لو انت عايز external_url يتعبّى تلقائيًا عند upload
+            // ملاحظة: لو visibility private و disk local => url() ممكن يكون غير قابل للوصول مباشرة
+            // خليها اختيارية حسب نظامك:
+            $data['external_url'] = $data['external_url'] ?? null;
 
             $data['media_file_id'] = $media->id;
-            $data['external_url'] = $fileUrl;
             unset($data['media_upload']);
         }
 
