@@ -69,32 +69,32 @@ class ViewStudentExamAttempt extends ViewRecord
             ->schema([
                 Forms\Components\Section::make('Attempt Information')
                     ->schema([
-                        Forms\Components\TextInput::make('student.name')
+                        Forms\Components\TextInput::make('student_name')
                             ->label(__('exams.student'))
+                            ->formatStateUsing(fn () => $this->record->student->name ?? '')
                             ->disabled(),
-                        Forms\Components\TextInput::make('exam.title')
-                            ->formatStateUsing(fn ($state) => MultilingualHelper::formatMultilingualField($state))
+                        Forms\Components\TextInput::make('exam_title')
+                            ->formatStateUsing(fn () => MultilingualHelper::formatMultilingualField($this->record->exam->title ?? []))
                             ->label(__('exams.exam'))
                             ->disabled(),
                         Forms\Components\TextInput::make('attempt_no')
                             ->label(__('exams.attempt_no'))
                             ->disabled(),
-                        Forms\Components\Select::make('status')
-                            ->options([
-                                'in_progress' => __('exams.status.in_progress'),
-                                'submitted' => __('exams.status.submitted'),
-                                'graded' => __('exams.status.graded'),
-                            ])
-                            ->disabled()
-                            ->label(__('exams.status')),
+                        Forms\Components\TextInput::make('status_display')
+                            ->formatStateUsing(fn () => __('exams.status.' . ($this->record->status ?? 'in_progress')))
+                            ->label(__('exams.status'))
+                            ->disabled(),
                         Forms\Components\TextInput::make('score')
                             ->label(__('exams.score'))
+                            ->formatStateUsing(fn ($state) => $state ?? '0')
                             ->disabled(),
                         Forms\Components\TextInput::make('started_at')
                             ->label(__('exams.started_at'))
+                            ->formatStateUsing(fn ($state) => $state ? $state->format('Y-m-d H:i:s') : '')
                             ->disabled(),
                         Forms\Components\TextInput::make('submitted_at')
                             ->label(__('exams.submitted_at'))
+                            ->formatStateUsing(fn ($state) => $state ? $state->format('Y-m-d H:i:s') : '')
                             ->disabled(),
                     ]),
                 Forms\Components\Section::make('Questions & Answers')
@@ -102,95 +102,119 @@ class ViewStudentExamAttempt extends ViewRecord
                         Forms\Components\Repeater::make('answers')
                             ->relationship('answers')
                             ->schema([
-                                Forms\Components\Textarea::make('question.question')
-                                    ->formatStateUsing(fn ($state) => MultilingualHelper::formatMultilingualField($state))
+                                Forms\Components\Textarea::make('question_text')
+                                    ->formatStateUsing(function ($state, Forms\Get $get) {
+                                        $question = $get('../../question_data') ?? null;
+                                        if ($question && isset($question['question'])) {
+                                            return MultilingualHelper::formatMultilingualField($question['question']);
+                                        }
+                                        return '';
+                                    })
                                     ->disabled()
                                     ->label(__('exams.question')),
-                                Forms\Components\Select::make('question.type')
-                                    ->options([
-                                        'mcq' => __('exams.type_options.mcq'),
-                                        'essay' => __('exams.type_options.essay'),
-                                    ])
+                                Forms\Components\TextInput::make('question_type')
+                                    ->formatStateUsing(function ($state, Forms\Get $get) {
+                                        $question = $get('../../question_data') ?? null;
+                                        if ($question && isset($question['type'])) {
+                                            return __('exams.type_options.' . $question['type']);
+                                        }
+                                        return '';
+                                    })
                                     ->disabled()
                                     ->label(__('exams.type')),
-                                Forms\Components\Textarea::make('question.options')
+                                Forms\Components\Textarea::make('question_options')
                                     ->formatStateUsing(function ($state, Forms\Get $get) {
-                                        if ($get('../../question.type') !== 'mcq' || !$state) {
-                                            return null;
+                                        $question = $get('../../question_data') ?? null;
+                                        if ($question && isset($question['type']) && $question['type'] === 'mcq') {
+                                            $options = $question['options'] ?? [];
+                                            $correctIndex = $question['correct_answer'] ?? null;
+                                            $formatted = [];
+                                            foreach ($options as $index => $option) {
+                                                $text = is_array($option) ? ($option['text'] ?? '') : $option;
+                                                $isCorrect = $index === $correctIndex;
+                                                $formatted[] = ($isCorrect ? '✓ ' : '  ') . ($index + 1) . '. ' . $text;
+                                            }
+                                            return implode("\n", $formatted);
                                         }
-                                        $options = is_array($state) ? $state : [];
-                                        $correctIndex = $get('../../question.correct_answer');
-                                        $formatted = [];
-                                        foreach ($options as $index => $option) {
-                                            $text = is_array($option) ? ($option['text'] ?? '') : $option;
-                                            $isCorrect = $index === $correctIndex;
-                                            $formatted[] = ($isCorrect ? '✓ ' : '  ') . ($index + 1) . '. ' . $text;
-                                        }
-                                        return implode("\n", $formatted);
+                                        return null;
                                     })
-                                    ->visible(fn (Forms\Get $get) => $get('../../question.type') === 'mcq')
+                                    ->visible(fn (Forms\Get $get) => ($get('../../question_data')['type'] ?? '') === 'mcq')
                                     ->disabled()
                                     ->label(__('exams.options'))
                                     ->rows(4),
-                                Forms\Components\TextInput::make('question.correct_answer')
+                                Forms\Components\TextInput::make('correct_answer_display')
                                     ->formatStateUsing(function ($state, Forms\Get $get) {
-                                        if ($get('../../question.type') !== 'mcq' || $state === null) {
-                                            return null;
+                                        $question = $get('../../question_data') ?? null;
+                                        if ($question && isset($question['type']) && $question['type'] === 'mcq') {
+                                            $options = $question['options'] ?? [];
+                                            $correctIndex = $question['correct_answer'] ?? null;
+                                            if ($correctIndex !== null && isset($options[$correctIndex])) {
+                                                $option = $options[$correctIndex];
+                                                $text = is_array($option) ? ($option['text'] ?? '') : $option;
+                                                return ($correctIndex + 1) . '. ' . $text;
+                                            }
+                                            return __('exams.option') . ' ' . (($correctIndex ?? 0) + 1);
                                         }
-                                        $options = $get('../../question.options') ?? [];
-                                        if (isset($options[$state])) {
-                                            $option = $options[$state];
-                                            $text = is_array($option) ? ($option['text'] ?? '') : $option;
-                                            return ($state + 1) . '. ' . $text;
-                                        }
-                                        return __('exams.option') . ' ' . ($state + 1);
+                                        return null;
                                     })
-                                    ->visible(fn (Forms\Get $get) => $get('../../question.type') === 'mcq')
+                                    ->visible(fn (Forms\Get $get) => ($get('../../question_data')['type'] ?? '') === 'mcq')
                                     ->disabled()
                                     ->label(__('exams.correct_answer')),
                                 Forms\Components\Textarea::make('answer_text')
-                                    ->visible(fn (Forms\Get $get) => $get('../../question.type') === 'essay')
+                                    ->visible(fn (Forms\Get $get) => ($get('../../question_data')['type'] ?? '') === 'essay')
                                     ->disabled()
                                     ->label(__('exams.answer_text')),
-                                Forms\Components\TextInput::make('selected_option')
+                                Forms\Components\TextInput::make('selected_option_display')
                                     ->formatStateUsing(function ($state, Forms\Get $get) {
-                                        if (!$state) return null;
-                                        $options = $get('../../question.options') ?? [];
-                                        $selectedIndex = is_numeric($state) ? (int)$state : null;
-                                        if ($selectedIndex !== null && isset($options[$selectedIndex])) {
-                                            $option = $options[$selectedIndex];
-                                            $text = is_array($option) ? ($option['text'] ?? '') : $option;
-                                            return ($selectedIndex + 1) . '. ' . $text;
+                                        $selectedOption = $get('../../selected_option');
+                                        if (!$selectedOption) return null;
+                                        $question = $get('../../question_data') ?? null;
+                                        if ($question && isset($question['type']) && $question['type'] === 'mcq') {
+                                            $options = $question['options'] ?? [];
+                                            $selectedIndex = is_numeric($selectedOption) ? (int)$selectedOption : null;
+                                            if ($selectedIndex !== null && isset($options[$selectedIndex])) {
+                                                $option = $options[$selectedIndex];
+                                                $text = is_array($option) ? ($option['text'] ?? '') : $option;
+                                                return ($selectedIndex + 1) . '. ' . $text;
+                                            }
                                         }
-                                        return $state;
+                                        return $selectedOption;
                                     })
-                                    ->visible(fn (Forms\Get $get) => $get('../../question.type') === 'mcq')
+                                    ->visible(fn (Forms\Get $get) => ($get('../../question_data')['type'] ?? '') === 'mcq')
                                     ->disabled()
                                     ->label(__('exams.selected_option')),
                                 Forms\Components\TextInput::make('is_correct')
                                     ->formatStateUsing(fn ($state) => $state ? __('exams.correct') : __('exams.incorrect'))
                                     ->disabled()
-                                    ->visible(fn (Forms\Get $get) => $get('../../question.type') === 'mcq')
+                                    ->visible(fn (Forms\Get $get) => ($get('../../question_data')['type'] ?? '') === 'mcq')
                                     ->label(__('exams.is_correct')),
                                 Forms\Components\TextInput::make('points_awarded')
                                     ->numeric()
-                                    ->required(fn (Forms\Get $get) => $get('../../question.type') === 'essay' && $this->record->status !== 'graded')
-                                    ->disabled(fn (Forms\Get $get) => $get('../../question.type') === 'mcq' || $this->record->status === 'graded')
-                                    ->visible(fn (Forms\Get $get) => true)
+                                    ->required(fn (Forms\Get $get) => ($get('../../question_data')['type'] ?? '') === 'essay' && $this->record->status !== 'graded')
+                                    ->disabled(fn (Forms\Get $get) => ($get('../../question_data')['type'] ?? '') === 'mcq' || $this->record->status === 'graded')
+                                    ->visible(fn () => true)
                                     ->label(__('exams.points_awarded'))
-                                    ->maxValue(fn (Forms\Get $get) => $get('../../question.points') ?? 0),
+                                    ->maxValue(fn (Forms\Get $get) => ($get('../../question_data')['points'] ?? 0)),
                                 Forms\Components\Textarea::make('feedback')
-                                    ->visible(fn (Forms\Get $get) => $get('../../question.type') === 'essay')
+                                    ->visible(fn (Forms\Get $get) => ($get('../../question_data')['type'] ?? '') === 'essay')
                                     ->disabled(fn () => $this->record->status === 'graded')
                                     ->label(__('exams.feedback')),
                             ])
                             ->disabled(fn () => $this->record->status === 'graded')
-                            ->itemLabel(fn (Forms\Get $get) => MultilingualHelper::formatMultilingualField($get('question.question') ?? []))
+                            ->itemLabel(function (array $state) {
+                                if (isset($state['question_data']['question'])) {
+                                    return MultilingualHelper::formatMultilingualField($state['question_data']['question']);
+                                }
+                                return 'Answer';
+                            })
                             ->collapsible()
+                            ->reorderable(false)
+                            ->deletable(false)
+                            ->addable(false)
                             ->mutateRelationshipDataBeforeFillUsing(function (array $data): array {
                                 $question = \App\Domain\Training\Models\ExamQuestion::find($data['question_id'] ?? null);
                                 if ($question) {
-                                    $data['question'] = [
+                                    $data['question_data'] = [
                                         'type' => $question->type,
                                         'question' => $question->question,
                                         'options' => $question->options,
