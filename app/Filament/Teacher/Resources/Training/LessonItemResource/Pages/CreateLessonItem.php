@@ -14,40 +14,68 @@ class CreateLessonItem extends CreateRecord
     protected function mutateFormDataBeforeCreate(array $data): array
     {
         $teacherId = auth('teacher')->id();
-
-        // لو type = link، امسح أي media
-        if (($data['type'] ?? null) === 'link') {
-            $data['media_file_id'] = null;
-            unset($data['media_upload']);
-            return $data;
-        }
-
-        // لو فيه upload جديد: media_upload بيكون path (string) على نفس disk
-        if (!empty($data['media_upload'])) {
-            $path = $data['media_upload']; // مثال: media/xxxx.pdf
-            $disk = 'local';
-
-            $originalName = basename($path);
-            $mime = Storage::disk($disk)->mimeType($path);
-            $size = Storage::disk($disk)->size($path);
-
-            $media = MediaFile::create([
-                'teacher_id'        => $teacherId,
-                'disk'              => $disk,
-                'path'              => $path,
-                'filename'          => basename($path),
-                'original_filename' => $originalName,
-                'mime_type'         => $mime,
-                'size'              => $size,
-            ]);
-
-            $fileUrl = Storage::disk($disk)->url($path);
-
-            $data['media_file_id'] = $media->id;
-            $data['external_url'] = $fileUrl;
-            unset($data['media_upload']);
-        }
-
+        $data['teacher_id'] = $teacherId;
         return $data;
+    }
+
+    protected function afterCreate(): void
+    {
+        $teacherId = auth('teacher')->id();
+        $formData = $this->form->getState();
+
+        if (isset($formData['media_upload']) && $formData['media_upload']) {
+            $filePath = is_array($formData['media_upload']) ? $formData['media_upload'][0] : $formData['media_upload'];
+
+            if ($filePath) {
+                try {
+                    $disk = Storage::disk('local');
+
+                    if (!$disk->exists($filePath)) {
+                        return;
+                    }
+
+                    $originalName = basename($filePath);
+                    $mimeType = 'application/octet-stream';
+                    $size = 0;
+
+                    try {
+                        if ($disk->exists($filePath)) {
+                            $mimeType = $disk->mimeType($filePath) ?: 'application/octet-stream';
+                        }
+                    } catch (\Exception $e) {
+                        \Log::warning('Failed to get mime type for ' . $filePath . ': ' . $e->getMessage());
+                    }
+
+                    try {
+                        if ($disk->exists($filePath)) {
+                            $size = $disk->size($filePath);
+                        }
+                    } catch (\Exception $e) {
+                        \Log::warning('Failed to get file size for ' . $filePath . ': ' . $e->getMessage());
+                    }
+
+                    $mediaFile = MediaFile::create([
+                        'filename' => $filePath,
+                        'original_filename' => $originalName,
+                        'teacher_id' => $teacherId,
+                        'mime_type' => $mimeType,
+                        'size' => $size,
+                        'disk' => 'local',
+                        'path' => $filePath,
+                        'teacher_id' => $teacherId,
+                        'is_private' => true,
+                    ]);
+
+                    $fileUrl = Storage::disk('local')->url($filePath);
+
+                    $this->record->update([
+                        'media_file_id' => $mediaFile->id,
+                        'external_url' => $fileUrl
+                    ]);
+                } catch (\Exception $e) {
+                    \Log::error('Failed to create MediaFile: ' . $e->getMessage());
+                }
+            }
+        }
     }
 }
