@@ -99,7 +99,7 @@ class ExamGradingService
                         'answer'          => is_array($answerText) ? json_encode($answerText, JSON_UNESCAPED_UNICODE) : $answerText,
                         'answer_text'     => $question->type === 'essay' ? (is_array($answerText) ? json_encode($answerText, JSON_UNESCAPED_UNICODE) : $answerText) : null,
                         'selected_option' => $question->type === 'mcq' ? ($selectedIndex !== null ? (string) $selectedIndex : null) : null,
-                        'points_awarded'  => $pointsAwarded,
+                        'points_earned'  => $pointsAwarded,
                         'points_possible' => (float) $question->points,
                         'is_correct'      => $isCorrect,
                     ]
@@ -150,7 +150,7 @@ class ExamGradingService
 
                 $answer->update([
                     'is_correct' => $isCorrect,
-                    'points_awarded' => $pointsAwarded,
+                    'points_earned' => $pointsAwarded,
                 ]);
             }
         }
@@ -159,7 +159,7 @@ class ExamGradingService
     public function computeAttemptScore(ExamAttempt $attempt): int
     {
         $attempt->load('answers');
-        $score = (int) $attempt->answers->sum('points_awarded');
+        $score = (int) $attempt->answers->sum('points_earned');
 
         $attempt->update([
             'score' => $score,
@@ -185,7 +185,7 @@ class ExamGradingService
 
         $ungradedEssays = $attempt->answers()
             ->whereHas('question', fn ($q) => $q->where('type', 'essay'))
-            ->whereNull('points_awarded')
+            ->whereNull('points_earned')
             ->count();
 
         return $ungradedEssays === 0 ? 'graded' : 'submitted';

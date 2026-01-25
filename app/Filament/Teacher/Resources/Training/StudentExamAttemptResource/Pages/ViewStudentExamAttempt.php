@@ -61,7 +61,7 @@ class ViewStudentExamAttempt extends ViewRecord
                     'answer'           => $answer->answer,
                     'answer_text'      => $answer->answer_text,
                     'selected_option'  => $answer->selected_option,
-                    'points_awarded'   => (float) ($answer->points_awarded ?? 0),
+                    'points_awarded'   => (float) ($answer->points_earned ?? 0),
                     'feedback'         => $answer->feedback,
 
                     'question_data' => $q ? [
@@ -338,7 +338,7 @@ class ViewStudentExamAttempt extends ViewRecord
                                                 if ($pointsAwarded < 0) $pointsAwarded = 0;
                                                 if ($pointsAwarded > $maxPoints) $pointsAwarded = $maxPoints;
 
-                                                $answer->points_awarded = $pointsAwarded;
+                                                $answer->points_earned = $pointsAwarded;
                                                 $answer->save();
 
                                                 $this->recalculateTotals();
@@ -397,7 +397,7 @@ class ViewStudentExamAttempt extends ViewRecord
             if ($awarded < 0) $awarded = 0;
             if ($awarded > $qPoints) $awarded = $qPoints;
 
-            $answer->points_awarded = $awarded;
+            $answer->points_earned = $awarded;
             $answer->save();
 
             $total += $awarded;
