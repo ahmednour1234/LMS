@@ -14,31 +14,72 @@ class ViewStudentExamAttempt extends ViewRecord
 {
     protected static string $resource = StudentExamAttemptResource::class;
 
+    protected function calculateTotalScore(): void
+    {
+        $this->record->load('answers.question');
+        $totalScore = $this->record->answers->sum('points_awarded') ?? 0;
+
+        $this->form->fill([
+            'score' => $totalScore,
+        ]);
+    }
+
     protected function getHeaderActions(): array
     {
         return [
             Actions\Action::make('save')
                 ->label(__('exams.save_grades'))
                 ->icon('heroicon-o-check')
-                ->visible(fn () => $this->record->status === 'submitted')
+                ->visible(fn () => $this->record->status !== 'graded')
                 ->action(function () {
                     $data = $this->form->getState();
+
+                    $totalScore = 0;
+                    $maxScore = 0;
+
                     if (isset($data['answers']) && is_array($data['answers'])) {
                         foreach ($data['answers'] as $answerData) {
                             if (isset($answerData['id'])) {
                                 $answer = \App\Domain\Training\Models\ExamAnswer::find($answerData['id']);
                                 if ($answer) {
                                     if (isset($answerData['points_awarded'])) {
-                                        $answer->points_awarded = $answerData['points_awarded'];
+                                        $answer->points_awarded = $answerData['points_awarded'] ?? 0;
                                     }
                                     if (isset($answerData['feedback'])) {
                                         $answer->feedback = $answerData['feedback'];
                                     }
                                     $answer->save();
+
+                                    $question = $answer->question;
+                                    if ($question) {
+                                        $maxScore += $question->points ?? 0;
+                                        $totalScore += $answer->points_awarded ?? 0;
+                                    }
                                 }
                             }
                         }
                     }
+
+                    if (isset($data['score'])) {
+                        $this->record->score = $data['score'];
+                    } else {
+                        $this->record->score = $totalScore;
+                    }
+
+                    $this->record->max_score = $maxScore;
+                    if ($maxScore > 0) {
+                        $this->record->percentage = ($this->record->score / $maxScore) * 100;
+                    }
+
+                    if (isset($data['status'])) {
+                        $this->record->status = $data['status'];
+                        if ($data['status'] === 'graded') {
+                            $this->record->graded_at = now();
+                            $this->record->graded_by_teacher_id = auth('teacher')->id();
+                        }
+                    }
+
+                    $this->record->save();
                     $this->refreshFormData(['record']);
                 }),
             Actions\Action::make('auto_grade_mcq')
@@ -80,14 +121,33 @@ class ViewStudentExamAttempt extends ViewRecord
                         Forms\Components\TextInput::make('attempt_no')
                             ->label(__('exams.attempt_no'))
                             ->disabled(),
-                        Forms\Components\TextInput::make('status_display')
-                            ->formatStateUsing(fn () => __('exams.status.' . ($this->record->status ?? 'in_progress')))
+                        Forms\Components\Select::make('status')
+                            ->options([
+                                'in_progress' => __('exams.status.in_progress'),
+                                'submitted' => __('exams.status.submitted'),
+                                'graded' => __('exams.status.graded'),
+                            ])
                             ->label(__('exams.status'))
-                            ->disabled(),
+                            ->disabled(fn () => $this->record->status === 'graded')
+                            ->reactive()
+                            ->afterStateUpdated(function ($state) {
+                                if ($state === 'graded') {
+                                    $this->record->graded_at = now();
+                                    $this->record->graded_by_teacher_id = auth('teacher')->id();
+                                }
+                            }),
                         Forms\Components\TextInput::make('score')
                             ->label(__('exams.score'))
-                            ->formatStateUsing(fn ($state) => $state ?? '0')
-                            ->disabled(),
+                            ->numeric()
+                            ->disabled(fn () => $this->record->status === 'graded')
+                            ->suffix(fn () => '/' . ($this->record->max_score ?? 0))
+                            ->helperText(__('exams.score_auto_calculated'))
+                            ->reactive()
+                            ->afterStateUpdated(function ($state) {
+                                if ($this->record->max_score > 0) {
+                                    $this->record->percentage = ($state / $this->record->max_score) * 100;
+                                }
+                            }),
                         Forms\Components\TextInput::make('started_at')
                             ->label(__('exams.started_at'))
                             ->formatStateUsing(function ($state) {
@@ -216,11 +276,15 @@ class ViewStudentExamAttempt extends ViewRecord
                                 Forms\Components\TextInput::make('points_awarded')
                                     ->numeric()
                                     ->required(fn (Forms\Get $get) => ($get('../../question_data')['type'] ?? '') === 'essay' && $this->record->status !== 'graded')
-                                    ->disabled(fn (Forms\Get $get) => ($get('../../question_data')['type'] ?? '') === 'mcq' || $this->record->status === 'graded')
+                                    ->disabled(fn () => $this->record->status === 'graded')
                                     ->visible(fn () => true)
                                     ->label(__('exams.points_awarded'))
                                     ->suffix(fn (Forms\Get $get) => '/' . ($get('../../question_data')['points'] ?? 0))
-                                    ->maxValue(fn (Forms\Get $get) => ($get('../../question_data')['points'] ?? 0)),
+                                    ->maxValue(fn (Forms\Get $get) => ($get('../../question_data')['points'] ?? 0))
+                                    ->reactive()
+                                    ->afterStateUpdated(function () {
+                                        $this->calculateTotalScore();
+                                    }),
                                 Forms\Components\Textarea::make('feedback')
                                     ->visible(fn (Forms\Get $get) => ($get('../../question_data')['type'] ?? '') === 'essay')
                                     ->disabled(fn () => $this->record->status === 'graded')

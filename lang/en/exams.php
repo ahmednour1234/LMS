@@ -69,5 +69,6 @@ return [
     'option' => 'Option',
     'student_answer' => 'Student Answer',
     'no_answer' => 'No answer provided',
+    'score_auto_calculated' => 'Score is automatically calculated from points awarded, but can be manually adjusted',
 ];
 
