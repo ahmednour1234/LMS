@@ -37,30 +37,34 @@ class EditLessonItem extends EditRecord
             return $data;
         }
 
+        // ✅ لو المدرس رفع جديد: media_file_id اتحدد فورًا من afterStateUpdated
+        // لو مرفعش: هيفضل على المختار القديم / أو يختار من select
         if (!empty($data['media_upload'])) {
-            $disk = 'local';
-            $path = is_array($data['media_upload']) ? ($data['media_upload'][0] ?? null) : $data['media_upload'];
+            if (empty($data['media_file_id'])) {
+                // fallback فقط
+                $disk = 'local';
+                $path = is_array($data['media_upload']) ? ($data['media_upload'][0] ?? null) : $data['media_upload'];
 
-            if (!$path || !Storage::disk($disk)->exists($path)) {
-                throw new \RuntimeException("Uploaded file not found on disk: {$disk}:{$path}");
+                if ($path && Storage::disk($disk)->exists($path)) {
+                    $originalName = basename($path);
+                    $mime = Storage::disk($disk)->mimeType($path) ?? 'application/octet-stream';
+                    $size = Storage::disk($disk)->size($path) ?? 0;
+
+                    $media = MediaFile::create([
+                        'teacher_id' => $teacherId,
+                        'disk' => $disk,
+                        'path' => $path,
+                        'filename' => basename($path),
+                        'original_filename' => $originalName,
+                        'mime_type' => $mime,
+                        'size' => $size,
+                        'is_private' => true,
+                    ]);
+
+                    $data['media_file_id'] = $media->id;
+                }
             }
 
-            $originalName = basename($path);
-            $mime = Storage::disk($disk)->mimeType($path) ?? 'application/octet-stream';
-            $size = Storage::disk($disk)->size($path) ?? 0;
-
-            $media = MediaFile::create([
-                'teacher_id' => $teacherId,
-                'disk' => $disk,
-                'path' => $path,
-                'filename' => basename($path),
-                'original_filename' => $originalName,
-                'mime_type' => $mime,
-                'size' => $size,
-                'is_private' => true,
-            ]);
-
-            $data['media_file_id'] = $media->id;
             unset($data['media_upload']);
         }
 
