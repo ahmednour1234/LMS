@@ -12,7 +12,6 @@ use Filament\Resources\Resource;
 use Filament\Tables;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
-use Illuminate\Support\Facades\Storage;
 
 class LessonItemResource extends Resource
 {
@@ -30,7 +29,6 @@ class LessonItemResource extends Resource
     public static function getEloquentQuery(): Builder
     {
         $teacherId = auth('teacher')->id();
-
         $query = LessonItem::query()->setModel(new LessonItem());
 
         if (!$teacherId) return $query->whereRaw('1=0');
@@ -63,7 +61,7 @@ class LessonItemResource extends Resource
         return $form->schema([
             Forms\Components\Hidden::make('teacher_id')->default($teacherId),
 
-            // Lesson select (بدون relationship)
+            // ✅ Lesson select بدون relationship()
             Forms\Components\Select::make('lesson_id')
                 ->label(__('lesson_items.lesson'))
                 ->required()
@@ -122,8 +120,9 @@ class LessonItemResource extends Resource
 
             /**
              * ✅ Upload:
-             * - أول ما الملف يترفع -> ننشئ MediaFile فورًا + نكتب teacher_id
-             * - ونحط media_file_id = id الجديد (عشان الـ select يقف عليه)
+             * - Filament هيخزن الملف فعليًا في storage/app/media/...
+             * - بعد الرفع مباشرة: نعمل "placeholder" عشان نفهم إن فيه upload جديد
+             * - إنشاء MediaFile الحقيقي هيحصل وقت الحفظ في Pages
              */
             Forms\Components\FileUpload::make('media_upload')
                 ->label(__('lesson_items.media_file'))
@@ -134,46 +133,19 @@ class LessonItemResource extends Resource
                 ->maxSize(102400)
                 ->visible(fn (Forms\Get $get) => in_array($get('type'), ['video', 'pdf', 'file'], true))
                 ->dehydrated(true)
-                ->afterStateUpdated(function ($state, Forms\Set $set, Forms\Get $get) use ($teacherId) {
-                    // لو اترفعت حاجة
-                    if (empty($state) || !$teacherId) return;
+                ->afterStateUpdated(function (Forms\Set $set, Forms\Get $get, $state) {
+                    if (empty($state)) return;
 
-                    // لو بالفعل عندنا media_file_id (يعني اتعمل قبل كده) متعملش تاني
-                    if (!empty($get('media_file_id'))) return;
-
-                    $disk = 'local';
-                    $path = is_array($state) ? ($state[0] ?? null) : $state;
-                    if (!$path) return;
-
-                    if (!Storage::disk($disk)->exists($path)) return;
-
-                    $originalName = basename($path);
-                    $mime = Storage::disk($disk)->mimeType($path) ?? 'application/octet-stream';
-                    $size = Storage::disk($disk)->size($path) ?? 0;
-
-                    $media = MediaFile::create([
-                        'teacher_id' => $teacherId,
-                        'disk' => $disk,
-                        'path' => $path,
-                        'filename' => basename($path),
-                        'original_filename' => $originalName,
-                        'mime_type' => $mime,
-                        'size' => $size,
-                        'is_private' => true,
-                    ]);
-
-                    // ✅ هنا “نقف” على الملف اللي اترفـع
-                    $set('media_file_id', $media->id);
+                    // ✅ علّم إن فيه upload جديد
+                    // (ده يخلي الـ select "يبقى متحكم فيه" بدل ما يفضل على القديم)
+                    $set('media_file_id', '__uploaded__');
                 })
-                // لو النوع file/pdf/video لازم يا upload يا select
                 ->required(fn (Forms\Get $get) =>
                     in_array($get('type'), ['video', 'pdf', 'file'], true) && !$get('media_file_id')
                 ),
 
             /**
-             * ✅ Select ملف موجود (من ملفات المدرّس فقط)
-             * - لو رفع ملف جديد: media_file_id اتحدد تلقائيًا
-             * - ولو مرفعش: يختار من هنا
+             * ✅ Select ملف موجود (من ملفات المدرس فقط)
              */
             Forms\Components\Select::make('media_file_id')
                 ->label(__('lesson_items.media_file'))
@@ -212,12 +184,16 @@ class LessonItemResource extends Resource
                         ->toArray();
                 })
                 ->getOptionLabelUsing(function ($value): ?string {
-                    if (!$value) return null;
+                    // placeholder لا يطلع label
+                    if (!$value || $value === '__uploaded__') return null;
+
                     $m = MediaFile::find($value);
                     return $m ? ($m->original_filename ?: ($m->filename ?: "File #{$m->id}")) : null;
                 })
                 ->visible(fn (Forms\Get $get) => in_array($get('type'), ['video', 'pdf', 'file'], true))
-                ->required(fn (Forms\Get $get) => in_array($get('type'), ['video', 'pdf', 'file'], true)),
+                ->required(fn (Forms\Get $get) => in_array($get('type'), ['video', 'pdf', 'file'], true))
+                // ✅ لو placeholder بسبب رفع جديد، نخفي الـ select عشان ما يلخبطش
+                ->hidden(fn (Forms\Get $get) => $get('media_file_id') === '__uploaded__'),
 
             Forms\Components\TextInput::make('external_url')
                 ->label(__('lesson_items.external_url'))
@@ -250,8 +226,7 @@ class LessonItemResource extends Resource
                             if ($title !== '') return $title;
                         }
                         return $record->lesson_id ? "Lesson #{$record->lesson_id}" : '';
-                    })
-                    ->sortable(query: fn (Builder $q, string $dir) => $q->orderBy('lesson_id', $dir)),
+                    }),
 
                 Tables\Columns\TextColumn::make('type')
                     ->label(__('lesson_items.type'))
@@ -260,13 +235,7 @@ class LessonItemResource extends Resource
 
                 Tables\Columns\TextColumn::make('title_display')
                     ->label(__('lesson_items.title'))
-                    ->getStateUsing(fn (LessonItem $r) => static::transValue($r->title, ''))
-                    ->searchable(query: function (Builder $q, string $search) {
-                        $q->where(function (Builder $qq) use ($search) {
-                            $qq->where('title->en', 'like', "%{$search}%")
-                               ->orWhere('title->ar', 'like', "%{$search}%");
-                        });
-                    }),
+                    ->getStateUsing(fn (LessonItem $r) => static::transValue($r->title, '')),
 
                 Tables\Columns\TextColumn::make('order')->label(__('lesson_items.order'))->sortable(),
 

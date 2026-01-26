@@ -24,34 +24,37 @@ class CreateLessonItem extends CreateRecord
             return $data;
         }
 
-        // ✅ لو اتعمل media_file_id لحظة الرفع خلاص
+        // ✅ لو فيه Upload جديد: اعمل MediaFile الآن (وقت الحفظ)
         if (!empty($data['media_upload'])) {
-            if (empty($data['media_file_id'])) {
-                // fallback: لو لأي سبب afterStateUpdated ما اشتغلش
-                $disk = 'local';
-                $path = is_array($data['media_upload']) ? ($data['media_upload'][0] ?? null) : $data['media_upload'];
+            $disk = 'local';
+            $path = is_array($data['media_upload']) ? ($data['media_upload'][0] ?? null) : $data['media_upload'];
 
-                if ($path && Storage::disk($disk)->exists($path)) {
-                    $originalName = basename($path);
-                    $mime = Storage::disk($disk)->mimeType($path) ?? 'application/octet-stream';
-                    $size = Storage::disk($disk)->size($path) ?? 0;
-
-                    $media = MediaFile::create([
-                        'teacher_id' => $teacherId,
-                        'disk' => $disk,
-                        'path' => $path,
-                        'filename' => basename($path),
-                        'original_filename' => $originalName,
-                        'mime_type' => $mime,
-                        'size' => $size,
-                        'is_private' => true,
-                    ]);
-
-                    $data['media_file_id'] = $media->id;
-                }
+            if (!$path || !Storage::disk($disk)->exists($path)) {
+                throw new \RuntimeException("Uploaded file not found on disk: {$disk}:{$path}");
             }
 
+            $originalName = basename($path);
+            $mime = Storage::disk($disk)->mimeType($path) ?? 'application/octet-stream';
+            $size = Storage::disk($disk)->size($path) ?? 0;
+
+            $media = MediaFile::create([
+                'teacher_id' => $teacherId,
+                'disk' => $disk,
+                'path' => $path,
+                'filename' => basename($path),
+                'original_filename' => $originalName,
+                'mime_type' => $mime,
+                'size' => $size,
+                'is_private' => true,
+            ]);
+
+            $data['media_file_id'] = $media->id;
             unset($data['media_upload']);
+        } else {
+            // ✅ لو مفيش upload: لازم يكون مختار media_file_id حقيقي (مش placeholder)
+            if (($data['media_file_id'] ?? null) === '__uploaded__') {
+                $data['media_file_id'] = null;
+            }
         }
 
         return $data;
