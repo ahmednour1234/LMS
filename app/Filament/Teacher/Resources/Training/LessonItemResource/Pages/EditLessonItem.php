@@ -18,9 +18,8 @@ class EditLessonItem extends EditRecord
         $teacherId = auth('teacher')->id();
         abort_if(!$teacherId, 403);
 
-        $record = LessonItem::query()
+        $record = static::getResource()::getEloquentQuery()
             ->whereKey($key)
-            ->whereHas('lesson.section.course', fn ($q) => $q->where('owner_teacher_id', $teacherId))
             ->with(['lesson.section.course'])
             ->first();
 
