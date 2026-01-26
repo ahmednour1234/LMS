@@ -42,16 +42,16 @@ class LessonItemResource extends Resource
     }
 
     /**
-     * ✅ الأهم: استخدم parent::getEloquentQuery() عشان Filament يبني الـ Builder صح.
+     * فلترة LessonItems للمدرّس (آمنة)
      */
     public static function getEloquentQuery(): Builder
     {
         $teacherId = auth('teacher')->id();
 
-        $query = parent::getEloquentQuery();
+        // خليها query صريح من الموديل
+        $query = LessonItem::query()->setModel(new LessonItem());
 
         if (!$teacherId) {
-            // مش authenticated => مفيش بيانات
             return $query->whereRaw('1=0');
         }
 
@@ -72,7 +72,7 @@ class LessonItemResource extends Resource
         return [];
     }
 
-    protected static function transValue($value, string $fallback = ''): string
+    public static function transValue($value, string $fallback = ''): string
     {
         $arr = static::normalizeTrans($value);
         $locale = app()->getLocale();
@@ -90,26 +90,52 @@ class LessonItemResource extends Resource
             Forms\Components\Hidden::make('teacher_id')
                 ->default($teacherId),
 
+            /**
+             * ✅ Lesson Select بدون relationship() نهائيًا
+             * عشان نمنع Filament Select relationship hydrate error
+             */
             Forms\Components\Select::make('lesson_id')
                 ->label(__('lesson_items.lesson'))
                 ->required()
                 ->searchable()
                 ->preload()
-                ->relationship(
-                    name: 'lesson',
-                    titleAttribute: 'id',
-                    modifyQueryUsing: function (Builder $query) use ($teacherId) {
-                        return $query
-                            ->whereHas('section.course', fn (Builder $q) => $q->where('owner_teacher_id', $teacherId))
-                            ->orderBy('id');
-                    }
-                )
-                ->getOptionLabelFromRecordUsing(function ($record) {
-                    if (is_object($record) && isset($record->title)) {
-                        return static::transValue($record->title, 'Untitled');
-                    }
+                ->options(function () use ($teacherId) {
+                    if (!$teacherId) return [];
 
-                    return 'Untitled';
+                    return Lesson::query()
+                        ->whereHas('section.course', fn ($q) => $q->where('owner_teacher_id', $teacherId))
+                        ->orderBy('id')
+                        ->limit(200)
+                        ->get()
+                        ->mapWithKeys(fn (Lesson $lesson) => [
+                            $lesson->id => static::transValue($lesson->title, "Lesson #{$lesson->id}"),
+                        ])
+                        ->toArray();
+                })
+                ->getSearchResultsUsing(function (string $search) use ($teacherId) {
+                    if (!$teacherId) return [];
+
+                    return Lesson::query()
+                        ->whereHas('section.course', fn ($q) => $q->where('owner_teacher_id', $teacherId))
+                        ->where(function ($q) use ($search) {
+                            $q->where('title->en', 'like', "%{$search}%")
+                              ->orWhere('title->ar', 'like', "%{$search}%");
+                        })
+                        ->orderBy('id')
+                        ->limit(50)
+                        ->get()
+                        ->mapWithKeys(fn (Lesson $lesson) => [
+                            $lesson->id => static::transValue($lesson->title, "Lesson #{$lesson->id}"),
+                        ])
+                        ->toArray();
+                })
+                ->getOptionLabelUsing(function ($value): ?string {
+                    if (!$value) return null;
+
+                    $lesson = Lesson::find($value);
+                    return $lesson
+                        ? static::transValue($lesson->title, "Lesson #{$lesson->id}")
+                        : null;
                 }),
 
             Forms\Components\Select::make('type')
@@ -134,8 +160,7 @@ class LessonItemResource extends Resource
                 ->maxLength(255),
 
             /**
-             * Upload جديد
-             * نخليه يرجّع path (string) ونلقطه في Pages ونحوّله MediaFile
+             * Upload جديد (يرجع path ونحوله MediaFile في Pages)
              */
             Forms\Components\FileUpload::make('media_upload')
                 ->label(__('lesson_items.media_file'))
@@ -151,28 +176,54 @@ class LessonItemResource extends Resource
                 ),
 
             /**
-             * اختيار ملف موجود
+             * ✅ MediaFile Select بدون relationship() نهائيًا
              */
             Forms\Components\Select::make('media_file_id')
                 ->label(__('lesson_items.media_file'))
                 ->searchable()
                 ->preload()
-                ->relationship(
-                    'mediaFile',
-                    'id',
-                    modifyQueryUsing: fn (Builder $q) => $q->where('teacher_id', $teacherId)
-                )
-                ->getOptionLabelFromRecordUsing(function ($record): string {
-                    if (!$record) return 'Untitled File';
-                    $name = $record->original_filename ?? $record->filename ?? null;
-                    return (is_string($name) && trim($name) !== '') ? $name : 'Untitled File';
+                ->options(function () use ($teacherId) {
+                    if (!$teacherId) return [];
+
+                    return MediaFile::query()
+                        ->where('teacher_id', $teacherId)
+                        ->orderByDesc('id')
+                        ->limit(200)
+                        ->get()
+                        ->mapWithKeys(function (MediaFile $m) {
+                            $name = $m->original_filename ?: ($m->filename ?: "File #{$m->id}");
+                            return [$m->id => $name];
+                        })
+                        ->toArray();
                 })
-                ->visible(fn (Forms\Get $get) =>
-                    in_array($get('type'), ['video', 'pdf', 'file'], true) && !$get('media_upload')
-                )
-                ->required(fn (Forms\Get $get) =>
-                    in_array($get('type'), ['video', 'pdf', 'file'], true) && !$get('media_upload')
-                ),
+                ->getSearchResultsUsing(function (string $search) use ($teacherId) {
+                    if (!$teacherId) return [];
+
+                    return MediaFile::query()
+                        ->where('teacher_id', $teacherId)
+                        ->where(function ($q) use ($search) {
+                            $q->where('original_filename', 'like', "%{$search}%")
+                              ->orWhere('filename', 'like', "%{$search}%");
+                        })
+                        ->orderByDesc('id')
+                        ->limit(50)
+                        ->get()
+                        ->mapWithKeys(function (MediaFile $m) {
+                            $name = $m->original_filename ?: ($m->filename ?: "File #{$m->id}");
+                            return [$m->id => $name];
+                        })
+                        ->toArray();
+                })
+                ->getOptionLabelUsing(function ($value): ?string {
+                    if (!$value) return null;
+
+                    $m = MediaFile::find($value);
+                    if (!$m) return null;
+
+                    return $m->original_filename ?: ($m->filename ?: "File #{$m->id}");
+                })
+                ->visible(fn (Forms\Get $get) => in_array($get('type'), ['video', 'pdf', 'file'], true) && !$get('media_upload'))
+                ->required(fn (Forms\Get $get) => in_array($get('type'), ['video', 'pdf', 'file'], true) && !$get('media_upload')),
 
             Forms\Components\TextInput::make('external_url')
                 ->label(__('lesson_items.external_url'))
@@ -238,9 +289,10 @@ class LessonItemResource extends Resource
                     ->label(__('lesson_items.lesson'))
                     ->options(function () {
                         $teacherId = auth('teacher')->id();
+                        if (!$teacherId) return [];
 
                         return Lesson::query()
-                            ->whereHas('section.course', fn (Builder $q) => $q->where('owner_teacher_id', $teacherId))
+                            ->whereHas('section.course', fn ($q) => $q->where('owner_teacher_id', $teacherId))
                             ->orderBy('id')
                             ->get()
                             ->mapWithKeys(fn (Lesson $lesson) => [
