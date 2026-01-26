@@ -58,6 +58,7 @@ class CourseResource extends Resource
                         ->schema([
                             Forms\Components\Select::make('program_id')
                                 ->relationship('program', 'code', fn (Builder $query) => $query->where('teacher_id', auth('teacher')->id()))
+                                ->getOptionLabelFromRecordUsing(fn ($record) => MultilingualHelper::formatMultilingualField($record->name ?? []))
                                 ->searchable()
                                 ->preload()
                                 ->required()
@@ -248,7 +249,8 @@ class CourseResource extends Resource
                 Tables\Columns\ImageColumn::make('image')
                     ->label(__('courses.image'))
                     ->circular(),
-                Tables\Columns\TextColumn::make('program.code')
+                Tables\Columns\TextColumn::make('program.name')
+                    ->formatStateUsing(fn ($state) => MultilingualHelper::formatMultilingualField($state))
                     ->sortable()
                     ->label(__('courses.program')),
                 Tables\Columns\TextColumn::make('delivery_type')
@@ -276,6 +278,7 @@ class CourseResource extends Resource
             ->filters([
                 Tables\Filters\SelectFilter::make('program_id')
                     ->relationship('program', 'code', fn (Builder $query) => $query->where('teacher_id', auth('teacher')->id()))
+                    ->getOptionLabelFromRecordUsing(fn ($record) => MultilingualHelper::formatMultilingualField($record->name ?? []))
                     ->label(__('courses.program')),
                 Tables\Filters\SelectFilter::make('delivery_type')
                     ->options([
