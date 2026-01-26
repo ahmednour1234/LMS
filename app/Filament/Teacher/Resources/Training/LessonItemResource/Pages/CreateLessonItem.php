@@ -18,17 +18,20 @@ class CreateLessonItem extends CreateRecord
 
         $data['teacher_id'] = $teacherId;
 
+        // لو Link: مفيش Media
         if (($data['type'] ?? null) === 'link') {
             $data['media_file_id'] = null;
+            $data['external_url'] = $data['external_url'] ?? null;
             unset($data['media_upload']);
             return $data;
         }
 
+        // Upload جديد
         if (!empty($data['media_upload'])) {
             $disk = 'local';
-            $path = is_array($data['media_upload']) ? $data['media_upload'][0] : $data['media_upload'];
+            $path = is_array($data['media_upload']) ? ($data['media_upload'][0] ?? null) : $data['media_upload'];
 
-            if (!Storage::disk($disk)->exists($path)) {
+            if (!$path || !Storage::disk($disk)->exists($path)) {
                 throw new \RuntimeException("Uploaded file not found on disk: {$disk}:{$path}");
             }
 
@@ -47,10 +50,11 @@ class CreateLessonItem extends CreateRecord
                 'is_private' => true,
             ]);
 
-            $fileUrl = Storage::disk($disk)->url($path);
-
+            // ⚠️ لو disk local + private => url() غالبًا مش هينفع مباشرة
+            // سيب external_url فاضي (أو اعمل route للتحميل)
             $data['media_file_id'] = $media->id;
-            $data['external_url'] = $fileUrl;
+            $data['external_url'] = $data['external_url'] ?? null;
+
             unset($data['media_upload']);
         }
 
