@@ -13,14 +13,9 @@ class EditLessonItem extends EditRecord
 {
     protected static string $resource = LessonItemResource::class;
 
-    /**
-     * حل مشكلة hydrate() on null:
-     * نجلب الـ record يدويًا وبشكل صريح مع شرط صلاحية المدرس.
-     */
     protected function resolveRecord(int | string $key): Model
     {
         $teacherId = auth('teacher')->id();
-
         abort_if(!$teacherId, 403);
 
         $record = LessonItem::query()
@@ -29,9 +24,7 @@ class EditLessonItem extends EditRecord
             ->with(['lesson.section.course'])
             ->first();
 
-        if (!$record) {
-            abort(404);
-        }
+        abort_if(!$record, 404);
 
         return $record;
     }
@@ -41,21 +34,17 @@ class EditLessonItem extends EditRecord
         $teacherId = auth('teacher')->id();
         abort_if(!$teacherId, 403);
 
-        // لو link: امسح أي ميديا
         if (($data['type'] ?? null) === 'link') {
             $data['media_file_id'] = null;
             unset($data['media_upload']);
             return $data;
         }
 
-        // لو Upload جديد -> أنشئ MediaFile وخزّن id في media_file_id
         if (!empty($data['media_upload'])) {
             $disk = 'local';
-            $path = $data['media_upload']; // media/xxxx
+            $path = is_array($data['media_upload']) ? $data['media_upload'][0] : $data['media_upload'];
 
-            // حماية بسيطة: تأكد الملف موجود
             if (!Storage::disk($disk)->exists($path)) {
-                // لو الملف مش موجود لأي سبب (cleanup/temporary)، سيبها تفشل برسالة واضحة
                 throw new \RuntimeException("Uploaded file not found on disk: {$disk}:{$path}");
             }
 
@@ -64,13 +53,14 @@ class EditLessonItem extends EditRecord
             $size = Storage::disk($disk)->size($path) ?? 0;
 
             $media = MediaFile::create([
-                'teacher_id'        => $teacherId,
-                'disk'              => $disk,
-                'path'              => $path,
-                'filename'          => basename($path),
+                'teacher_id' => $teacherId,
+                'disk' => $disk,
+                'path' => $path,
+                'filename' => basename($path),
                 'original_filename' => $originalName,
-                'mime_type'         => $mime,
-                'size'              => $size,
+                'mime_type' => $mime,
+                'size' => $size,
+                'is_private' => true,
             ]);
 
             $fileUrl = Storage::disk($disk)->url($path);
