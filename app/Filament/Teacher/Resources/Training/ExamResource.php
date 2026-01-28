@@ -197,18 +197,29 @@ class ExamResource extends Resource
                                 if (empty($options) || !is_array($options)) {
                                     return [];
                                 }
-                                return collect($options)->mapWithKeys(function ($option, $index) {
+                                $result = [];
+                                $index = 0;
+                                foreach ($options as $option) {
                                     $optionValue = is_array($option) ? ($option['option'] ?? '') : (string) $option;
-                                    if (empty($optionValue)) {
-                                        return [];
+                                    if (!empty($optionValue)) {
+                                        $result[$index] = $optionValue;
+                                        $index++;
                                     }
-                                    return [$index => $optionValue];
-                                })->filter()->toArray();
+                                }
+                                return $result;
                             })
                             ->visible(fn (Forms\Get $get) => $get('type') === 'mcq')
                             ->required(fn (Forms\Get $get) => $get('type') === 'mcq')
                             ->live()
-                            ->label(__('exams.correct_answer')),
+                            ->label(__('exams.correct_answer'))
+                            ->dehydrateStateUsing(fn ($state) => is_numeric($state) ? (int) $state : null)
+                            ->afterStateHydrated(function (Forms\Components\Select $component, $state) {
+                                if ($state !== null && !is_numeric($state)) {
+                                    $component->state(null);
+                                } elseif ($state !== null) {
+                                    $component->state((int) $state);
+                                }
+                            }),
                     ])
                     ->collapsible()
                     ->itemLabel(fn (Forms\Get $get) => 'Q' . ($get('order') ?? 0) . ': ' . MultilingualHelper::formatMultilingualField($get('question') ?? []))
