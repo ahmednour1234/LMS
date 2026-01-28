@@ -19,7 +19,7 @@ class CreatePayment extends CreateRecord
             if (!empty($data['enrollment_id'])) {
                 $enrollment = \App\Domain\Enrollment\Models\Enrollment::with('student')->find($data['enrollment_id']);
                 if ($enrollment) {
-                    $data['user_id'] = $enrollment->user_id 
+                    $data['user_id'] = $enrollment->user_id
                         ?? ($enrollment->student ? $enrollment->student->user_id : null)
                         ?? auth()->id();
                 } else {
@@ -65,7 +65,6 @@ class CreatePayment extends CreateRecord
             ->sum('amount');
 
         // Update paid_amount in enrollment
-        $enrollment->paid_amount = $totalPaid;
         $enrollment->save();
 
         $totalAmount = $enrollment->total_amount ?? 0;

@@ -35,7 +35,6 @@ class EditPayment extends EditRecord
             ->sum('amount');
 
         // Update paid_amount in enrollment
-        $enrollment->paid_amount = $totalPaid;
 
         $totalAmount = $enrollment->total_amount ?? 0;
 
