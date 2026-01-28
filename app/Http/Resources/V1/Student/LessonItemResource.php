@@ -27,24 +27,38 @@ class LessonItemResource extends JsonResource
             'order'        => $this->order,
 
             'media_file'   => $this->when($mediaFile, function () use ($mediaFile) {
-                $disk = $mediaFile->disk ?: 'local';
+                $disk = $mediaFile->disk ?: 'public';
 
-                // ✅ المطلوب: اعتمد على path column
+                // ✅ المطلوب: url مبني على path column
                 $path = $mediaFile->path ?: $mediaFile->filename;
 
                 $url = null;
 
                 if ($path) {
                     try {
-                        // لو الملف موجود فعلًا على الديسك
+                        // لو الملف موجود
                         if (Storage::disk($disk)->exists($path)) {
+
+                            // 1) لو public disk => نطلع url مباشر من path
                             if ($disk === 'public') {
-                                // public disk => URL مباشر
-                                $url = Storage::disk($disk)->url($path);
+                                // Storage::url يرجع غالباً /storage/....
+                                $relative = Storage::disk('public')->url($path);
+
+                                $baseUrl = rtrim(config('app.url', ''), '/');
+                                $url = $baseUrl . $relative; // يبقى: https://domain.com/storage/...
                             } else {
-                                // private/local/s3... => endpoint للتحميل
-                                $baseUrl = rtrim(config('app.url', 'http://localhost'), '/');
-                                $url = $baseUrl . '/public/api/v1/student/media/' . $mediaFile->id . '/download';
+                                /**
+                                 * 2) لو disk مش public:
+                                 * - حاول تعمل url بنفسك لو الديسك مربوط لمجلد public عندك
+                                 * - أو ارجع null (أفضل من رابط غلط)
+                                 */
+                                $baseUrl = rtrim(config('app.url', ''), '/');
+
+                                // مثال شائع لو انت حاطط الملفات جوه public/storage يدويًا:
+                                // $url = $baseUrl . '/public/storage/' . ltrim($path, '/');
+
+                                // الافضل: ما نكذبش ونطلع رابط غلط
+                                $url = null;
                             }
                         }
                     } catch (\Throwable $e) {
@@ -54,8 +68,8 @@ class LessonItemResource extends JsonResource
 
                 return [
                     'id'                => $mediaFile->id,
-                    'path'              => $path,
                     'disk'              => $disk,
+                    'path'              => $path,
                     'url'               => $url,
                     'mime_type'         => $mediaFile->mime_type,
                     'original_filename' => $mediaFile->original_filename,
