@@ -19,6 +19,41 @@ class EditCourse extends EditRecord
         ];
     }
 
+    protected function mutateFormDataBeforeFill(array $data): array
+    {
+        $course = $this->record;
+        
+        $onsitePrice = CoursePrice::where('course_id', $course->id)
+            ->where('delivery_type', DeliveryType::Onsite)
+            ->first();
+        
+        $onlinePrice = CoursePrice::where('course_id', $course->id)
+            ->where('delivery_type', DeliveryType::Online)
+            ->first();
+
+        if ($onsitePrice) {
+            $data['onsite_pricing'] = [
+                'pricing_mode' => $onsitePrice->pricing_mode,
+                'price' => $onsitePrice->price,
+                'session_price' => $onsitePrice->session_price,
+                'sessions_count' => $onsitePrice->sessions_count,
+                'is_active' => $onsitePrice->is_active,
+            ];
+        }
+
+        if ($onlinePrice) {
+            $data['online_pricing'] = [
+                'pricing_mode' => $onlinePrice->pricing_mode,
+                'price' => $onlinePrice->price,
+                'session_price' => $onlinePrice->session_price,
+                'sessions_count' => $onlinePrice->sessions_count,
+                'is_active' => $onlinePrice->is_active,
+            ];
+        }
+
+        return $data;
+    }
+
     protected function mutateFormDataBeforeSave(array $data): array
     {
         $data['name'] = [
