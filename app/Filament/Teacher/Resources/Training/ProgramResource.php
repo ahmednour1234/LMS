@@ -51,12 +51,7 @@ class ProgramResource extends Resource
     {
         return $form
             ->schema([
-                Forms\Components\Select::make('parent_id')
-                    ->relationship('parent', 'code', fn (Builder $query) => $query->where('teacher_id', auth('teacher')->id())->where('id', '!=', $form->getRecord()?->id))
-                    ->searchable()
-                    ->preload()
-                    ->label(__('programs.parent'))
-                    ->helperText(__('programs.parent_helper')),
+
                 Forms\Components\TextInput::make('code')
                     ->required()
                     ->maxLength(255)
