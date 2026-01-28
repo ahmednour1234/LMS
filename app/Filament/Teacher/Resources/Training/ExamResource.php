@@ -63,6 +63,21 @@ class ExamResource extends Resource
                     ->required()
                     ->label(__('exams.course'))
                     ->live(),
+                Forms\Components\Placeholder::make('course_info')
+                    ->label(__('exams.course'))
+                    ->content(function (Forms\Get $get) {
+                        $courseId = $get('course_id');
+                        if (!$courseId) {
+                            return '-';
+                        }
+                        $course = Course::find($courseId);
+                        if (!$course) {
+                            return '-';
+                        }
+                        $name = MultilingualHelper::formatMultilingualField($course->name);
+                        return $course->code . ' - ' . $name;
+                    })
+                    ->visible(fn (Forms\Get $get) => $get('course_id')),
                 Forms\Components\Select::make('lesson_id')
                     ->relationship('lesson', 'id', function (Builder $query, Forms\Get $get) use ($teacherId) {
                         $courseId = $get('course_id');
@@ -83,6 +98,20 @@ class ExamResource extends Resource
                     ->required()
                     ->label(__('exams.lesson'))
                     ->visible(fn ($get) => $get('course_id')),
+                Forms\Components\Placeholder::make('lesson_info')
+                    ->label(__('exams.lesson'))
+                    ->content(function (Forms\Get $get) {
+                        $lessonId = $get('lesson_id');
+                        if (!$lessonId) {
+                            return '-';
+                        }
+                        $lesson = Lesson::find($lessonId);
+                        if (!$lesson) {
+                            return '-';
+                        }
+                        return MultilingualHelper::formatMultilingualField($lesson->title) ?: '-';
+                    })
+                    ->visible(fn (Forms\Get $get) => $get('lesson_id')),
                 Forms\Components\TextInput::make('title.ar')
                     ->label(__('exams.title_ar'))
                     ->required()
@@ -155,21 +184,26 @@ class ExamResource extends Resource
                             ->schema([
                                 Forms\Components\TextInput::make('option')
                                     ->required()
-                                    ->label(__('exams.option')),
+                                    ->label(__('exams.option'))
+                                    ->live(),
                             ])
                             ->visible(fn (Forms\Get $get) => $get('type') === 'mcq')
                             ->required(fn (Forms\Get $get) => $get('type') === 'mcq')
-                            ->label(__('exams.options')),
+                            ->label(__('exams.options'))
+                            ->live(),
                         Forms\Components\Select::make('correct_answer')
                             ->options(function (Forms\Get $get) {
-                                $options = $get('../../options') ?? [];
-                                if (empty($options)) {
+                                $options = $get('options') ?? [];
+                                if (empty($options) || !is_array($options)) {
                                     return [];
                                 }
                                 return collect($options)->mapWithKeys(function ($option, $index) {
-                                    $optionValue = is_array($option) ? ($option['option'] ?? $option) : $option;
+                                    $optionValue = is_array($option) ? ($option['option'] ?? '') : (string) $option;
+                                    if (empty($optionValue)) {
+                                        return [];
+                                    }
                                     return [$optionValue => $optionValue];
-                                })->toArray();
+                                })->filter()->toArray();
                             })
                             ->visible(fn (Forms\Get $get) => $get('type') === 'mcq')
                             ->required(fn (Forms\Get $get) => $get('type') === 'mcq')
