@@ -2,6 +2,8 @@
 
 namespace App\Filament\Admin\Resources\PaymentResource\Pages;
 
+use App\Domain\Enrollment\Models\Enrollment;
+use App\Enums\EnrollmentStatus;
 use App\Filament\Admin\Resources\PaymentResource;
 use Filament\Actions;
 use Filament\Resources\Pages\CreateRecord;
@@ -46,5 +48,33 @@ class CreatePayment extends CreateRecord
         $data['created_by'] = auth()->id();
 
         return $data;
+    }
+
+    protected function afterCreate(): void
+    {
+        $payment = $this->record;
+        $enrollment = $payment->enrollment;
+
+        if (!$enrollment) {
+            return;
+        }
+
+        if ($payment->status === 'paid') {
+            $totalPaid = $enrollment->payments()
+                ->where('status', 'paid')
+                ->sum('amount');
+
+            $totalAmount = $enrollment->total_amount ?? 0;
+
+            if ($enrollment->status === EnrollmentStatus::PENDING_PAYMENT) {
+                $enrollment->status = EnrollmentStatus::ACTIVE;
+                $enrollment->enrolled_at = $enrollment->enrolled_at ?? now();
+                $enrollment->save();
+            } elseif ($totalPaid >= $totalAmount && $enrollment->status !== EnrollmentStatus::ACTIVE) {
+                $enrollment->status = EnrollmentStatus::ACTIVE;
+                $enrollment->enrolled_at = $enrollment->enrolled_at ?? now();
+                $enrollment->save();
+            }
+        }
     }
 }
