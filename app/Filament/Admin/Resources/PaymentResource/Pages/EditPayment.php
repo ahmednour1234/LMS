@@ -29,9 +29,13 @@ class EditPayment extends EditRecord
             return;
         }
 
+        // Calculate total paid amount from all paid payments
         $totalPaid = $enrollment->payments()
             ->where('status', 'paid')
             ->sum('amount');
+
+        // Update paid_amount in enrollment
+        $enrollment->paid_amount = $totalPaid;
 
         $totalAmount = $enrollment->total_amount ?? 0;
 
@@ -39,17 +43,16 @@ class EditPayment extends EditRecord
             if ($enrollment->status === EnrollmentStatus::PENDING_PAYMENT) {
                 $enrollment->status = EnrollmentStatus::ACTIVE;
                 $enrollment->enrolled_at = $enrollment->enrolled_at ?? now();
-                $enrollment->save();
             } elseif ($totalPaid >= $totalAmount && $enrollment->status !== EnrollmentStatus::ACTIVE) {
                 $enrollment->status = EnrollmentStatus::ACTIVE;
                 $enrollment->enrolled_at = $enrollment->enrolled_at ?? now();
-                $enrollment->save();
             }
         } else {
             if ($totalPaid < $totalAmount && $enrollment->status === EnrollmentStatus::ACTIVE) {
                 $enrollment->status = EnrollmentStatus::PENDING_PAYMENT;
-                $enrollment->save();
             }
         }
+
+        $enrollment->save();
     }
 }

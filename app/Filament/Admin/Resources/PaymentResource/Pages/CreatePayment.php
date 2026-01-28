@@ -59,13 +59,18 @@ class CreatePayment extends CreateRecord
             return;
         }
 
+        // Calculate total paid amount from all paid payments
+        $totalPaid = $enrollment->payments()
+            ->where('status', 'paid')
+            ->sum('amount');
+
+        // Update paid_amount in enrollment
+        $enrollment->paid_amount = $totalPaid;
+        $enrollment->save();
+
+        $totalAmount = $enrollment->total_amount ?? 0;
+
         if ($payment->status === 'paid') {
-            $totalPaid = $enrollment->payments()
-                ->where('status', 'paid')
-                ->sum('amount');
-
-            $totalAmount = $enrollment->total_amount ?? 0;
-
             if ($enrollment->status === EnrollmentStatus::PENDING_PAYMENT) {
                 $enrollment->status = EnrollmentStatus::ACTIVE;
                 $enrollment->enrolled_at = $enrollment->enrolled_at ?? now();
