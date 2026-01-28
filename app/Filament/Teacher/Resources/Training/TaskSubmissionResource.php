@@ -12,6 +12,7 @@ use Filament\Resources\Resource;
 use Filament\Tables;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Support\Facades\Storage;
 
 class TaskSubmissionResource extends Resource
 {
@@ -91,14 +92,27 @@ class TaskSubmissionResource extends Resource
                 ->disabled()
                 ->dehydrated(false),
 
-            Forms\Components\Select::make('media_file_id')
-                ->relationship('mediaFile', 'original_filename')
-                ->getOptionLabelFromRecordUsing(fn ($record) => $record->original_filename ?? $record->filename ?? 'N/A')
-                ->searchable()
-                ->preload()
+            Forms\Components\Placeholder::make('media_file')
                 ->label(__('task_submissions.media_file'))
-                ->disabled()
-                ->dehydrated(false),
+                ->content(function ($record) {
+                    if (!$record?->mediaFile) {
+                        return __('task_submissions.no_file');
+                    }
+
+                    $mediaFile = $record->mediaFile;
+                    $filename = $mediaFile->original_filename ?? $mediaFile->filename ?? 'View File';
+                    $url = static::getUrl('view', ['record' => $record->id]);
+
+                    return new \Illuminate\Support\HtmlString(
+                        '<div class="flex items-center gap-2">
+                            <span class="text-sm text-gray-700">' . htmlspecialchars($filename) . '</span>
+                            <a href="' . $url . '" class="text-primary-600 hover:text-primary-700 underline text-sm">' .
+                            __('task_submissions.view_file') .
+                            '</a>
+                        </div>'
+                    );
+                })
+                ->visible(fn ($record) => $record?->mediaFile),
 
             Forms\Components\TextInput::make('score')
                 ->numeric()
