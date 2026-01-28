@@ -208,8 +208,7 @@ class ExamResource extends Resource
                             ->visible(fn (Forms\Get $get) => $get('type') === 'mcq')
                             ->required(fn (Forms\Get $get) => $get('type') === 'mcq')
                             ->live()
-                            ->label(__('exams.correct_answer'))
-                            ->numeric(),
+                            ->label(__('exams.correct_answer')),
                     ])
                     ->collapsible()
                     ->itemLabel(fn (Forms\Get $get) => 'Q' . ($get('order') ?? 0) . ': ' . MultilingualHelper::formatMultilingualField($get('question') ?? []))
