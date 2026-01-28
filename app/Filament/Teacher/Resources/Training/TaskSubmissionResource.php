@@ -57,7 +57,7 @@ class TaskSubmissionResource extends Resource
     public static function form(Form $form): Form
     {
         $teacherId = auth('teacher')->id();
-        
+
         return $form->schema([
             Forms\Components\Select::make('task_id')
                 ->label(__('task_submissions.task'))
@@ -77,6 +77,7 @@ class TaskSubmissionResource extends Resource
 
             Forms\Components\Select::make('student_id')
                 ->relationship('student', 'student_code')
+                ->getOptionLabelFromRecordUsing(fn ($record) => $record->student_code ?? 'N/A')
                 ->searchable()
                 ->preload()
                 ->required()
