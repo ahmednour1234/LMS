@@ -65,7 +65,7 @@ class TaskSubmissionResource extends Resource
                     ->whereHas('course', fn ($q) => $q->where('owner_teacher_id', $teacherId))
                     ->get(['id', 'title'])
                     ->mapWithKeys(fn ($task) => [
-                        $task->id => (MultilingualHelper::formatMultilingualField($task->title) ?: 'N/A'),
+                        $task->id => (MultilingualHelper::formatMultilingualField($task->title) ?? 'N/A'),
                     ])
                     ->toArray()
                 )
@@ -92,6 +92,7 @@ class TaskSubmissionResource extends Resource
 
             Forms\Components\Select::make('media_file_id')
                 ->relationship('mediaFile', 'original_filename')
+                ->getOptionLabelFromRecordUsing(fn ($record) => $record->original_filename ?? $record->filename ?? 'N/A')
                 ->searchable()
                 ->preload()
                 ->label(__('task_submissions.media_file'))
@@ -169,7 +170,7 @@ class TaskSubmissionResource extends Resource
                         ->whereHas('course', fn ($q) => $q->where('owner_teacher_id', auth('teacher')->id()))
                         ->get(['id', 'title'])
                         ->mapWithKeys(fn ($task) => [
-                            $task->id => (MultilingualHelper::formatMultilingualField($task->title) ?: 'N/A'),
+                            $task->id => (MultilingualHelper::formatMultilingualField($task->title) ?? 'N/A'),
                         ])
                         ->toArray()
                     ),
