@@ -92,7 +92,6 @@ class CourseResource extends Resource
                                 ->options([
                                     DeliveryType::Onsite->value => __('courses.delivery_type_options.onsite'),
                                     DeliveryType::Online->value => __('courses.delivery_type_options.online'),
-                                    DeliveryType::Hybrid->value => __('courses.delivery_type_options.hybrid'),
                                 ])
                                 ->required()
                                 ->label(__('courses.delivery_type')),
@@ -109,8 +108,8 @@ class CourseResource extends Resource
                             Forms\Components\Section::make(__('course_prices.delivery_type_options.online'))
                                 ->schema(self::getPricingFieldsSchema('online_pricing'))
                                 ->collapsible(),
-                            Forms\Components\Section::make(__('course_prices.delivery_type_options.hybrid'))
-                                ->schema(self::getPricingFieldsSchema('hybrid_pricing'))
+                            Forms\Components\Section::make(__('course_prices.delivery_type_options.onsite'))
+                                ->schema(self::getPricingFieldsSchema('onsite_pricing'))
                                 ->collapsible(),
                         ]),
                 ])
@@ -159,21 +158,13 @@ class CourseResource extends Resource
                 ->required(fn (Forms\Get $get) => in_array($get("{$prefix}.pricing_mode"), ['per_session', 'both']))
                 ->helperText(__('course_prices.sessions_count_helper'))
                 ->live(onBlur: true),
-            Forms\Components\Toggle::make("{$prefix}.allow_installments")
-                ->label(__('course_prices.allow_installments'))
-                ->default(false)
-                ->live()
-                ->disabled(fn (Forms\Get $get) => $get("{$prefix}.pricing_mode") === 'per_session')
-                ->helperText(fn (Forms\Get $get) => $get("{$prefix}.pricing_mode") === 'per_session'
-                    ? __('course_prices.installments_disabled_for_per_session')
-                    : null),
             Forms\Components\TextInput::make("{$prefix}.min_down_payment")
                 ->numeric()
                 ->prefix(config('money.symbol', 'ر.ع'))
                 ->label(__('course_prices.min_down_payment'))
                 ->minValue(0)
                 ->step(0.001)
-                ->visible(fn (Forms\Get $get) => $get("{$prefix}.allow_installments"))
+                ->visible(fn (Forms\Get $get) => $get("{$prefix}.pricing_mode") !== 'per_session')
                 ->rules([
                     fn (Forms\Get $get): \Closure => function (string $attribute, $value, \Closure $fail) use ($prefix, $get) {
                         $price = (float) $get("{$prefix}.price");
@@ -195,8 +186,8 @@ class CourseResource extends Resource
                     }
                     return config('money.max_installments_limit', 36);
                 })
-                ->visible(fn (Forms\Get $get) => $get("{$prefix}.allow_installments"))
-                ->required(fn (Forms\Get $get) => $get("{$prefix}.allow_installments"))
+                ->visible(fn (Forms\Get $get) => $get("{$prefix}.pricing_mode") !== 'per_session')
+                ->required(fn (Forms\Get $get) => $get("{$prefix}.pricing_mode") !== 'per_session')
                 ->helperText(function (Forms\Get $get) use ($prefix): string {
                     $pricingMode = $get("{$prefix}.pricing_mode") ?? 'course_total';
                     if (in_array($pricingMode, ['per_session', 'both'])) {
@@ -284,7 +275,6 @@ class CourseResource extends Resource
                     ->options([
                         DeliveryType::Onsite->value => __('courses.delivery_type_options.onsite'),
                         DeliveryType::Online->value => __('courses.delivery_type_options.online'),
-                        DeliveryType::Hybrid->value => __('courses.delivery_type_options.hybrid'),
                     ])
                     ->label(__('courses.delivery_type')),
                 Tables\Filters\TernaryFilter::make('is_active')

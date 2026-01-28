@@ -38,8 +38,8 @@ class EditCourse extends EditRecord
             ->latest()
             ->first();
             
-        $hybridPrice = CoursePrice::where('course_id', $course->id)
-            ->where('delivery_type', DeliveryType::Hybrid)
+        $onsitePrice = CoursePrice::where('course_id', $course->id)
+            ->where('delivery_type', DeliveryType::Onsite)
             ->whereNull('branch_id')
             ->latest()
             ->first();
@@ -50,23 +50,21 @@ class EditCourse extends EditRecord
                 'price' => $onlinePrice->price,
                 'session_price' => $onlinePrice->session_price,
                 'sessions_count' => $onlinePrice->sessions_count,
-                'allow_installments' => $onlinePrice->allow_installments,
                 'min_down_payment' => $onlinePrice->min_down_payment,
                 'max_installments' => $onlinePrice->max_installments,
                 'is_active' => $onlinePrice->is_active,
             ];
         }
 
-        if ($hybridPrice) {
-            $data['hybrid_pricing'] = [
-                'pricing_mode' => $hybridPrice->pricing_mode,
-                'price' => $hybridPrice->price,
-                'session_price' => $hybridPrice->session_price,
-                'sessions_count' => $hybridPrice->sessions_count,
-                'allow_installments' => $hybridPrice->allow_installments,
-                'min_down_payment' => $hybridPrice->min_down_payment,
-                'max_installments' => $hybridPrice->max_installments,
-                'is_active' => $hybridPrice->is_active,
+        if ($onsitePrice) {
+            $data['onsite_pricing'] = [
+                'pricing_mode' => $onsitePrice->pricing_mode,
+                'price' => $onsitePrice->price,
+                'session_price' => $onsitePrice->session_price,
+                'sessions_count' => $onsitePrice->sessions_count,
+                'min_down_payment' => $onsitePrice->min_down_payment,
+                'max_installments' => $onsitePrice->max_installments,
+                'is_active' => $onsitePrice->is_active,
             ];
         }
 
@@ -97,8 +95,8 @@ class EditCourse extends EditRecord
             $this->updateOrCreateCoursePrice($course->id, DeliveryType::Online, $data['online_pricing']);
         }
 
-        if (isset($data['hybrid_pricing']) && $this->hasPricingData($data['hybrid_pricing'])) {
-            $this->updateOrCreateCoursePrice($course->id, DeliveryType::Hybrid, $data['hybrid_pricing']);
+        if (isset($data['onsite_pricing']) && $this->hasPricingData($data['onsite_pricing'])) {
+            $this->updateOrCreateCoursePrice($course->id, DeliveryType::Onsite, $data['onsite_pricing']);
         }
     }
 
@@ -134,7 +132,7 @@ class EditCourse extends EditRecord
                 'price' => $pricingData['price'] ?? null,
                 'session_price' => $pricingData['session_price'] ?? null,
                 'sessions_count' => $pricingData['sessions_count'] ?? null,
-                'allow_installments' => $pricingData['allow_installments'] ?? false,
+                'allow_installments' => ($pricingData['pricing_mode'] ?? 'course_total') !== 'per_session',
                 'min_down_payment' => $pricingData['min_down_payment'] ?? null,
                 'max_installments' => $pricingData['max_installments'] ?? null,
                 'is_active' => $pricingData['is_active'] ?? true,
