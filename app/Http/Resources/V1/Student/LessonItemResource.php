@@ -26,22 +26,26 @@ class LessonItemResource extends JsonResource
             'external_url' => $this->external_url,
             'order'        => $this->order,
 
-            'media_file'   => $this->when($mediaFile, function () use ($mediaFile) {
+            'media_file' => $this->when($mediaFile, function () use ($mediaFile) {
                 $disk = $mediaFile->disk ?: 'public';
 
-                // ✅ اعتمد على عمود path في media_files
+                // ✅ path من جدول media_files
                 $path = $mediaFile->path ?: $mediaFile->filename;
 
                 $url = null;
 
-                if ($path) {
+                if (!empty($path)) {
                     try {
-                        // تأكد إن الملف موجود (اختياري لكنه مفيد)
+                        // (اختياري) تحقق وجود الملف
                         if (Storage::disk($disk)->exists($path)) {
                             $baseUrl = rtrim(config('app.url', 'http://localhost'), '/');
 
-                            // ✅ المطلوب: https://domain/public/storage/{path}
-                            $url = $baseUrl . '/public/storage/' . ltrim($path, '/');
+                            // ✅ المطلوب: /public/storage/app/public/{path}
+                            // - نشيل أي prefix ممكن يكون داخل path علشان مايتكرر
+                            $cleanPath = ltrim($path, '/');
+                            $cleanPath = preg_replace('#^(public/|storage/|app/public/)#', '', $cleanPath);
+
+                            $url = $baseUrl . '/public/storage/app/public/' . $cleanPath;
                         }
                     } catch (\Throwable $e) {
                         $url = null;
