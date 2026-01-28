@@ -72,8 +72,6 @@ class CreateCourse extends CreateRecord
             'session_price' => $pricingData['session_price'] ?? null,
             'sessions_count' => $pricingData['sessions_count'] ?? null,
             'allow_installments' => ($pricingData['pricing_mode'] ?? 'course_total') !== 'per_session',
-            'min_down_payment' => $pricingData['min_down_payment'] ?? null,
-            'max_installments' => $pricingData['max_installments'] ?? null,
             'is_active' => $pricingData['is_active'] ?? true,
         ]);
     }

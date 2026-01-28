@@ -50,8 +50,6 @@ class EditCourse extends EditRecord
                 'price' => $onlinePrice->price,
                 'session_price' => $onlinePrice->session_price,
                 'sessions_count' => $onlinePrice->sessions_count,
-                'min_down_payment' => $onlinePrice->min_down_payment,
-                'max_installments' => $onlinePrice->max_installments,
                 'is_active' => $onlinePrice->is_active,
             ];
         }
@@ -62,8 +60,6 @@ class EditCourse extends EditRecord
                 'price' => $onsitePrice->price,
                 'session_price' => $onsitePrice->session_price,
                 'sessions_count' => $onsitePrice->sessions_count,
-                'min_down_payment' => $onsitePrice->min_down_payment,
-                'max_installments' => $onsitePrice->max_installments,
                 'is_active' => $onsitePrice->is_active,
             ];
         }
@@ -133,8 +129,6 @@ class EditCourse extends EditRecord
                 'session_price' => $pricingData['session_price'] ?? null,
                 'sessions_count' => $pricingData['sessions_count'] ?? null,
                 'allow_installments' => ($pricingData['pricing_mode'] ?? 'course_total') !== 'per_session',
-                'min_down_payment' => $pricingData['min_down_payment'] ?? null,
-                'max_installments' => $pricingData['max_installments'] ?? null,
                 'is_active' => $pricingData['is_active'] ?? true,
             ]
         );
