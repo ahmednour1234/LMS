@@ -159,7 +159,7 @@ class CourseController extends ApiController
         $courseModel->setAttribute('remaining_amount', $dueAmount);
 
         return $this->successResponse(
-            new \App\Http\Resources\V1\Student\CourseShowResource($courseModel),
+            new \App\Http\Resources\Api\V1\Public\CourseShowResource($courseModel),
             'Course retrieved successfully.'
         );
     }
