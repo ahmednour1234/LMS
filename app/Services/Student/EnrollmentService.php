@@ -87,6 +87,8 @@ class EnrollmentService
             'registered_at' => now(),
         ]);
 
+        $course->update(['is_active' => false]);
+
         return $enrollment;
     }
 
