@@ -83,13 +83,6 @@ class CourseResource extends Resource
                                 ->visibility('public')
                                 ->nullable()
                                 ->label(__('courses.image')),
-                            Forms\Components\Select::make('delivery_type')
-                                ->options([
-                                    DeliveryType::Onsite->value => __('courses.delivery_type_options.onsite'),
-                                    DeliveryType::Online->value => __('courses.delivery_type_options.online'),
-                                ])
-                                ->required()
-                                ->label(__('courses.delivery_type')),
                             Forms\Components\TextInput::make('duration_hours')
                                 ->numeric()
                                 ->label(__('courses.duration_hours')),
@@ -106,11 +99,11 @@ class CourseResource extends Resource
                     Forms\Components\Wizard\Step::make('pricing')
                         ->label(__('course_prices.pricing'))
                         ->schema([
+                            Forms\Components\Section::make(__('course_prices.delivery_type_options.onsite'))
+                                ->schema(self::getPricingFieldsSchema('onsite_pricing'))
+                                ->collapsible(),
                             Forms\Components\Section::make(__('course_prices.delivery_type_options.online'))
                                 ->schema(self::getPricingFieldsSchema('online_pricing'))
-                                ->collapsible(),
-                            Forms\Components\Section::make(__('course_prices.delivery_type_options.hybrid'))
-                                ->schema(self::getPricingFieldsSchema('hybrid_pricing'))
                                 ->collapsible(),
                         ]),
                 ])

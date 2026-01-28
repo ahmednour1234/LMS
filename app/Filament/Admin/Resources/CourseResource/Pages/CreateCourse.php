@@ -31,12 +31,12 @@ class CreateCourse extends CreateRecord
         $course = $this->record;
         $data = $this->data;
 
-        if (isset($data['online_pricing']) && $this->hasPricingData($data['online_pricing'])) {
-            $this->createCoursePrice($course->id, DeliveryType::Online, $data['online_pricing']);
+        if (isset($data['onsite_pricing']) && $this->hasPricingData($data['onsite_pricing'])) {
+            $this->createCoursePrice($course->id, DeliveryType::Onsite, $data['onsite_pricing']);
         }
 
-        if (isset($data['hybrid_pricing']) && $this->hasPricingData($data['hybrid_pricing'])) {
-            $this->createCoursePrice($course->id, DeliveryType::Hybrid, $data['hybrid_pricing']);
+        if (isset($data['online_pricing']) && $this->hasPricingData($data['online_pricing'])) {
+            $this->createCoursePrice($course->id, DeliveryType::Online, $data['online_pricing']);
         }
     }
 
@@ -69,9 +69,6 @@ class CreateCourse extends CreateRecord
             'price' => $pricingData['price'] ?? null,
             'session_price' => $pricingData['session_price'] ?? null,
             'sessions_count' => $pricingData['sessions_count'] ?? null,
-            'allow_installments' => $pricingData['allow_installments'] ?? false,
-            'min_down_payment' => $pricingData['min_down_payment'] ?? null,
-            'max_installments' => $pricingData['max_installments'] ?? null,
             'is_active' => $pricingData['is_active'] ?? true,
         ]);
     }
