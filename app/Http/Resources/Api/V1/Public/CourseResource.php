@@ -32,7 +32,13 @@ class CourseResource extends JsonResource
             'id' => $this->id,
             'program_id' => $this->program_id,
             'owner_teacher_id' => $this->owner_teacher_id,
-
+            'owner_teacher' => $this->whenLoaded('ownerTeacher', function () {
+                return [
+                    'id' => $this->ownerTeacher->id,
+                    'name' => $this->ownerTeacher->name,
+                    'email' => $this->ownerTeacher->email,
+                ];
+            }),
             'code' => $this->code,
             'name' => $this->getTranslatedValue($this->name, $locale),
             'description' => $this->getTranslatedValue($this->description, $locale),
