@@ -20,6 +20,20 @@ class CourseShowResource extends JsonResource
     {
         $locale = app()->getLocale();
 
+        $isEnrolled = false;
+        $enrollmentStatus = null;
+
+        if (auth('students')->check()) {
+            $student = auth('students')->user();
+            $enrollment = \App\Domain\Enrollment\Models\Enrollment::where('student_id', $student->id)
+                ->where('course_id', $this->id)
+                ->whereIn('status', ['active', 'pending', 'pending_payment'])
+                ->first();
+
+            $isEnrolled = $enrollment !== null;
+            $enrollmentStatus = $enrollment?->status->value;
+        }
+
         return [
             'id' => $this->id,
             'title' => $this->getTranslatedValue($this->name, $locale), // Auto-translate
@@ -56,6 +70,8 @@ class CourseShowResource extends JsonResource
             'updated_at' => $this->updated_at?->toIso8601String(),
             'prices' => CoursePriceResource::collection($this->whenLoaded('prices')),
             'sections' => CourseSectionResource::collection($this->whenLoaded('sections')),
+            'is_enrolled' => $isEnrolled,
+            'enrollment_status' => $enrollmentStatus,
         ];
     }
 }
