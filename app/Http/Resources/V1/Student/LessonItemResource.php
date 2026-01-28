@@ -15,7 +15,7 @@ class LessonItemResource extends JsonResource
     {
         $locale = app()->getLocale();
 
-        $mediaFile = ($this->media_file_id && $this->relationLoaded('mediaFile'))
+        $mediaFile = ($this->media_file_id && $this->relationLoaded('mediaFile') && $this->mediaFile)
             ? $this->mediaFile
             : null;
 
@@ -29,37 +29,19 @@ class LessonItemResource extends JsonResource
             'media_file'   => $this->when($mediaFile, function () use ($mediaFile) {
                 $disk = $mediaFile->disk ?: 'public';
 
-                // ✅ المطلوب: url مبني على path column
+                // ✅ اعتمد على عمود path في media_files
                 $path = $mediaFile->path ?: $mediaFile->filename;
 
                 $url = null;
 
                 if ($path) {
                     try {
-                        // لو الملف موجود
+                        // تأكد إن الملف موجود (اختياري لكنه مفيد)
                         if (Storage::disk($disk)->exists($path)) {
+                            $baseUrl = rtrim(config('app.url', 'http://localhost'), '/');
 
-                            // 1) لو public disk => نطلع url مباشر من path
-                            if ($disk === 'public') {
-                                // Storage::url يرجع غالباً /storage/....
-                                $relative = Storage::disk('public')->url($path);
-
-                                $baseUrl = rtrim(config('app.url', ''), '/');
-                                $url = $baseUrl . $relative; // يبقى: https://domain.com/storage/...
-                            } else {
-                                /**
-                                 * 2) لو disk مش public:
-                                 * - حاول تعمل url بنفسك لو الديسك مربوط لمجلد public عندك
-                                 * - أو ارجع null (أفضل من رابط غلط)
-                                 */
-                                $baseUrl = rtrim(config('app.url', ''), '/');
-
-                                // مثال شائع لو انت حاطط الملفات جوه public/storage يدويًا:
-                                // $url = $baseUrl . '/public/storage/' . ltrim($path, '/');
-
-                                // الافضل: ما نكذبش ونطلع رابط غلط
-                                $url = null;
-                            }
+                            // ✅ المطلوب: https://domain/public/storage/{path}
+                            $url = $baseUrl . '/public/storage/' . ltrim($path, '/');
                         }
                     } catch (\Throwable $e) {
                         $url = null;
