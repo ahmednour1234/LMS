@@ -28,24 +28,13 @@ class LessonItemResource extends JsonResource
 
             'media_file' => $this->when($mediaFile, function () use ($mediaFile) {
                 $disk = $mediaFile->disk ?: 'public';
-
-                // ✅ path من جدول media_files
                 $path = $mediaFile->path ?: $mediaFile->filename;
 
                 $url = null;
-
                 if (!empty($path)) {
                     try {
-                        // (اختياري) تحقق وجود الملف
                         if (Storage::disk($disk)->exists($path)) {
-                            $baseUrl = rtrim(config('app.url', 'http://localhost'), '/');
-
-                            // ✅ المطلوب: /public/storage/app/public/{path}
-                            // - نشيل أي prefix ممكن يكون داخل path علشان مايتكرر
-                            $cleanPath = ltrim($path, '/');
-                            $cleanPath = preg_replace('#^(public/|storage/|app/public/)#', '', $cleanPath);
-
-                            $url = $baseUrl . '/storage/app/public/' . $cleanPath;
+                            $url = Storage::disk($disk)->url($path);
                         }
                     } catch (\Throwable $e) {
                         $url = null;

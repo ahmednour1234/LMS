@@ -179,7 +179,13 @@ class ExamGradingService
             ->whereHas('question', fn ($q) => $q->where('type', 'essay'))
             ->count();
 
-        if ($essayCount === 0) {
+        $mcqCount = $attempt->answers()
+            ->whereHas('question', fn ($q) => $q->whereIn('type', ['mcq', 'true_false']))
+            ->count();
+
+        $totalQuestions = $exam->questions()->count();
+
+        if ($essayCount === 0 && ($mcqCount > 0 || $totalQuestions === 0)) {
             return 'graded';
         }
 
