@@ -337,8 +337,10 @@
             "accounting": "Accounting",
             "training": "Training",
             "settings": "Settings",
-            "enrollment": "Enrollment"
+            "enrollment": "Enrollment",
+            "system": "System"
         },
+        "course_booking_requests": "Course Booking Requests",
         "student": "Student",
         "students": "Students"
     },
@@ -543,6 +545,32 @@
           "late": "Late",
           "excused": "Excused",
           "rate": "Attendance Rate %"
+        },
+    "course_booking_requests": {
+        "full_name": "Full Name",
+        "educational_stage": "Educational Stage",
+        "phone": "Phone",
+        "gender": "Gender",
+        "message": "Message",
+        "status": "Status",
+        "admin_notes": "Admin Notes",
+        "created_at": "Created At",
+        "request_details": "Request Details",
+        "admin_section": "Admin",
+        "course_info": "Course Information",
+        "genders": {
+            "male": "Male",
+            "female": "Female"
+        },
+        "statuses": {
+            "new": "New",
+            "in_progress": "In Progress",
+            "contacted": "Contacted",
+            "closed": "Closed"
+        },
+        "messages": {
+            "success_submit": "Booking request submitted successfully"
         }
+    }
 
 }

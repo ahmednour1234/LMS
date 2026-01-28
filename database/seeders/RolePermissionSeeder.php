@@ -184,6 +184,13 @@ class RolePermissionSeeder extends Seeder
             'task_submissions.create',
             'task_submissions.update',
             'task_submissions.delete',
+
+            // Course Booking Requests
+            'course_booking_requests.viewAny',
+            'course_booking_requests.view',
+            'course_booking_requests.create',
+            'course_booking_requests.update',
+            'course_booking_requests.delete',
         ];
 
         foreach ($permissions as $permission) {

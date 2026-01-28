@@ -337,8 +337,10 @@
             "accounting": "المحاسبة",
             "training": "التدريب",
             "settings": "الإعدادات",
-            "enrollment": "التسجيل"
+            "enrollment": "التسجيل",
+            "system": "النظام"
         },
+        "course_booking_requests": "طلبات حجز الدورات",
         "student": "طالب",
         "students": "الطلاب"
     },
@@ -544,7 +546,33 @@
           "late": "متأخر",
           "excused": "معذور",
           "rate": "نسبة الحضور %"
+        },
+    "course_booking_requests": {
+        "full_name": "الاسم الكامل",
+        "educational_stage": "المرحلة التعليمية",
+        "phone": "الهاتف",
+        "gender": "الجنس",
+        "message": "الرسالة",
+        "status": "الحالة",
+        "admin_notes": "ملاحظات الإدارة",
+        "created_at": "تاريخ الإنشاء",
+        "request_details": "تفاصيل الطلب",
+        "admin_section": "الإدارة",
+        "course_info": "معلومات الدورة",
+        "genders": {
+            "male": "ذكر",
+            "female": "أنثى"
+        },
+        "statuses": {
+            "new": "جديد",
+            "in_progress": "قيد المعالجة",
+            "contacted": "تم التواصل",
+            "closed": "مغلق"
+        },
+        "messages": {
+            "success_submit": "تم إرسال طلب الحجز بنجاح"
         }
+    }
 
 }
 

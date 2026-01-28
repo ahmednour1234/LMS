@@ -137,6 +137,10 @@ Route::prefix('v1')->group(function () {
             Route::get('/', [App\Http\Controllers\Api\V1\Public\LessonController::class, 'index']);
             Route::get('/{lesson}', [App\Http\Controllers\Api\V1\Public\LessonController::class, 'show']);
         });
+
+        // Course Booking Requests (Public)
+        Route::post('/course-booking-requests', [App\Http\Controllers\Api\V1\Public\CourseBookingRequestController::class, 'store'])
+            ->middleware('throttle:10,1');
     });
 
     /*

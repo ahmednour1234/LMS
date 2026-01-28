@@ -18,12 +18,14 @@ use App\Domain\Accounting\Policies\JournalLinePolicy;
 use App\Domain\Accounting\Policies\JournalPolicy;
 use App\Domain\Accounting\Policies\VoucherPolicy;
 use App\Domain\Accounting\Policies\PaymentMethodPolicy;
+use App\Domain\Booking\Models\CourseBookingRequest;
 use App\Domain\Branch\Models\Branch;
 use App\Domain\Media\Models\MediaFile;
 use App\Domain\Media\Policies\MediaFilePolicy;
 use App\Models\Setting;
 use App\Models\User;
 use App\Policies\BranchPolicy;
+use App\Policies\CourseBookingRequestPolicy;
 use App\Policies\PermissionPolicy;
 use App\Policies\RolePolicy;
 use App\Policies\SettingPolicy;
@@ -49,6 +51,7 @@ class AuthServiceProvider extends ServiceProvider
         Voucher::class => VoucherPolicy::class,
         MediaFile::class => MediaFilePolicy::class,
         Setting::class => SettingPolicy::class,
+        CourseBookingRequest::class => CourseBookingRequestPolicy::class,
     ];
 
     public function boot(): void
