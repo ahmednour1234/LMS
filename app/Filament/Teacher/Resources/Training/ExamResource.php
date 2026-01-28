@@ -202,13 +202,14 @@ class ExamResource extends Resource
                                     if (empty($optionValue)) {
                                         return [];
                                     }
-                                    return [$optionValue => $optionValue];
+                                    return [$index => $optionValue];
                                 })->filter()->toArray();
                             })
                             ->visible(fn (Forms\Get $get) => $get('type') === 'mcq')
                             ->required(fn (Forms\Get $get) => $get('type') === 'mcq')
                             ->live()
-                            ->label(__('exams.correct_answer')),
+                            ->label(__('exams.correct_answer'))
+                            ->numeric(),
                     ])
                     ->collapsible()
                     ->itemLabel(fn (Forms\Get $get) => 'Q' . ($get('order') ?? 0) . ': ' . MultilingualHelper::formatMultilingualField($get('question') ?? []))

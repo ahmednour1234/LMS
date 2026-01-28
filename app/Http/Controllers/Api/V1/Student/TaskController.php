@@ -178,12 +178,16 @@ class TaskController extends ApiController
         if ($request->hasFile('pdf')) {
             $file = $request->file('pdf');
             $path = $file->store('task-submissions', 'public');
+            $originalName = $file->getClientOriginalName();
+            $filename = basename($path);
 
             $mediaFile = MediaFile::create([
-                'name' => $file->getClientOriginalName(),
+                'filename' => $filename,
+                'original_filename' => $originalName,
                 'path' => $path,
-                'type' => $file->getMimeType(),
+                'mime_type' => $file->getMimeType(),
                 'size' => $file->getSize(),
+                'disk' => 'public',
             ]);
 
             $mediaFileId = $mediaFile->id;
