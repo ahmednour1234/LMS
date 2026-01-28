@@ -45,7 +45,7 @@ class LessonItemResource extends JsonResource
                             $cleanPath = ltrim($path, '/');
                             $cleanPath = preg_replace('#^(public/|storage/|app/public/)#', '', $cleanPath);
 
-                            $url = $baseUrl . '/public/storage/app/public/' . $cleanPath;
+                            $url = $baseUrl . '/storage/app/public/' . $cleanPath;
                         }
                     } catch (\Throwable $e) {
                         $url = null;
