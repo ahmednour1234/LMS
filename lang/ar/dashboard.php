@@ -20,7 +20,7 @@ return [
         'active_students' => 'الطلاب النشطين',
         'total_teachers' => 'إجمالي المعلمين',
         'active_teachers' => 'المعلمون النشطون',
-        'total_programs' => 'إجمالي البرامج',
+        'total_programs' => 'إجمالي البرامج التعليمية',
         'total_sections' => 'إجمالي الأقسام',
         'total_sessions' => 'إجمالي الجلسات',
         'total_lessons' => 'إجمالي الدروس',

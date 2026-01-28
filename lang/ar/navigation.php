@@ -8,7 +8,7 @@ return [
     'categories' => 'الفئات',
     'cost_centers' => 'مراكز التكلفة',
     'payment_methods' => 'طرق الدفع',
-    'programs' => 'البرامج',
+    'programs' => 'البرامج التعليمية',
     'courses' => 'الدورات',
     'course_prices' => 'أسعار الدورات',
     'course_sections' => 'أقسام الدورات',
