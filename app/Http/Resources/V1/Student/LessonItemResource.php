@@ -26,20 +26,22 @@ class LessonItemResource extends JsonResource
                 function () {
                     $disk = $this->mediaFile->disk ?? 'local';
                     $path = $this->mediaFile->path ?? $this->mediaFile->filename;
-                    
+
                     $url = null;
                     if ($path && Storage::disk($disk)->exists($path)) {
                         try {
                             if ($disk === 'public') {
                                 $url = Storage::disk($disk)->url($path);
                             } else {
-                                $url = route('api.v1.student.media.download', ['media' => $this->mediaFile->id]);
+                                $baseUrl = rtrim(config('app.url', 'http://localhost'), '/');
+                                $mediaId = $this->mediaFile->id;
+                                $url = $baseUrl . '/public/api/v1/student/media/' . $mediaId . '/download';
                             }
                         } catch (\Exception $e) {
                             $url = null;
                         }
                     }
-                    
+
                     return [
                         'id' => $this->mediaFile->id,
                         'url' => $url,
