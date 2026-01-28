@@ -21,10 +21,8 @@ class CourseSectionResource extends JsonResource
 
         return [
             'id' => $this->id,
-            'title' => $this->getTranslatedValue($this->title, $locale), // Auto-translate
-            'description' => $this->getTranslatedValue($this->description, $locale), // Auto-translate
-            'sort_order' => $this->order, // Transform order to sort_order
-            'description' => $this->description,
+            'title' => $this->getTranslatedValue($this->title, $locale),
+            'description' => $this->getTranslatedValue($this->description, $locale),
             'lesson_type' => $this->lesson_type?->value,
             'sort_order' => $this->sort_order,
             'is_preview' => (bool) $this->is_preview,
