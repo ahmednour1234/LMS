@@ -8,6 +8,7 @@ use App\Filament\Admin\Resources\StudentResource\Pages;
 use App\Filament\Concerns\HasTableExports;
 use App\Models\User;
 use Filament\Forms;
+use Illuminate\Support\Facades\Hash;
 use Filament\Forms\Form;
 use Filament\Resources\Resource;
 use Filament\Tables;
@@ -52,13 +53,7 @@ class StudentResource extends Resource
     {
         return $form
             ->schema([
-                Forms\Components\Select::make('user_id')
-                    ->relationship('user', 'name')
-                    ->searchable()
-                    ->preload()
-                    ->required()
-                    ->unique(ignoreRecord: true)
-                    ->label(__('students.user')),
+
                 Forms\Components\Select::make('branch_id')
                     ->relationship('branch', 'name')
                     ->searchable()
@@ -85,7 +80,7 @@ class StudentResource extends Resource
                     ->password()
                     ->maxLength(255)
                     ->dehydrated(fn ($state) => filled($state))
-                    ->dehydrateStateUsing(fn ($state) => filled($state) ? \Hash::make($state) : null)
+                    ->dehydrateStateUsing(fn ($state) => filled($state) ? Hash::make($state) : null)
                     ->label(__('students.password'))
                     ->required(fn ($livewire) => $livewire instanceof Pages\CreateStudent)
                     ->helperText(fn ($livewire) => $livewire instanceof Pages\EditStudent ? __('students.password_helper') : null),
@@ -104,18 +99,11 @@ class StudentResource extends Resource
     public static function table(Table $table): Table
     {
         return $table
-            ->modifyQueryUsing(function (Builder $query) {
-                $query->visibleTo(auth()->user(), 'students');
-            })
             ->columns([
                 Tables\Columns\TextColumn::make('student_code')
                     ->searchable()
                     ->sortable()
                     ->label(__('students.student_code')),
-                Tables\Columns\TextColumn::make('user.name')
-                    ->searchable()
-                    ->sortable()
-                    ->label(__('students.user')),
                 Tables\Columns\TextColumn::make('branch.name')
                     ->sortable()
                     ->label(__('students.branch'))

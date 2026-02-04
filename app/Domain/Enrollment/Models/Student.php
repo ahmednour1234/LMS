@@ -18,7 +18,6 @@ class Student extends Authenticatable implements JWTSubject
     use HasFactory, HasVisibilityScope, SoftDeletes, Notifiable;
 
     protected $fillable = [
-        'user_id',
         'branch_id',
         'name',
         'student_code',
