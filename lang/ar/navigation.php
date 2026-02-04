@@ -29,6 +29,7 @@ return [
         'training' => 'التدريب',
         'settings' => 'الإعدادات',
         'enrollment' => 'التسجيل',
+        'system' => 'النظام',
     ],
     'student' => 'طالب',
     'students' => 'الطلاب',
@@ -44,6 +45,7 @@ return [
     'audit_log' => 'سجل التدقيق',
     'receipt_vouchers' => 'سندات القبض',
     'payment_vouchers' => 'سندات الصرف',
+    'course_booking_requests' => 'طلبات حجز الدورات',
     'menu' => 'القائمة',
 ];
 

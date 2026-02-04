@@ -29,6 +29,7 @@ return [
         'training' => 'Training',
         'settings' => 'Settings',
         'enrollment' => 'Enrollment',
+        'system' => 'System',
     ],
     'student' => 'Student',
     'students' => 'Students',
@@ -44,6 +45,7 @@ return [
     'audit_log' => 'Audit Log',
     'receipt_vouchers' => 'Receipt Vouchers',
     'payment_vouchers' => 'Payment Vouchers',
+    'course_booking_requests' => 'Course Booking Requests',
     'menu' => 'Menu',
 ];
 
