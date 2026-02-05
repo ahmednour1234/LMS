@@ -68,6 +68,13 @@ class CourseBookingRequestResource extends Resource
                         Forms\Components\Textarea::make('message')
                             ->label(__('course_booking_requests.message'))
                             ->rows(4)
+                            ->nullable()
+                            ->disabled(),
+                        Forms\Components\Select::make('course_id')
+                            ->label(__('Course'))
+                            ->relationship('course', 'code')
+                            ->searchable()
+                            ->preload()
                             ->disabled(),
                         Forms\Components\TextInput::make('created_at')
                             ->label(__('course_booking_requests.created_at'))
@@ -108,6 +115,10 @@ class CourseBookingRequestResource extends Resource
                 Tables\Columns\TextColumn::make('educational_stage')
                     ->searchable()
                     ->label(__('course_booking_requests.educational_stage')),
+                Tables\Columns\TextColumn::make('course.code')
+                    ->label(__('Course'))
+                    ->sortable()
+                    ->searchable(),
                 Tables\Columns\TextColumn::make('gender')
                     ->badge()
                     ->color(fn (string $state): string => match ($state) {

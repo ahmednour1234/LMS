@@ -16,6 +16,12 @@ class CourseBookingRequestResource extends JsonResource
             'phone' => $this->phone,
             'gender' => $this->gender,
             'message' => $this->message,
+            'course_id' => $this->course_id,
+            'course' => $this->whenLoaded('course', fn() => [
+                'id' => $this->course->id,
+                'code' => $this->course->code,
+                'name' => $this->course->name,
+            ]),
             'status' => $this->status,
             'created_at' => $this->created_at?->toIso8601String(),
         ];
