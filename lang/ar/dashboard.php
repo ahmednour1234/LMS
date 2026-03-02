@@ -35,6 +35,8 @@ return [
         'average_rating' => 'متوسط التقييم',
         'good_courses' => 'الدورات الجيدة',
         'bad_courses' => 'الدورات السيئة',
+        'net_revenue' => 'صافي المستحقات',
+        'net_revenue_description' => 'إجمالي المدفوع للمعلم',
     ],
     'tables' => [
         'latest_courses' => 'أحدث الدورات',

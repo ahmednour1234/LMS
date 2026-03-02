@@ -47,6 +47,7 @@ return [
     'late_count' => 'عدد المتأخرين',
     'excused_count' => 'عدد المعذورين',
     'attendance_rate' => 'معدل الحضور',
+    'rate' => 'معدل الحضور',
     'present' => 'حاضر',
     'absent' => 'غائب',
     'late' => 'متأخر',

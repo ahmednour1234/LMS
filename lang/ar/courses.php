@@ -22,5 +22,6 @@ return [
     'trainers_count' => 'عدد المدربين',
     'is_active' => 'نشط',
     'details' => 'تفاصيل الدورة',
+    'course' => 'الدورة',
 ];
 

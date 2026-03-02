@@ -47,6 +47,7 @@ return [
     'late_count' => 'Late Count',
     'excused_count' => 'Excused Count',
     'attendance_rate' => 'Attendance Rate',
+    'rate' => 'Attendance Rate',
     'present' => 'Present',
     'absent' => 'Absent',
     'late' => 'Late',

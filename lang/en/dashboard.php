@@ -35,6 +35,8 @@ return [
         'average_rating' => 'Average Rating',
         'good_courses' => 'Good Courses',
         'bad_courses' => 'Bad Courses',
+        'net_revenue' => 'Net Revenue',
+        'net_revenue_description' => 'Total paid to teacher',
     ],
     'tables' => [
         'latest_courses' => 'Latest Courses',

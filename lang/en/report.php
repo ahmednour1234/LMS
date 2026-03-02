@@ -32,6 +32,7 @@ return [
 
     'no_data_title' => 'No data found',
     'no_data_desc' => 'Try adjusting your filters (date range, teacher, course, or payment status).',
+    'teacher_revenue_report' => 'Teacher Revenue Report',
     'stats' => [
         'enrollments_total' => 'إجمالي التسجيلات',
         'enrollments_active' => 'التسجيلات النشطة',

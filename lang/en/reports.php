@@ -26,5 +26,9 @@ return [
         'attendance_absent' => 'غياب',
         'attendance_total' => 'سجلات الحضور',
     ],
+    'teacher_revenue_report' => 'Teacher Revenue Report',
+    'no_data' => 'No data',
+    'details' => 'Details',
+    'title' => 'Title',
 ];
 
