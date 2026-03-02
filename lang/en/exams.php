@@ -79,5 +79,8 @@ return [
     'graded_successfully' => 'Exam graded successfully',
     'save' => 'Save',
     'answer_saved' => 'Answer saved successfully',
+    'question_at_least_one_required' => 'Question must be provided in at least one language (Arabic or English)',
+    'points' => 'Points',
+    'order' => 'Order',
 ];
 

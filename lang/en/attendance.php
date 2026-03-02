@@ -68,4 +68,6 @@ return [
     'generated_at' => 'Generated at',
     'no_data_title' => 'No data found',
     'no_data_desc' => 'Try adjusting your filters (date range, teacher, or course).',
+    'select_students_attended' => 'Select students who attended the session',
+    'students' => 'Students',
 ];

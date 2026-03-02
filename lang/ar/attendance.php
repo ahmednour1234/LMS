@@ -68,4 +68,6 @@ return [
     'generated_at' => 'تم الإنشاء في',
     'no_data_title' => 'لا توجد بيانات',
     'no_data_desc' => 'جرّب تعديل الفلاتر (الفترة، المدرس، أو الدورة).',
+    'select_students_attended' => 'اختر الطلاب الذين حضروا الجلسة',
+    'students' => 'الطلاب',
 ];

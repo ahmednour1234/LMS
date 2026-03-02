@@ -114,11 +114,9 @@ class ExamResource extends Resource
                     ->visible(fn (Forms\Get $get) => $get('lesson_id')),
                 Forms\Components\TextInput::make('title.ar')
                     ->label(__('exams.title_ar'))
-                    ->required()
                     ->maxLength(255),
                 Forms\Components\TextInput::make('title.en')
                     ->label(__('exams.title_en'))
-                    ->required()
                     ->maxLength(255),
                 Forms\Components\Textarea::make('description.ar')
                     ->label(__('exams.description_ar'))
@@ -165,12 +163,12 @@ class ExamResource extends Resource
                             ->label(__('exams.type')),
                         Forms\Components\Textarea::make('question.ar')
                             ->label(__('exams.question_ar'))
-                            ->required()
-                            ->rows(2),
+                            ->rows(2)
+                            ->live(),
                         Forms\Components\Textarea::make('question.en')
                             ->label(__('exams.question_en'))
-                            ->required()
-                            ->rows(2),
+                            ->rows(2)
+                            ->live(),
                         Forms\Components\TextInput::make('points')
                             ->numeric()
                             ->required()

@@ -79,5 +79,8 @@ return [
     'graded_successfully' => 'تم تصحيح الامتحان بنجاح',
     'save' => 'حفظ',
     'answer_saved' => 'تم حفظ الإجابة بنجاح',
+    'question_at_least_one_required' => 'يجب إدخال السؤال بالعربي أو بالإنجليزي على الأقل',
+    'points' => 'النقاط',
+    'order' => 'الترتيب',
 ];
 
