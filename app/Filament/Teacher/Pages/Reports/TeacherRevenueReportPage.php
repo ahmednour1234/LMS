@@ -57,8 +57,6 @@ class TeacherRevenueReportPage extends Page implements HasForms
      * Computed data shown in UI
      */
     public array $summary = [
-        'total_sales' => 0.0,
-        'total_paid' => 0.0,
         'total_due' => 0.0,
         'count' => 0,
     ];
@@ -235,13 +233,11 @@ class TeacherRevenueReportPage extends Page implements HasForms
     {
         $rows = collect($this->rows)->map(function (array $row) {
             return [
-                'Reference' => $row['reference'] ?? '',
-                'Student' => $row['student_name'] ?? '',
-                'Course' => $row['course_name'] ?? '',
-                'Total Amount' => number_format((float) ($row['total_amount'] ?? 0), 2),
-                'Paid Amount' => number_format((float) ($row['paid_amount'] ?? 0), 2),
-                'Due Amount' => number_format((float) ($row['due_amount'] ?? 0), 2),
-                'Status' => $row['status'] ?? '',
+                __('report.reference') ?: 'Reference' => $row['reference'] ?? '',
+                __('report.student') ?: 'Student' => $row['student_name'] ?? '',
+                __('report.course') ?: 'Course' => $row['course_name'] ?? '',
+                __('report.due_amount') ?: 'Due Amount' => number_format((float) ($row['due_amount'] ?? 0), 2),
+                __('report.status') ?: 'Status' => $row['status'] ?? '',
             ];
         });
 

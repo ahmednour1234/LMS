@@ -19,82 +19,74 @@ class TeacherRevenueReportService
     ): array {
         $query = Enrollment::query()
             ->join('courses', 'enrollments.course_id', '=', 'courses.id')
-            ->join('teachers', 'courses.owner_teacher_id', '=', 'teachers.id')
-            ->leftJoin('payments', function ($join) use ($dateFrom, $dateTo, $paymentStatus) {
-                $join->on('payments.enrollment_id', '=', 'enrollments.id');
-                if ($dateFrom && $dateTo) {
-                    $join->whereBetween('payments.created_at', [$dateFrom, $dateTo]);
-                }
-                if ($paymentStatus) {
-                    $join->where('payments.status', $paymentStatus);
-                }
+            ->join('students', 'enrollments.student_id', '=', 'students.id')
+            ->leftJoin('payments', function ($join) {
+                $join->on('payments.enrollment_id', '=', 'enrollments.id')
+                    ->where('payments.status', 'completed');
             })
             ->select([
-                'teachers.id as teacher_id',
-                'teachers.name as teacher_name',
-                'courses.id as course_id',
-                DB::raw("JSON_UNQUOTE(JSON_EXTRACT(courses.name, '$.en')) as course_name"),
-                DB::raw('COUNT(DISTINCT enrollments.id) as enrollments_count'),
-                DB::raw('COALESCE(SUM(enrollments.total_amount), 0) as total_amount'),
-                DB::raw('COALESCE(SUM(payments.amount), 0) as total_paid'),
+                'enrollments.id',
+                'enrollments.reference',
+                'enrollments.total_amount',
+                'students.name as student_name',
+                DB::raw("COALESCE(JSON_UNQUOTE(JSON_EXTRACT(courses.name, '$.en')), JSON_UNQUOTE(JSON_EXTRACT(courses.name, '$.ar')), courses.name) as course_name"),
+                DB::raw('COALESCE(SUM(payments.amount), 0) as paid_amount'),
             ])
-            ->groupBy('teachers.id', 'teachers.name', 'courses.id', 'courses.name');
+            ->groupBy('enrollments.id', 'enrollments.reference', 'enrollments.total_amount', 'students.name', 'courses.name');
 
         if ($dateFrom && $dateTo) {
             $query->whereBetween('enrollments.created_at', [$dateFrom, $dateTo]);
         }
 
         if ($teacherId) {
-            $query->where('teachers.id', $teacherId);
+            $query->where('courses.owner_teacher_id', $teacherId);
         }
 
         if ($courseId) {
             $query->where('courses.id', $courseId);
         }
 
-        $results = $query->get();
+        $enrollments = $query->get();
 
-        $grouped = $results->groupBy('teacher_id');
-        $teachers = [];
-        $summary = ['total_revenue' => 0, 'total_paid' => 0, 'total_outstanding' => 0];
+        $enrollmentsData = $enrollments->map(function ($enrollment) {
+            $totalAmount = (float) $enrollment->total_amount;
+            $paidAmount = (float) $enrollment->paid_amount;
+            $dueAmount = max($totalAmount - $paidAmount, 0);
 
-        foreach ($grouped as $teacherId => $courses) {
-            $teacherData = $courses->first();
-            $teacherTotalAmount = $courses->sum('total_amount');
-            $teacherTotalPaid = $courses->sum('total_paid');
-            $teacherOutstanding = $teacherTotalAmount - $teacherTotalPaid;
+            // Determine status
+            $status = 'pending';
+            if ($paidAmount >= $totalAmount) {
+                $status = 'paid';
+            } elseif ($paidAmount > 0) {
+                $status = 'partial';
+            }
 
-            $courseList = $courses->map(function ($row) {
-                return [
-                    'course_id' => $row->course_id,
-                    'course_name' => $row->course_name,
-                    'enrollments_count' => (int) $row->enrollments_count,
-                    'total_amount' => (float) $row->total_amount,
-                    'total_paid' => (float) $row->total_paid,
-                    'outstanding' => (float) $row->total_amount - (float) $row->total_paid,
-                ];
-            })->values()->toArray();
-
-            $teachers[] = [
-                'teacher_id' => (int) $teacherId,
-                'teacher_name' => $teacherData->teacher_name,
-                'courses_count' => count($courseList),
-                'enrollments_count' => (int) $courses->sum('enrollments_count'),
-                'total_amount' => $teacherTotalAmount,
-                'total_paid' => $teacherTotalPaid,
-                'outstanding' => $teacherOutstanding,
-                'courses' => $courseList,
+            return [
+                'reference' => $enrollment->reference ?? '',
+                'student_name' => $enrollment->student_name ?? '',
+                'course_name' => $enrollment->course_name ?? '',
+                'total_amount' => $totalAmount,
+                'paid_amount' => $paidAmount,
+                'due_amount' => $dueAmount,
+                'status' => $status,
             ];
+        })->filter(function ($enrollment) {
+            // Filter to show only enrollments with due amount > 0
+            return $enrollment['due_amount'] > 0;
+        })->values()->toArray();
 
-            $summary['total_revenue'] += $teacherTotalAmount;
-            $summary['total_paid'] += $teacherTotalPaid;
-        }
+        // Calculate summary - only due amounts
+        $totalDue = collect($enrollmentsData)->sum('due_amount');
+        $count = count($enrollmentsData);
 
-        $summary['total_outstanding'] = $summary['total_revenue'] - $summary['total_paid'];
+        $summary = [
+            'total_due' => $totalDue,
+            'count' => $count,
+        ];
 
         return [
             'summary' => $summary,
-            'teachers' => $teachers,
+            'enrollments' => $enrollmentsData,
         ];
     }
 }

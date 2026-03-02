@@ -62,7 +62,8 @@ class TeacherRegistrationsPage extends Page implements HasForms, HasTable
         return Enrollment::query()
             ->whereHas('course', fn (Builder $q) => $q->where('owner_teacher_id', $teacherId))
             ->with(['student', 'course'])
-            ->withSum(['payments as paid_amount_sum' => fn ($q) => $q->where('status', 'completed')], 'amount');
+            ->withSum(['payments as paid_amount_sum' => fn ($q) => $q->where('status', 'completed')], 'amount')
+            ->whereRaw('COALESCE(enrollments.total_amount, 0) > COALESCE((SELECT COALESCE(SUM(amount), 0) FROM payments WHERE payments.enrollment_id = enrollments.id AND payments.status = \'completed\'), 0)');
     }
 
     public function table(Table $table): Table
@@ -91,17 +92,6 @@ class TeacherRegistrationsPage extends Page implements HasForms, HasTable
                     ->searchable()
                     ->sortable(),
 
-                TextColumn::make('total_amount')
-                    ->label(__('enrollments.total_amount') ?: 'Total Amount')
-                    ->money('OMR')
-                    ->sortable(),
-
-                TextColumn::make('paid_amount_sum')
-                    ->label(__('enrollments.paid_amount') ?: 'Paid Amount')
-                    ->money('OMR')
-                    ->sortable()
-                    ->color('success'),
-
                 TextColumn::make('due_amount_calc')
                     ->label(__('enrollments.due_amount') ?: 'Due Amount')
                     ->state(function ($record) {
@@ -109,6 +99,7 @@ class TeacherRegistrationsPage extends Page implements HasForms, HasTable
                         return max(((float) $record->total_amount) - $paid, 0);
                     })
                     ->money('OMR')
+                    ->sortable()
                     ->color(fn ($state) => ((float) $state) > 0 ? 'warning' : 'success'),
 
                 TextColumn::make('status')

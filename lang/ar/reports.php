@@ -30,5 +30,10 @@ return [
     'no_data' => 'لا توجد بيانات',
     'details' => 'التفاصيل',
     'title' => 'العنوان',
+    'registrations_hint' => 'تتبع تسجيلات الطلاب وحالة الدفع.',
+    'total_registrations' => 'إجمالي التسجيلات',
+    'total_amount' => 'إجمالي المبلغ',
+    'paid_amount' => 'المبلغ المدفوع',
+    'due_amount' => 'المبلغ المستحق',
 ];
 

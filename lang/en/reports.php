@@ -30,5 +30,10 @@ return [
     'no_data' => 'No data',
     'details' => 'Details',
     'title' => 'Title',
+    'registrations_hint' => 'Track student registrations and payment status.',
+    'total_registrations' => 'Total Registrations',
+    'total_amount' => 'Total Amount',
+    'paid_amount' => 'Paid Amount',
+    'due_amount' => 'Due Amount',
 ];
 
