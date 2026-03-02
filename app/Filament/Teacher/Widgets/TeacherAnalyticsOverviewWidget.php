@@ -86,13 +86,10 @@ class TeacherAnalyticsOverviewWidget extends BaseWidget
                 ->icon('heroicon-o-user-group')
                 ->color('warning'),
 
-            Stat::make(__('dashboard.stats.total_paid') ?? 'Total Paid', number_format($totalPaid, 2) . ' OMR')
-                ->icon('heroicon-o-check-circle')
-                ->color('success'),
-
-            Stat::make(__('dashboard.stats.total_due') ?? 'Total Due', number_format($totalDue, 2) . ' OMR')
-                ->icon('heroicon-o-exclamation-circle')
-                ->color($totalDue > 0 ? 'danger' : 'success'),
+            Stat::make(__('dashboard.stats.net_revenue') ?? 'Net Revenue', number_format($totalPaid, 2) . ' OMR')
+                ->icon('heroicon-o-currency-dollar')
+                ->color('success')
+                ->description(__('dashboard.stats.net_revenue_description') ?? 'Total paid to teacher'),
         ];
 
         if ($avgRating !== null) {

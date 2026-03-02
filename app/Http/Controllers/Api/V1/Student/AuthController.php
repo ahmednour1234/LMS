@@ -15,7 +15,7 @@ use Tymon\JWTAuth\Facades\JWTAuth;
 
 /**
  * @group Student Auth
- * 
+ *
  * Authentication endpoints for students. All authentication uses the students table, not the default users table.
  */
 class AuthController extends ApiController
@@ -29,12 +29,12 @@ class AuthController extends ApiController
 
     /**
      * Register Student
-     * 
+     *
      * Register a new student account. After registration, an OTP code will be sent to the provided email address.
      * The student status will be set to 'inactive' until email verification is completed.
-     * 
+     *
      * In development environment, the OTP code is always `111111`.
-     * 
+     *
      * @bodyParam name string required The student's full name. Example: John Doe
      * @bodyParam email string required The student's email address (must be unique). Example: john@example.com
      * @bodyParam password string required The password (minimum 8 characters). Example: password123
@@ -44,13 +44,13 @@ class AuthController extends ApiController
      * @bodyParam branch_id integer optional The ID of the branch. Example: 1
      * @bodyParam student_code string optional Unique student code. Example: STU001
      * @bodyParam national_id string optional National ID number. Example: 123456789
-     * 
+     *
      * @response 201 {
      *   "success": true,
      *   "message": "Registration successful. Please check your email for the OTP code.",
      *   "data": null
      * }
-     * 
+     *
      * @response 422 {
      *   "success": false,
      *   "message": "The provided data is invalid.",
@@ -67,22 +67,22 @@ class AuthController extends ApiController
         $student = $this->authService->register($request->validated());
 
         return $this->createdResponse(
-            null,
-            'Registration successful. Please check your email for the OTP code.'
+            new StudentResource($student),
+            'Registration successful.'
         );
     }
 
     /**
      * Verify OTP
-     * 
+     *
      * Verify the OTP code sent to the student's email. Upon successful verification:
      * - The student's email_verified_at will be set
      * - The student's status will be changed to 'active'
      * - A JWT token will be issued (auto-login)
-     * 
+     *
      * @bodyParam email string required The student's email address. Example: john@example.com
      * @bodyParam code string required The 6-digit OTP code. Example: 111111
-     * 
+     *
      * @response 200 {
      *   "success": true,
      *   "message": "Email verified successfully. You are now logged in.",
@@ -103,7 +103,7 @@ class AuthController extends ApiController
      *     }
      *   }
      * }
-     * 
+     *
      * @response 422 {
      *   "success": false,
      *   "message": "Invalid or expired OTP code.",
@@ -128,12 +128,12 @@ class AuthController extends ApiController
 
     /**
      * Login
-     * 
+     *
      * Authenticate a student and return a JWT token. The student must have status 'active' (email verified).
-     * 
+     *
      * @bodyParam email string required The student's email address. Example: john@example.com
      * @bodyParam password string required The student's password. Example: password123
-     * 
+     *
      * @response 200 {
      *   "success": true,
      *   "message": "Login successful.",
@@ -154,7 +154,7 @@ class AuthController extends ApiController
      *     }
      *   }
      * }
-     * 
+     *
      * @response 401 {
      *   "success": false,
      *   "message": "Invalid email or password.",
@@ -162,7 +162,7 @@ class AuthController extends ApiController
      *     "code": "UNAUTHORIZED"
      *   }
      * }
-     * 
+     *
      * @response 403 {
      *   "success": false,
      *   "message": "Email address has not been verified. Please verify your email to continue.",
@@ -187,11 +187,11 @@ class AuthController extends ApiController
 
     /**
      * Get Authenticated Student
-     * 
+     *
      * Get the currently authenticated student's profile information.
-     * 
+     *
      * @authenticated
-     * 
+     *
      * @response 200 {
      *   "success": true,
      *   "message": "Student profile retrieved successfully.",
@@ -208,7 +208,7 @@ class AuthController extends ApiController
      *     "created_at": "2026-01-15T12:00:00+00:00"
      *   }
      * }
-     * 
+     *
      * @response 401 {
      *   "success": false,
      *   "message": "Authentication required.",
@@ -229,11 +229,11 @@ class AuthController extends ApiController
 
     /**
      * Logout
-     * 
+     *
      * Invalidate the current JWT token, effectively logging out the student.
-     * 
+     *
      * @authenticated
-     * 
+     *
      * @response 200 {
      *   "success": true,
      *   "message": "Logged out successfully.",
@@ -252,11 +252,11 @@ class AuthController extends ApiController
 
     /**
      * Refresh Token
-     * 
+     *
      * Get a new JWT token using the current valid token. This extends the session without requiring re-authentication.
-     * 
+     *
      * @authenticated
-     * 
+     *
      * @response 200 {
      *   "success": true,
      *   "message": "Token refreshed successfully.",
@@ -278,12 +278,12 @@ class AuthController extends ApiController
 
     /**
      * Forgot Password
-     * 
+     *
      * Request a password reset OTP code. An OTP will be sent to the provided email address if it exists in the system.
      * For security reasons, the response is the same whether the email exists or not.
-     * 
+     *
      * @bodyParam email string required The student's email address. Example: john@example.com
-     * 
+     *
      * @response 200 {
      *   "success": true,
      *   "message": "If the email exists, an OTP code has been sent to your email address.",
@@ -302,20 +302,20 @@ class AuthController extends ApiController
 
     /**
      * Reset Password
-     * 
+     *
      * Reset the student's password using the OTP code received via email.
-     * 
+     *
      * @bodyParam email string required The student's email address. Example: john@example.com
      * @bodyParam code string required The 6-digit OTP code. Example: 111111
      * @bodyParam password string required The new password (minimum 8 characters). Example: newpassword123
      * @bodyParam password_confirmation string required Password confirmation. Example: newpassword123
-     * 
+     *
      * @response 200 {
      *   "success": true,
      *   "message": "Password reset successfully. You can now login with your new password.",
      *   "data": null
      * }
-     * 
+     *
      * @response 422 {
      *   "success": false,
      *   "message": "Invalid or expired OTP code.",

@@ -68,10 +68,10 @@ Route::prefix('v1')->group(function () {
             });
             Route::get('/lessons', [App\Http\Controllers\Api\V1\Student\LessonController::class, 'index']);
             Route::get('/lessons/{lesson}', [App\Http\Controllers\Api\V1\Student\LessonController::class, 'show']);
-            
+
             // Lesson Items
             Route::get('/lesson-items/{item}', [App\Http\Controllers\Api\V1\Student\LessonItemController::class, 'show']);
-            
+
             // Media Files
             Route::get('/media/{media}/download', [App\Http\Controllers\Api\V1\Student\MediaController::class, 'download'])->name('api.v1.student.media.download');
 

@@ -29,17 +29,13 @@ class StudentAuthService
     {
         // Hash password
         $data['password'] = Hash::make($data['password']);
-        
-        // Set default status to inactive
-        $data['status'] = 'inactive';
-        $data['email_verified_at'] = null;
+
+        // Set status to active and verify email
+        $data['status'] = 'active';
+        $data['email_verified_at'] = now();
 
         // Create student
         $student = Student::create($data);
-
-        // Generate and send OTP
-        $otp = $this->otpService->generate($student->email, 'register_verify', $student->id);
-        $this->sendOtpEmail($student->email, $otp->code, 'register_verify');
 
         return $student;
     }
