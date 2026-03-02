@@ -11,6 +11,7 @@ use Filament\Resources\Resource;
 use Filament\Tables;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Support\Facades\Auth;
 
 class ExpenseResource extends Resource
 {
@@ -46,20 +47,7 @@ class ExpenseResource extends Resource
 
     public static function canViewAny(): bool
     {
-        $user = auth()->user();
-        if (!$user) {
-            return true;
-        }
-
-        // Always show for super admin
-        if ($user->isSuperAdmin()) {
-            return true;
-        }
-
-        // Show for users with expenses permissions or admin role
-        return $user->hasPermissionTo('expenses.viewAny')
-            || $user->hasPermissionTo('expenses.view')
-            || $user->hasRole(['admin', 'super_admin']);
+        return true;
     }
 
     public static function form(Form $form): Form
@@ -91,8 +79,9 @@ class ExpenseResource extends Resource
     {
         return $table
             ->modifyQueryUsing(function (Builder $query) {
-                $user = auth()->user();
-                if (!$user->isSuperAdmin()) {
+                /** @var \App\Models\User|null $user */
+                $user = Auth::user();
+                if ($user && !$user->isSuperAdmin()) {
                     $query->where('branch_id', $user->branch_id)
                         ->where('user_id', $user->id);
                 }
@@ -131,7 +120,11 @@ class ExpenseResource extends Resource
                     ->relationship('branch', 'name')
                     ->searchable()
                     ->label(__('filters.branch'))
-                    ->visible(fn () => auth()->user()->isSuperAdmin()),
+                    ->visible(function () {
+                        /** @var \App\Models\User|null $user */
+                        $user = Auth::user();
+                        return $user?->isSuperAdmin() ?? false;
+                    }),
             ])
             ->actions([
                 Tables\Actions\ViewAction::make(),
