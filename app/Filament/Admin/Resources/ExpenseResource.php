@@ -50,6 +50,11 @@ class ExpenseResource extends Resource
         return true;
     }
 
+    public static function shouldRegisterNavigation(): bool
+    {
+        return true;
+    }
+
     public static function form(Form $form): Form
     {
         return $form
