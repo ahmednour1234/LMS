@@ -37,6 +37,8 @@ return [
     'enrollment' => 'Enrollment',
     'payments' => 'Payments',
     'payment' => 'Payment',
+    'expenses' => 'Expenses',
+    'expense' => 'Expense',
     'ar_invoices' => 'AR Invoices',
     'ar_invoice' => 'AR Invoice',
     'installments' => 'Installments',

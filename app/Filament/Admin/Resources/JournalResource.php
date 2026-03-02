@@ -51,6 +51,11 @@ class JournalResource extends Resource
         return __('navigation.groups.accounting');
     }
 
+    public static function shouldRegisterNavigation(): bool
+    {
+        return false;
+    }
+
     public static function form(Form $form): Form
     {
         return $form
@@ -232,7 +237,7 @@ class JournalResource extends Resource
                         ->action(function ($records) {
                             // Filter out posted journals
                             $deletableRecords = $records->filter(fn (Journal $record) => !$record->isPosted());
-                            
+
                             if ($deletableRecords->isEmpty()) {
                                 \Filament\Notifications\Notification::make()
                                     ->warning()

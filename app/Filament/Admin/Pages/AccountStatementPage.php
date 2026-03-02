@@ -37,6 +37,11 @@ class AccountStatementPage extends Page implements HasForms
         return __('navigation.groups.accounting');
     }
 
+    public static function shouldRegisterNavigation(): bool
+    {
+        return false;
+    }
+
     public ?int $accountId = null;
     public ?string $startDate = null;
     public ?string $endDate = null;

@@ -37,6 +37,11 @@ class GeneralLedgerPage extends Page implements HasForms
         return __('navigation.groups.accounting');
     }
 
+    public static function shouldRegisterNavigation(): bool
+    {
+        return false;
+    }
+
     public ?string $startDate = null;
     public ?string $endDate = null;
     public ?array $accountIds = null;

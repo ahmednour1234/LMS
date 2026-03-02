@@ -35,6 +35,11 @@ class TrialBalancePage extends Page implements HasForms
         return __('navigation.groups.accounting');
     }
 
+    public static function shouldRegisterNavigation(): bool
+    {
+        return false;
+    }
+
     public ?string $reportDate = null;
     
     public ?array $data = [];

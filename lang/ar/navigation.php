@@ -37,6 +37,8 @@ return [
     'enrollment' => 'تسجيل',
     'payments' => 'المدفوعات',
     'payment' => 'دفعة',
+    'expenses' => 'المصروفات',
+    'expense' => 'مصروف',
     'ar_invoices' => 'فواتير الذمم المدينة',
     'ar_invoice' => 'فاتورة الذمم المدينة',
     'installments' => 'الأقساط',
