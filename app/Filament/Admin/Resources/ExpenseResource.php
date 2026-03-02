@@ -15,7 +15,7 @@ use Illuminate\Database\Eloquent\Builder;
 class ExpenseResource extends Resource
 {
     use HasTableExports;
-    
+
     protected static ?string $model = Expense::class;
 
     protected static ?string $navigationIcon = 'heroicon-o-currency-dollar';
@@ -48,16 +48,16 @@ class ExpenseResource extends Resource
     {
         $user = auth()->user();
         if (!$user) {
-            return false;
+            return true;
         }
-        
+
         // Always show for super admin
         if ($user->isSuperAdmin()) {
             return true;
         }
-        
+
         // Show for users with expenses permissions or admin role
-        return $user->hasPermissionTo('expenses.viewAny') 
+        return $user->hasPermissionTo('expenses.viewAny')
             || $user->hasPermissionTo('expenses.view')
             || $user->hasRole(['admin', 'super_admin']);
     }
