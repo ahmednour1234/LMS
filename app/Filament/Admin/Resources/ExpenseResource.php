@@ -44,6 +44,24 @@ class ExpenseResource extends Resource
         return __('navigation.groups.accounting');
     }
 
+    public static function canViewAny(): bool
+    {
+        $user = auth()->user();
+        if (!$user) {
+            return false;
+        }
+        
+        // Always show for super admin
+        if ($user->isSuperAdmin()) {
+            return true;
+        }
+        
+        // Show for users with expenses permissions or admin role
+        return $user->hasPermissionTo('expenses.viewAny') 
+            || $user->hasPermissionTo('expenses.view')
+            || $user->hasRole(['admin', 'super_admin']);
+    }
+
     public static function form(Form $form): Form
     {
         return $form
