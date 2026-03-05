@@ -26,30 +26,30 @@ class AdminPanelProvider extends PanelProvider
         // Ensure locale is set early for Filament resource discovery
         // This runs before Filament discovers resources, so translations work correctly
         $locale = null;
-        
+
         // Try session first
         if (request()->hasSession()) {
             $locale = session('locale');
         }
-        
+
         // Try cookie as fallback
         if (!$locale && request()->hasCookie('locale')) {
             $locale = request()->cookie('locale');
         }
-        
+
         // Use default if none found
         if (!$locale) {
             $locale = config('app.locale', 'en');
         }
-        
+
         // Ensure locale is valid
         if (!in_array($locale, ['en', 'ar'])) {
             $locale = config('app.locale', 'en');
         }
-        
+
         // Set the application locale
         app()->setLocale($locale);
-        
+
         // Set Carbon locale
         if (class_exists(\Carbon\Carbon::class)) {
             \Carbon\Carbon::setLocale($locale);
@@ -77,6 +77,8 @@ class AdminPanelProvider extends PanelProvider
             ->navigationGroups([
                 NavigationGroup::make('system')
                     ->label(__('navigation.groups.system')),
+                NavigationGroup::make('accounting')
+                    ->label(__('navigation.groups.accounting')),
             ])
             ->middleware([
                 EncryptCookies::class,
