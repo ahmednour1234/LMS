@@ -2,9 +2,8 @@
 
 namespace App\Filament\Admin\Widgets;
 
-use App\Domain\Accounting\Models\ArInvoice;
+use App\Domain\Accounting\Models\Expense;
 use App\Domain\Accounting\Models\Payment;
-use App\Domain\Accounting\Models\RevenueRecognition;
 use App\Domain\Enrollment\Models\Enrollment;
 use App\Domain\Enrollment\Models\Student;
 use App\Domain\Training\Models\Course;
@@ -127,76 +126,37 @@ class StatsOverviewWidget extends BaseWidget
                 'chart_color' => 'info',
             ],
 
-            // AR Open Amount
+            // Expenses This Month
             [
-                'label' => __('dashboard.stats.ar_open_amount') ?? 'AR Open Amount',
-                'value_callback' => function(?int $bid) {
-                    $openQuery = ArInvoice::query()
-                        ->whereIn('status', ['open', 'partial'])
-                        ->when($bid, fn (Builder $q) => $q->where('branch_id', $bid));
-                    return (float) (clone $openQuery)->get()->sum('due_amount');
-                },
+                'label' => __('dashboard.stats.expenses_this_month') ?? 'Expenses This Month',
+                'value_callback' => fn(?int $bid) => (float) Expense::query()
+                    ->whereBetween('expense_date', [$monthStart, $monthEnd])
+                    ->when($bid, fn (Builder $q) => $q->where('branch_id', $bid))
+                    ->sum('amount'),
                 'value_formatter' => fn($value) => $this->money($value),
-                'icon' => 'heroicon-o-document-duplicate',
-                'color' => 'warning',
+                'icon' => 'heroicon-o-currency-dollar',
+                'color' => 'danger',
                 'chart' => [
-                    'type' => 'last_days',
-                    'days' => 7,
-                    'callback' => fn(Carbon $date, ?int $bid) => (float) ArInvoice::query()
-                        ->whereIn('status', ['open', 'partial'])
-                        ->whereDate('created_at', '<=', $date)
+                    'type' => 'month_buckets',
+                    'start' => $monthStart,
+                    'end' => $monthEnd,
+                    'points' => 7,
+                    'callback' => fn(Carbon $from, Carbon $to, ?int $bid) => (float) Expense::query()
+                        ->whereBetween('expense_date', [$from, $to])
                         ->when($bid, fn (Builder $q) => $q->where('branch_id', $bid))
-                        ->get()
-                        ->sum('due_amount'),
-                ],
-                'trend' => null,
-                'description' => function($trend, $value, ?int $bid) {
-                    $openQuery = ArInvoice::query()
-                        ->whereIn('status', ['open', 'partial'])
-                        ->when($bid, fn (Builder $q) => $q->where('branch_id', $bid));
-                    $invoiceCount = (clone $openQuery)->count();
-                    return ($invoiceCount > 0 ? "{$invoiceCount} invoices • " : '')
-                        . (__('dashboard.stats.ar_open_amount_desc') ?? 'Accounts receivable outstanding');
-                },
-                'description_icon' => 'heroicon-m-document-text',
-                'chart_color' => 'warning',
-            ],
-
-            // Recognized Revenue This Month
-            [
-                'label' => __('dashboard.stats.recognized_revenue_this_month') ?? 'Recognized Revenue',
-                'value_callback' => fn(?int $bid) => (float) RevenueRecognition::query()
-                    ->whereBetween('recognized_at', [$monthStart, $monthEnd])
-                    ->when($bid, function (Builder $q) use ($bid) {
-                        return $q->whereHas('enrollment', fn (Builder $enr) => $enr->where('branch_id', $bid));
-                    })
-                    ->sum('recognized_amount'),
-                'value_formatter' => fn($value) => $this->money($value),
-                'icon' => 'heroicon-o-chart-bar',
-                'color' => 'success',
-                'chart' => [
-                    'type' => 'last_days',
-                    'days' => 7,
-                    'callback' => fn(Carbon $date, ?int $bid) => (float) RevenueRecognition::query()
-                        ->whereDate('recognized_at', $date)
-                        ->when($bid, function (Builder $q) use ($bid) {
-                            return $q->whereHas('enrollment', fn (Builder $enr) => $enr->where('branch_id', $bid));
-                        })
-                        ->sum('recognized_amount'),
+                        ->sum('amount'),
                 ],
                 'trend' => [
                     'type' => 'vs_previous_period',
-                    'comparison_callback' => fn(?int $bid) => (float) RevenueRecognition::query()
-                        ->whereBetween('recognized_at', [now()->subMonth()->startOfMonth(), now()->subMonth()->endOfMonth()])
-                        ->when($bid, function (Builder $q) use ($bid) {
-                            return $q->whereHas('enrollment', fn (Builder $enr) => $enr->where('branch_id', $bid));
-                        })
-                        ->sum('recognized_amount'),
+                    'comparison_callback' => fn(?int $bid) => (float) Expense::query()
+                        ->whereBetween('expense_date', [now()->subMonth()->startOfMonth(), now()->subMonth()->endOfMonth()])
+                        ->when($bid, fn (Builder $q) => $q->where('branch_id', $bid))
+                        ->sum('amount'),
                     'suffix' => ' vs last month',
                 ],
-                'description' => __('dashboard.stats.recognized_revenue_this_month_desc') ?? 'Revenue recognized this month',
-                'description_icon' => 'heroicon-m-chart-bar',
-                'chart_color' => 'success',
+                'description' => __('dashboard.stats.expenses_this_month_desc') ?? 'Total expenses for current month',
+                'description_icon' => 'heroicon-m-currency-dollar',
+                'chart_color' => 'danger',
             ],
 
             // Total Courses
