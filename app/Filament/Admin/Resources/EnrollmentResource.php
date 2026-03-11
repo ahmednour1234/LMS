@@ -117,12 +117,14 @@ class EnrollmentResource extends Resource
                             ->visible(fn ($record) => $record !== null),
                         Forms\Components\Select::make('student_id')
                             ->relationship('student', 'name')
+                            ->getOptionLabelFromRecordUsing(fn ($record) => (string) ($record->name ?? $record->id ?? ''))
                             ->searchable()
                             ->preload()
                             ->required()
                             ->label(__('enrollments.student')),
                         Forms\Components\Select::make('user_id')
                             ->relationship('user', 'name')
+                            ->getOptionLabelFromRecordUsing(fn ($record) => (string) ($record->name ?? $record->id ?? ''))
                             ->searchable()
                             ->preload()
                             ->label(__('enrollments.user')),
@@ -139,6 +141,11 @@ class EnrollmentResource extends Resource
                                     return $query;
                                 },
                             )
+                            ->getOptionLabelFromRecordUsing(function ($record) {
+                                $code = $record->code ?? (string) $record->id;
+                                $name = is_array($record->name ?? null) ? (($record->name[app()->getLocale()] ?? $record->name['ar'] ?? '') ?? '') : ($record->name ?? '');
+                                return $code . ' - ' . $name;
+                            })
                             ->getOptionLabelUsing(function ($value) {
                                 $course = \App\Domain\Training\Models\Course::find($value);
                                 if (!$course) return '';
@@ -301,6 +308,7 @@ class EnrollmentResource extends Resource
                                     return $query;
                                 }
                             )
+                            ->getOptionLabelFromRecordUsing(fn ($record) => (string) ($record->name ?? $record->id ?? ''))
                             ->searchable()
                             ->preload()
                             ->reactive()
