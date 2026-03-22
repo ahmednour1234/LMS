@@ -13,9 +13,11 @@ class Expense extends Model
     use HasFactory;
 
     protected $fillable = [
+        'expense_type_id',
         'payment_method_id',
         'amount',
         'notes',
+        'recipient',
         'expense_date',
         'branch_id',
         'user_id',
@@ -27,6 +29,11 @@ class Expense extends Model
             'amount' => 'decimal:3',
             'expense_date' => 'date',
         ];
+    }
+
+    public function expenseType(): BelongsTo
+    {
+        return $this->belongsTo(ExpenseType::class);
     }
 
     public function paymentMethod(): BelongsTo

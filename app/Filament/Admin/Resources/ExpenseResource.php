@@ -59,6 +59,40 @@ class ExpenseResource extends Resource
     {
         return $form
             ->schema([
+                Forms\Components\Select::make('expense_type_id')
+                    ->relationship(
+                        'expenseType',
+                        'name',
+                        fn (Builder $query) => $query->where('is_active', true)
+                    )
+                    ->searchable()
+                    ->preload()
+                    ->required()
+                    ->label(__('expenses.expense_type')),
+                Forms\Components\Select::make('branch_id')
+                    ->relationship('branch', 'name')
+                    ->searchable()
+                    ->preload()
+                    ->required()
+                    ->label(__('expenses.branch'))
+                    ->visible(fn (): bool => Auth::user()?->isSuperAdmin() ?? false),
+                Forms\Components\Select::make('user_id')
+                    ->relationship(
+                        'user',
+                        'name',
+                        fn (Builder $query) => $query->when(
+                            Auth::user() && ! Auth::user()->isSuperAdmin() && Auth::user()->branch_id,
+                            fn (Builder $q) => $q->where('branch_id', Auth::user()->branch_id)
+                        )
+                    )
+                    ->searchable()
+                    ->preload()
+                    ->required()
+                    ->default(fn () => Auth::id())
+                    ->label(__('expenses.spent_by')),
+                Forms\Components\TextInput::make('recipient')
+                    ->maxLength(255)
+                    ->label(__('expenses.recipient')),
                 Forms\Components\Select::make('payment_method_id')
                     ->relationship('paymentMethod', 'name', fn (Builder $query) => $query->where('is_active', true))
                     ->searchable()
@@ -86,12 +120,28 @@ class ExpenseResource extends Resource
             ->modifyQueryUsing(function (Builder $query) {
                 /** @var \App\Models\User|null $user */
                 $user = Auth::user();
-                if ($user && !$user->isSuperAdmin()) {
+                if ($user && ! $user->isSuperAdmin()) {
                     $query->where('branch_id', $user->branch_id)
                         ->where('user_id', $user->id);
                 }
             })
             ->columns([
+                Tables\Columns\TextColumn::make('expenseType.name')
+                    ->searchable()
+                    ->sortable()
+                    ->label(__('expenses.expense_type')),
+                Tables\Columns\TextColumn::make('branch.name')
+                    ->searchable()
+                    ->sortable()
+                    ->label(__('expenses.branch')),
+                Tables\Columns\TextColumn::make('user.name')
+                    ->searchable()
+                    ->sortable()
+                    ->label(__('expenses.spent_by')),
+                Tables\Columns\TextColumn::make('recipient')
+                    ->searchable()
+                    ->limit(40)
+                    ->label(__('expenses.recipient')),
                 Tables\Columns\TextColumn::make('paymentMethod.name')
                     ->searchable()
                     ->sortable()
@@ -107,16 +157,23 @@ class ExpenseResource extends Resource
                 Tables\Columns\TextColumn::make('notes')
                     ->limit(50)
                     ->label(__('expenses.notes')),
-                Tables\Columns\TextColumn::make('user.name')
-                    ->searchable()
-                    ->sortable()
-                    ->label(__('expenses.user')),
                 Tables\Columns\TextColumn::make('created_at')
                     ->dateTime()
                     ->sortable()
                     ->toggleable(isToggledHiddenByDefault: true),
             ])
             ->filters([
+                Tables\Filters\SelectFilter::make('expense_type_id')
+                    ->relationship('expenseType', 'name')
+                    ->searchable()
+                    ->label(__('expenses.expense_type')),
+                Tables\Filters\SelectFilter::make('user_id')
+                    ->relationship('user', 'name', fn (Builder $query) => $query->when(
+                        Auth::user() && ! Auth::user()->isSuperAdmin() && Auth::user()->branch_id,
+                        fn (Builder $q) => $q->where('branch_id', Auth::user()->branch_id)
+                    ))
+                    ->searchable()
+                    ->label(__('expenses.spent_by')),
                 Tables\Filters\SelectFilter::make('payment_method_id')
                     ->relationship('paymentMethod', 'name')
                     ->searchable()
@@ -128,7 +185,26 @@ class ExpenseResource extends Resource
                     ->visible(function () {
                         /** @var \App\Models\User|null $user */
                         $user = Auth::user();
+
                         return $user?->isSuperAdmin() ?? false;
+                    }),
+                Tables\Filters\Filter::make('expense_date')
+                    ->form([
+                        Forms\Components\DatePicker::make('from')
+                            ->label(__('expenses.date_from')),
+                        Forms\Components\DatePicker::make('until')
+                            ->label(__('expenses.date_until')),
+                    ])
+                    ->query(function (Builder $query, array $data): Builder {
+                        return $query
+                            ->when(
+                                $data['from'] ?? null,
+                                fn (Builder $q, $date): Builder => $q->whereDate('expense_date', '>=', $date)
+                            )
+                            ->when(
+                                $data['until'] ?? null,
+                                fn (Builder $q, $date): Builder => $q->whereDate('expense_date', '<=', $date)
+                            );
                     }),
             ])
             ->actions([

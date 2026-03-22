@@ -39,6 +39,8 @@ return [
     'payment' => 'دفعة',
     'expenses' => 'المصروفات',
     'expense' => 'مصروف',
+    'expense_types' => 'أنواع المصروفات',
+    'expense_type' => 'نوع مصروف',
     'ar_invoices' => 'فواتير الذمم المدينة',
     'ar_invoice' => 'فاتورة الذمم المدينة',
     'installments' => 'الأقساط',
@@ -50,4 +52,3 @@ return [
     'course_booking_requests' => 'طلبات حجز الدورات',
     'menu' => 'القائمة',
 ];
-

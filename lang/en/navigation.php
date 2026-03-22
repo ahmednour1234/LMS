@@ -39,6 +39,8 @@ return [
     'payment' => 'Payment',
     'expenses' => 'Expenses',
     'expense' => 'Expense',
+    'expense_types' => 'Expense types',
+    'expense_type' => 'Expense type',
     'ar_invoices' => 'AR Invoices',
     'ar_invoice' => 'AR Invoice',
     'installments' => 'Installments',
@@ -50,4 +52,3 @@ return [
     'course_booking_requests' => 'Course Booking Requests',
     'menu' => 'Menu',
 ];
-

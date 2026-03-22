@@ -11,8 +11,13 @@ class CreateExpense extends CreateRecord
 
     protected function mutateFormDataBeforeCreate(array $data): array
     {
-        $data['user_id'] = auth()->id();
-        $data['branch_id'] = auth()->user()->branch_id;
+        $user = auth()->user();
+        if ($user && ! $user->isSuperAdmin()) {
+            $data['branch_id'] = $user->branch_id;
+        }
+        if (empty($data['user_id'])) {
+            $data['user_id'] = $user?->id;
+        }
 
         return $data;
     }
