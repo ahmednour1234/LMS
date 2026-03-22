@@ -9,7 +9,6 @@ use Filament\Forms\Form;
 use Filament\Resources\Resource;
 use Filament\Tables;
 use Filament\Tables\Table;
-use Illuminate\Database\Eloquent\Builder;
 
 class TeacherResource extends Resource
 {
@@ -21,11 +20,11 @@ class TeacherResource extends Resource
 
     protected static ?string $navigationGroup = 'training';
 
-    protected static ?int $navigationSort = 1;
+    protected static ?int $navigationSort = 5;
 
     public static function getNavigationLabel(): string
     {
-        return __('teachers.teachers');
+        return __('navigation.consulting_development_programs');
     }
 
     public static function getModelLabel(): string
@@ -46,6 +45,7 @@ class TeacherResource extends Resource
     public static function canViewAny(): bool
     {
         $user = auth()->user();
+
         return $user && $user->hasAnyRole(['super_admin', 'admin']);
     }
 
@@ -103,7 +103,7 @@ class TeacherResource extends Resource
                     ->label(__('teachers.email')),
                 Tables\Columns\TextColumn::make('sex')
                     ->badge()
-                    ->formatStateUsing(fn (?string $state): string => $state ? __('teachers.sex_options.' . $state) : '-')
+                    ->formatStateUsing(fn (?string $state): string => $state ? __('teachers.sex_options.'.$state) : '-')
                     ->label(__('teachers.sex')),
                 Tables\Columns\IconColumn::make('active')
                     ->boolean()
@@ -131,7 +131,7 @@ class TeacherResource extends Resource
                     ->color(fn ($record) => $record->active ? 'danger' : 'success')
                     ->requiresConfirmation()
                     ->action(function ($record) {
-                        $record->update(['active' => !$record->active]);
+                        $record->update(['active' => ! $record->active]);
                     }),
                 Tables\Actions\EditAction::make(),
             ])

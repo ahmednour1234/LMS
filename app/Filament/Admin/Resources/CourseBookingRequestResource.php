@@ -19,13 +19,13 @@ class CourseBookingRequestResource extends Resource
 
     protected static ?string $navigationIcon = 'heroicon-o-inbox';
 
-    protected static ?string $navigationGroup = 'system';
+    protected static ?string $navigationGroup = 'training';
 
-    protected static ?int $navigationSort = 10;
+    protected static ?int $navigationSort = 6;
 
     public static function getNavigationLabel(): string
     {
-        return __('navigation.course_booking_requests');
+        return __('navigation.requests');
     }
 
     public static function getModelLabel(): string
@@ -40,7 +40,7 @@ class CourseBookingRequestResource extends Resource
 
     public static function getNavigationGroup(): ?string
     {
-        return __('navigation.groups.system');
+        return __('navigation.groups.training');
     }
 
     public static function form(Form $form): Form
@@ -126,7 +126,7 @@ class CourseBookingRequestResource extends Resource
                         'female' => 'success',
                         default => 'gray',
                     })
-                    ->formatStateUsing(fn (string $state): string => __('course_booking_requests.genders.' . $state))
+                    ->formatStateUsing(fn (string $state): string => __('course_booking_requests.genders.'.$state))
                     ->label(__('course_booking_requests.gender')),
                 Tables\Columns\TextColumn::make('status')
                     ->badge()
@@ -137,7 +137,7 @@ class CourseBookingRequestResource extends Resource
                         'closed' => 'gray',
                         default => 'gray',
                     })
-                    ->formatStateUsing(fn (string $state): string => __('course_booking_requests.statuses.' . $state))
+                    ->formatStateUsing(fn (string $state): string => __('course_booking_requests.statuses.'.$state))
                     ->label(__('course_booking_requests.status')),
                 Tables\Columns\TextColumn::make('created_at')
                     ->dateTime()
@@ -227,7 +227,7 @@ class CourseBookingRequestResource extends Resource
                                 'female' => 'success',
                                 default => 'gray',
                             })
-                            ->formatStateUsing(fn (string $state): string => __('course_booking_requests.genders.' . $state))
+                            ->formatStateUsing(fn (string $state): string => __('course_booking_requests.genders.'.$state))
                             ->label(__('course_booking_requests.gender')),
                         Infolists\Components\TextEntry::make('message')
                             ->label(__('course_booking_requests.message'))
@@ -256,7 +256,7 @@ class CourseBookingRequestResource extends Resource
                                 'closed' => 'gray',
                                 default => 'gray',
                             })
-                            ->formatStateUsing(fn (string $state): string => __('course_booking_requests.statuses.' . $state))
+                            ->formatStateUsing(fn (string $state): string => __('course_booking_requests.statuses.'.$state))
                             ->label(__('course_booking_requests.status')),
                         Infolists\Components\TextEntry::make('admin_notes')
                             ->label(__('course_booking_requests.admin_notes'))

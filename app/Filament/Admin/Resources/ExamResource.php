@@ -2,7 +2,6 @@
 
 namespace App\Filament\Admin\Resources;
 
-use App\Domain\Training\Models\Course;
 use App\Domain\Training\Models\Exam;
 use App\Domain\Training\Models\Lesson;
 use App\Filament\Admin\Resources\ExamResource\Pages;
@@ -14,7 +13,6 @@ use Filament\Resources\Resource;
 use Filament\Tables;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
-use Illuminate\Support\Facades\Auth;
 
 class ExamResource extends Resource
 {
@@ -24,7 +22,7 @@ class ExamResource extends Resource
 
     protected static ?string $navigationGroup = 'training';
 
-    protected static ?int $navigationSort = 6;
+    protected static ?int $navigationSort = 24;
 
     public static function getNavigationLabel(): string
     {
@@ -63,6 +61,7 @@ class ExamResource extends Resource
                         if ($courseId) {
                             $query->whereHas('section', fn ($q) => $q->where('course_id', $courseId));
                         }
+
                         return $query->orderBy('id');
                     })
                     ->getOptionLabelUsing(function ($record): string {
@@ -70,6 +69,7 @@ class ExamResource extends Resource
                             return MultilingualHelper::formatMultilingualField($record->title) ?: 'N/A';
                         }
                         $lesson = Lesson::find($record);
+
                         return $lesson ? (MultilingualHelper::formatMultilingualField($lesson->title) ?: 'N/A') : 'N/A';
                     })
                     ->searchable()
@@ -141,7 +141,7 @@ class ExamResource extends Resource
                     ->label(__('exams.title')),
                 Tables\Columns\TextColumn::make('type')
                     ->badge()
-                    ->formatStateUsing(fn ($state) => __('exams.type_options.' . $state))
+                    ->formatStateUsing(fn ($state) => __('exams.type_options.'.$state))
                     ->label(__('exams.type')),
                 Tables\Columns\TextColumn::make('total_score')
                     ->sortable()

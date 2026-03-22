@@ -20,8 +20,10 @@ class LessonResource extends Resource
     protected static ?string $model = Lesson::class;
 
     protected static ?string $navigationIcon = 'heroicon-o-book-open';
+
     protected static ?string $navigationGroup = 'training';
-    protected static ?int $navigationSort = 4;
+
+    protected static ?int $navigationSort = 2;
 
     public static function getNavigationLabel(): string
     {
@@ -46,6 +48,7 @@ class LessonResource extends Resource
     public static function canViewAny(): bool
     {
         $user = auth()->user();
+
         return $user && $user->hasAnyRole(['super_admin', 'admin']);
     }
 
@@ -55,12 +58,12 @@ class LessonResource extends Resource
      */
     protected static function sectionLabel(?CourseSection $section): string
     {
-        if (!$section) {
+        if (! $section) {
             return 'N/A';
         }
 
         $course = $section->course;
-        $courseCodeOrId = $course?->code ?: ('Course#' . ($course?->id ?? 'N/A'));
+        $courseCodeOrId = $course?->code ?: ('Course#'.($course?->id ?? 'N/A'));
 
         $ar = data_get($section->title, 'ar');
         $en = data_get($section->title, 'en');
@@ -92,9 +95,9 @@ class LessonResource extends Resource
                         ->with('course:id,code')
                         ->where(function (Builder $q) use ($search) {
                             $q->where('id', $search)
-                              ->orWhereHas('course', fn (Builder $cq) => $cq->where('code', 'like', "%{$search}%"))
-                              ->orWhereRaw("JSON_UNQUOTE(JSON_EXTRACT(title, '$.ar')) LIKE ?", ["%{$search}%"])
-                              ->orWhereRaw("JSON_UNQUOTE(JSON_EXTRACT(title, '$.en')) LIKE ?", ["%{$search}%"]);
+                                ->orWhereHas('course', fn (Builder $cq) => $cq->where('code', 'like', "%{$search}%"))
+                                ->orWhereRaw("JSON_UNQUOTE(JSON_EXTRACT(title, '$.ar')) LIKE ?", ["%{$search}%"])
+                                ->orWhereRaw("JSON_UNQUOTE(JSON_EXTRACT(title, '$.en')) LIKE ?", ["%{$search}%"]);
                         })
                         ->orderBy('order')
                         ->limit(50)
@@ -128,8 +131,8 @@ class LessonResource extends Resource
             Forms\Components\Select::make('lesson_type')
                 ->options([
                     LessonType::RECORDED->value => __('lessons.lesson_type_options.recorded'),
-                    LessonType::LIVE->value     => __('lessons.lesson_type_options.live'),
-                    LessonType::MIXED->value    => __('lessons.lesson_type_options.mixed'),
+                    LessonType::LIVE->value => __('lessons.lesson_type_options.live'),
+                    LessonType::MIXED->value => __('lessons.lesson_type_options.mixed'),
                 ])
                 ->default(LessonType::RECORDED->value)
                 ->required()
@@ -184,15 +187,15 @@ class LessonResource extends Resource
                     ->badge()
                     ->formatStateUsing(fn ($state) => match ($state?->value ?? $state) {
                         LessonType::RECORDED->value => __('Recorded'),
-                        LessonType::LIVE->value     => __('Live'),
-                        LessonType::MIXED->value    => __('Mixed'),
-                        default                     => $state,
+                        LessonType::LIVE->value => __('Live'),
+                        LessonType::MIXED->value => __('Mixed'),
+                        default => $state,
                     })
                     ->color(fn ($state) => match ($state?->value ?? $state) {
                         LessonType::RECORDED->value => 'success',
-                        LessonType::LIVE->value     => 'warning',
-                        LessonType::MIXED->value    => 'info',
-                        default                     => 'gray',
+                        LessonType::LIVE->value => 'warning',
+                        LessonType::MIXED->value => 'info',
+                        default => 'gray',
                     })
                     ->label(__('Type')),
 
@@ -231,8 +234,8 @@ class LessonResource extends Resource
                 Tables\Filters\SelectFilter::make('lesson_type')
                     ->options([
                         LessonType::RECORDED->value => __('Recorded'),
-                        LessonType::LIVE->value     => __('Live'),
-                        LessonType::MIXED->value    => __('Mixed'),
+                        LessonType::LIVE->value => __('Live'),
+                        LessonType::MIXED->value => __('Mixed'),
                     ])
                     ->label(__('Lesson Type')),
 
@@ -266,10 +269,10 @@ class LessonResource extends Resource
     public static function getPages(): array
     {
         return [
-            'index'  => Pages\ListLessons::route('/'),
+            'index' => Pages\ListLessons::route('/'),
             'create' => Pages\CreateLesson::route('/create'),
-            'view'   => Pages\ViewLesson::route('/{record}'),
-            'edit'   => Pages\EditLesson::route('/{record}/edit'),
+            'view' => Pages\ViewLesson::route('/{record}'),
+            'edit' => Pages\EditLesson::route('/{record}/edit'),
         ];
     }
 }

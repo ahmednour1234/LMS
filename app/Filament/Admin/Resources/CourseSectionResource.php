@@ -20,8 +20,10 @@ class CourseSectionResource extends Resource
     protected static ?string $model = CourseSection::class;
 
     protected static ?string $navigationIcon = 'heroicon-o-rectangle-stack';
+
     protected static ?string $navigationGroup = 'training';
-    protected static ?int $navigationSort = 3;
+
+    protected static ?int $navigationSort = 20;
 
     public static function getNavigationLabel(): string
     {
@@ -51,7 +53,7 @@ class CourseSectionResource extends Resource
         $query = Course::query()->orderBy('code');
 
         $user = Auth::user();
-        if (!$user || $user->isSuperAdmin()) {
+        if (! $user || $user->isSuperAdmin()) {
             return $query;
         }
 
@@ -113,7 +115,7 @@ class CourseSectionResource extends Resource
                 // eager load to avoid N+1
                 $query->with(['course']);
 
-                if (!$user || $user->isSuperAdmin()) {
+                if (! $user || $user->isSuperAdmin()) {
                     return $query;
                 }
 
@@ -183,10 +185,10 @@ class CourseSectionResource extends Resource
     public static function getPages(): array
     {
         return [
-            'index'  => Pages\ListCourseSections::route('/'),
+            'index' => Pages\ListCourseSections::route('/'),
             'create' => Pages\CreateCourseSection::route('/create'),
-            'view'   => Pages\ViewCourseSection::route('/{record}'),
-            'edit'   => Pages\EditCourseSection::route('/{record}/edit'),
+            'view' => Pages\ViewCourseSection::route('/{record}'),
+            'edit' => Pages\EditCourseSection::route('/{record}/edit'),
         ];
     }
 }

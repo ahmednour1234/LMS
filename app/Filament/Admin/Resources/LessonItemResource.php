@@ -2,7 +2,6 @@
 
 namespace App\Filament\Admin\Resources;
 
-use App\Domain\Media\Models\MediaFile;
 use App\Domain\Training\Models\Lesson;
 use App\Domain\Training\Models\LessonItem;
 use App\Filament\Admin\Resources\LessonItemResource\Pages;
@@ -18,8 +17,10 @@ class LessonItemResource extends Resource
     protected static ?string $model = LessonItem::class;
 
     protected static ?string $navigationIcon = 'heroicon-o-document';
+
     protected static ?string $navigationGroup = 'training';
-    protected static ?int $navigationSort = 5;
+
+    protected static ?int $navigationSort = 23;
 
     public static function getNavigationLabel(): string
     {
@@ -90,7 +91,7 @@ class LessonItemResource extends Resource
                     modifyQueryUsing: function (Builder $query) {
                         $user = auth()->user();
 
-                        if ($user && method_exists($user, 'isSuperAdmin') && !$user->isSuperAdmin()) {
+                        if ($user && method_exists($user, 'isSuperAdmin') && ! $user->isSuperAdmin()) {
                             $query->whereHas('section.course.program', fn ($q) => $q->where('programs.branch_id', $user->branch_id));
                         }
 
@@ -118,9 +119,9 @@ class LessonItemResource extends Resource
                 ->label(__('lesson_items.type'))
                 ->options([
                     'video' => __('lesson_items.type_options.video'),
-                    'pdf'   => __('lesson_items.type_options.pdf'),
-                    'file'  => __('lesson_items.type_options.file'),
-                    'link'  => __('lesson_items.type_options.link'),
+                    'pdf' => __('lesson_items.type_options.pdf'),
+                    'file' => __('lesson_items.type_options.file'),
+                    'link' => __('lesson_items.type_options.link'),
                 ])
                 ->required()
                 ->live(),
@@ -141,7 +142,9 @@ class LessonItemResource extends Resource
                 ->preload()
                 ->relationship('mediaFile', 'id') // id آمن
                 ->getOptionLabelFromRecordUsing(function ($record): string {
-                    if (!$record) return 'Untitled File';
+                    if (! $record) {
+                        return 'Untitled File';
+                    }
 
                     $name = $record->original_filename
                         ?? $record->filename
@@ -179,7 +182,7 @@ class LessonItemResource extends Resource
                 $query->with(['lesson', 'mediaFile']);
 
                 // Apply branch filter if user is not super admin
-                if ($user && method_exists($user, 'isSuperAdmin') && !$user->isSuperAdmin()) {
+                if ($user && method_exists($user, 'isSuperAdmin') && ! $user->isSuperAdmin()) {
                     $query->whereHas('lesson.section.course.program', fn ($q) => $q->where('programs.branch_id', $user->branch_id));
                 }
 
@@ -190,7 +193,7 @@ class LessonItemResource extends Resource
                     ->label(__('lesson_items.lesson'))
                     ->getStateUsing(function (LessonItem $record) {
                         // Ensure lesson is loaded
-                        if (!$record->relationLoaded('lesson')) {
+                        if (! $record->relationLoaded('lesson')) {
                             $record->load('lesson');
                         }
 
@@ -212,7 +215,7 @@ class LessonItemResource extends Resource
                 Tables\Columns\TextColumn::make('type')
                     ->label(__('lesson_items.type'))
                     ->badge()
-                    ->formatStateUsing(fn ($state) => __('lesson_items.type_options.' . $state)),
+                    ->formatStateUsing(fn ($state) => __('lesson_items.type_options.'.$state)),
 
                 Tables\Columns\TextColumn::make('title_display')
                     ->label(__('lesson_items.title'))
@@ -220,7 +223,7 @@ class LessonItemResource extends Resource
                     ->searchable(query: function (Builder $query, string $search) {
                         // بحث داخل JSON (MySQL) لو محتاج:
                         $query->where('title->en', 'like', "%{$search}%")
-                              ->orWhere('title->ar', 'like', "%{$search}%");
+                            ->orWhere('title->ar', 'like', "%{$search}%");
                     })
                     ->sortable(query: function (Builder $query, string $direction) {
                         $query->orderBy('id', $direction);
@@ -242,7 +245,7 @@ class LessonItemResource extends Resource
 
                         $q = Lesson::query()->orderBy('id');
 
-                        if ($user && method_exists($user, 'isSuperAdmin') && !$user->isSuperAdmin()) {
+                        if ($user && method_exists($user, 'isSuperAdmin') && ! $user->isSuperAdmin()) {
                             $q->whereHas('section.course', fn ($x) => $x->where('branch_id', $user->branch_id));
                         }
 
@@ -257,9 +260,9 @@ class LessonItemResource extends Resource
                     ->label(__('lesson_items.type'))
                     ->options([
                         'video' => __('lesson_items.type_options.video'),
-                        'pdf'   => __('lesson_items.type_options.pdf'),
-                        'file'  => __('lesson_items.type_options.file'),
-                        'link'  => __('lesson_items.type_options.link'),
+                        'pdf' => __('lesson_items.type_options.pdf'),
+                        'file' => __('lesson_items.type_options.file'),
+                        'link' => __('lesson_items.type_options.link'),
                     ]),
 
                 Tables\Filters\TernaryFilter::make('is_active')
@@ -279,10 +282,10 @@ class LessonItemResource extends Resource
     public static function getPages(): array
     {
         return [
-            'index'  => Pages\ListLessonItems::route('/'),
+            'index' => Pages\ListLessonItems::route('/'),
             'create' => Pages\CreateLessonItem::route('/create'),
-            'view'   => Pages\ViewLessonItem::route('/{record}'),
-            'edit'   => Pages\EditLessonItem::route('/{record}/edit'),
+            'view' => Pages\ViewLessonItem::route('/{record}'),
+            'edit' => Pages\EditLessonItem::route('/{record}/edit'),
         ];
     }
 }

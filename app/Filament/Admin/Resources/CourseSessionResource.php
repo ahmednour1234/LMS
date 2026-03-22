@@ -4,19 +4,14 @@ namespace App\Filament\Admin\Resources;
 
 use App\Domain\Training\Enums\SessionLocationType;
 use App\Domain\Training\Enums\SessionStatus;
-use App\Domain\Training\Models\Course;
 use App\Domain\Training\Models\CourseSession;
-use App\Domain\Training\Models\Lesson;
-use App\Domain\Training\Models\Teacher;
 use App\Filament\Admin\Resources\CourseSessionResource\Pages;
 use App\Http\Services\AttendanceService;
-use App\Http\Services\CourseSessionService;
 use Filament\Forms;
 use Filament\Forms\Form;
 use Filament\Resources\Resource;
 use Filament\Tables;
 use Filament\Tables\Table;
-use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Facades\App;
 
 class CourseSessionResource extends Resource
@@ -27,7 +22,7 @@ class CourseSessionResource extends Resource
 
     protected static ?string $navigationGroup = 'training';
 
-    protected static ?int $navigationSort = 3;
+    protected static ?int $navigationSort = 22;
 
     public static function getNavigationLabel(): string
     {
@@ -139,15 +134,15 @@ class CourseSessionResource extends Resource
                     ->sortable()
                     ->label(__('attendance.ends_at')),
                 Tables\Columns\TextColumn::make('location_type')
-                    ->formatStateUsing(fn ($state) => $state instanceof SessionLocationType 
-                        ? __('attendance.location_type_options.' . $state->value)
-                        : (is_string($state) ? __('attendance.location_type_options.' . $state) : $state))
+                    ->formatStateUsing(fn ($state) => $state instanceof SessionLocationType
+                        ? __('attendance.location_type_options.'.$state->value)
+                        : (is_string($state) ? __('attendance.location_type_options.'.$state) : $state))
                     ->badge()
                     ->label(__('attendance.location_type')),
                 Tables\Columns\TextColumn::make('status')
                     ->formatStateUsing(fn ($state) => $state instanceof SessionStatus
-                        ? __('attendance.status_options.' . $state->value)
-                        : __('attendance.status_options.' . $state))
+                        ? __('attendance.status_options.'.$state->value)
+                        : __('attendance.status_options.'.$state))
                     ->badge()
                     ->label(__('attendance.status')),
                 Tables\Columns\TextColumn::make('room_slug')
@@ -212,7 +207,7 @@ class CourseSessionResource extends Resource
                                 $enrollments = \App\Domain\Enrollment\Models\Enrollment::where('course_id', $record->course_id)
                                     ->where('status', \App\Enums\EnrollmentStatus::ACTIVE)
                                     ->pluck('id');
-                                
+
                                 foreach ($enrollments as $enrollmentId) {
                                     $set("attendance.{$enrollmentId}", 'present');
                                 }
@@ -224,7 +219,7 @@ class CourseSessionResource extends Resource
                                 $enrollments = \App\Domain\Enrollment\Models\Enrollment::where('course_id', $record->course_id)
                                     ->where('status', \App\Enums\EnrollmentStatus::ACTIVE)
                                     ->pluck('id');
-                                
+
                                 foreach ($enrollments as $enrollmentId) {
                                     $set("attendance.{$enrollmentId}", 'absent');
                                 }

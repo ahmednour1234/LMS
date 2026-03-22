@@ -4,9 +4,6 @@ namespace App\Filament\Admin\Pages;
 
 use App\Domain\Training\Models\Course;
 use App\Domain\Training\Models\Teacher;
-use App\Http\Services\Reports\AttendanceReportService;
-use Carbon\Carbon;
-use Filament\Actions\Action;
 use Filament\Forms\Components\DatePicker;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Concerns\InteractsWithForms;
@@ -33,12 +30,15 @@ class AttendanceReportPage extends Page implements HasForms
 
     public static function getNavigationGroup(): ?string
     {
-        return __('Reports');
+        return __('navigation.groups.reports');
     }
 
     public ?string $dateFrom = null;
+
     public ?string $dateTo = null;
+
     public ?int $teacherId = null;
+
     public ?int $courseId = null;
 
     public ?array $data = [];
@@ -74,6 +74,7 @@ class AttendanceReportPage extends Page implements HasForms
                     ->label(__('Course'))
                     ->options(Course::query()->get()->mapWithKeys(function ($course) {
                         $name = is_array($course->name) ? ($course->name['en'] ?? $course->name['ar'] ?? '') : $course->name;
+
                         return [$course->id => $name];
                     }))
                     ->searchable()

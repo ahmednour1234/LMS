@@ -21,7 +21,7 @@ class ExamQuestionResource extends Resource
 
     protected static ?string $navigationGroup = 'training';
 
-    protected static ?int $navigationSort = 6;
+    protected static ?int $navigationSort = 25;
 
     public static function getNavigationLabel(): string
     {
@@ -54,6 +54,7 @@ class ExamQuestionResource extends Resource
                             return MultilingualHelper::formatMultilingualField($record->title) ?: 'N/A';
                         }
                         $exam = Exam::find($record);
+
                         return $exam ? (MultilingualHelper::formatMultilingualField($exam->title) ?: 'N/A') : 'N/A';
                     })
                     ->searchable()
@@ -80,11 +81,11 @@ class ExamQuestionResource extends Resource
                     ->afterStateHydrated(function ($component, $state, $record) {
                         if ($record && $record->question) {
                             $question = is_array($record->question) ? $record->question : [];
-                            if (!empty($question['ar']) && empty($question['en'])) {
+                            if (! empty($question['ar']) && empty($question['en'])) {
                                 $component->state('ar');
-                            } elseif (!empty($question['en']) && empty($question['ar'])) {
+                            } elseif (! empty($question['en']) && empty($question['ar'])) {
                                 $component->state('en');
-                            } elseif (!empty($question['ar'])) {
+                            } elseif (! empty($question['ar'])) {
                                 $component->state('ar');
                             } else {
                                 $component->state('en');
@@ -132,14 +133,15 @@ class ExamQuestionResource extends Resource
                         $opts = [];
                         foreach ($options as $index => $option) {
                             if (is_array($option)) {
-                                $text = $option['en'] ?? $option['ar'] ?? "Option " . ($index + 1);
+                                $text = $option['en'] ?? $option['ar'] ?? 'Option '.($index + 1);
                             } elseif (is_string($option)) {
                                 $text = $option;
                             } else {
-                                $text = "Option " . ($index + 1);
+                                $text = 'Option '.($index + 1);
                             }
                             $opts[$index] = $text;
                         }
+
                         return $opts;
                     })
                     ->visible(fn ($get) => $get('type') === 'mcq')
@@ -169,7 +171,7 @@ class ExamQuestionResource extends Resource
                     ->label(__('exam_questions.exam')),
                 Tables\Columns\TextColumn::make('type')
                     ->badge()
-                    ->formatStateUsing(fn ($state) => __('exam_questions.type_options.' . $state))
+                    ->formatStateUsing(fn ($state) => __('exam_questions.type_options.'.$state))
                     ->label(__('exam_questions.type')),
                 Tables\Columns\TextColumn::make('question')
                     ->formatStateUsing(fn ($state) => is_array($state) ? ($state[app()->getLocale()] ?? $state['ar'] ?? '') : ($state ?? ''))

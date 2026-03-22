@@ -2,13 +2,14 @@
 
 namespace App\Providers\Filament;
 
+use App\Filament\Admin\Resources\CourseResource;
 use App\Http\Middleware\SetLocale;
 use Filament\Http\Middleware\Authenticate;
 use Filament\Http\Middleware\AuthenticateSession;
 use Filament\Http\Middleware\DisableBladeIconComponents;
 use Filament\Http\Middleware\DispatchServingFilamentEvent;
 use Filament\Navigation\NavigationGroup;
-use Filament\Pages;
+use Filament\Navigation\NavigationItem;
 use Filament\Panel;
 use Filament\PanelProvider;
 use Filament\Support\Colors\Color;
@@ -33,17 +34,17 @@ class AdminPanelProvider extends PanelProvider
         }
 
         // Try cookie as fallback
-        if (!$locale && request()->hasCookie('locale')) {
+        if (! $locale && request()->hasCookie('locale')) {
             $locale = request()->cookie('locale');
         }
 
         // Use default if none found
-        if (!$locale) {
+        if (! $locale) {
             $locale = config('app.locale', 'en');
         }
 
         // Ensure locale is valid
-        if (!in_array($locale, ['en', 'ar'])) {
+        if (! in_array($locale, ['en', 'ar'])) {
             $locale = config('app.locale', 'en');
         }
 
@@ -74,11 +75,27 @@ class AdminPanelProvider extends PanelProvider
             ->pages([
                 \App\Filament\Admin\Pages\Dashboard::class,
             ])
+            ->navigationItems([
+                NavigationItem::make('create-courses')
+                    ->label(fn () => __('navigation.create_courses'))
+                    ->url(fn () => CourseResource::getUrl('create'))
+                    ->icon('heroicon-o-plus-circle')
+                    ->group('training')
+                    ->sort(4),
+            ])
             ->navigationGroups([
-                NavigationGroup::make('system')
-                    ->label(__('navigation.groups.system')),
+                NavigationGroup::make('training')
+                    ->label(__('navigation.groups.training')),
+                NavigationGroup::make('enrollment')
+                    ->label(__('navigation.groups.enrollment')),
                 NavigationGroup::make('accounting')
                     ->label(__('navigation.groups.accounting')),
+                NavigationGroup::make('reports')
+                    ->label(__('navigation.groups.reports')),
+                NavigationGroup::make('system')
+                    ->label(__('navigation.groups.system')),
+                NavigationGroup::make('settings')
+                    ->label(__('navigation.groups.settings')),
             ])
             ->middleware([
                 EncryptCookies::class,

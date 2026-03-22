@@ -20,8 +20,10 @@ class TaskSubmissionResource extends Resource
     protected static ?string $model = TaskSubmission::class;
 
     protected static ?string $navigationIcon = 'heroicon-o-paper-clip';
+
     protected static ?string $navigationGroup = 'training';
-    protected static ?int $navigationSort = 8;
+
+    protected static ?int $navigationSort = 27;
 
     public static function getNavigationLabel(): string
     {
@@ -54,7 +56,7 @@ class TaskSubmissionResource extends Resource
         $query = Task::query()->orderBy('id');
 
         $user = Auth::user();
-        if (!$user || $user->isSuperAdmin()) {
+        if (! $user || $user->isSuperAdmin()) {
             return $query;
         }
 
@@ -134,7 +136,7 @@ class TaskSubmissionResource extends Resource
 
             Forms\Components\Select::make('status')
                 ->options([
-                    'pending'  => __('task_submissions.status_options.pending'),
+                    'pending' => __('task_submissions.status_options.pending'),
                     'reviewed' => __('task_submissions.status_options.reviewed'),
                 ])
                 ->required()
@@ -149,7 +151,7 @@ class TaskSubmissionResource extends Resource
                 $query->with(['task', 'student']);
 
                 $user = Auth::user();
-                if (!$user || $user->isSuperAdmin()) {
+                if (! $user || $user->isSuperAdmin()) {
                     return $query;
                 }
 
@@ -169,8 +171,7 @@ class TaskSubmissionResource extends Resource
             ->columns([
                 Tables\Columns\TextColumn::make('task.title')
                     ->label(__('task_submissions.task'))
-                    ->formatStateUsing(fn ($state, $record) =>
-                        $record?->task?->title
+                    ->formatStateUsing(fn ($state, $record) => $record?->task?->title
                             ? MultilingualHelper::formatMultilingualField($record->task->title)
                             : ''
                     )
@@ -182,7 +183,7 @@ class TaskSubmissionResource extends Resource
 
                 Tables\Columns\TextColumn::make('status')
                     ->badge()
-                    ->formatStateUsing(fn ($state) => __('task_submissions.status_options.' . $state))
+                    ->formatStateUsing(fn ($state) => __('task_submissions.status_options.'.$state))
                     ->label(__('task_submissions.status')),
 
                 Tables\Columns\TextColumn::make('score')
@@ -212,7 +213,7 @@ class TaskSubmissionResource extends Resource
 
                 Tables\Filters\SelectFilter::make('status')
                     ->options([
-                        'pending'  => __('task_submissions.status_options.pending'),
+                        'pending' => __('task_submissions.status_options.pending'),
                         'reviewed' => __('task_submissions.status_options.reviewed'),
                     ])
                     ->label(__('task_submissions.status')),
@@ -231,10 +232,10 @@ class TaskSubmissionResource extends Resource
     public static function getPages(): array
     {
         return [
-            'index'  => Pages\ListTaskSubmissions::route('/'),
+            'index' => Pages\ListTaskSubmissions::route('/'),
             'create' => Pages\CreateTaskSubmission::route('/create'),
-            'view'   => Pages\ViewTaskSubmission::route('/{record}'),
-            'edit'   => Pages\EditTaskSubmission::route('/{record}/edit'),
+            'view' => Pages\ViewTaskSubmission::route('/{record}'),
+            'edit' => Pages\EditTaskSubmission::route('/{record}/edit'),
         ];
     }
 }

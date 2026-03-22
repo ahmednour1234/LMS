@@ -38,13 +38,17 @@ class TeachersRevenueReportPage extends Page implements HasForms
 
     public static function getNavigationGroup(): ?string
     {
-        return __('Reports');
+        return __('navigation.groups.reports');
     }
 
     public ?string $dateFrom = null;
+
     public ?string $dateTo = null;
+
     public ?int $teacherId = null;
+
     public ?int $courseId = null;
+
     public ?string $paymentStatus = null;
 
     public ?array $data = [];
@@ -92,16 +96,16 @@ class TeachersRevenueReportPage extends Page implements HasForms
                         }
                     }
 
-                    $filename = 'teachers-revenue-report-' . now()->format('Y-m-d_His');
-                    $filePath = storage_path('app/temp/' . $filename . '.xlsx');
+                    $filename = 'teachers-revenue-report-'.now()->format('Y-m-d_His');
+                    $filePath = storage_path('app/temp/'.$filename.'.xlsx');
                     $directory = dirname($filePath);
-                    if (!is_dir($directory)) {
+                    if (! is_dir($directory)) {
                         mkdir($directory, 0755, true);
                     }
 
                     (new FastExcel($exportData))->export($filePath);
 
-                    return response()->download($filePath, $filename . '.xlsx')->deleteFileAfterSend(true);
+                    return response()->download($filePath, $filename.'.xlsx')->deleteFileAfterSend(true);
                 }),
             Action::make('exportPdf')
                 ->label(__('exports.pdf'))
@@ -130,7 +134,7 @@ class TeachersRevenueReportPage extends Page implements HasForms
 
                     return response()->streamDownload(function () use ($pdfContent) {
                         echo $pdfContent;
-                    }, 'teachers-revenue-report-' . now()->format('YmdHis') . '.pdf', [
+                    }, 'teachers-revenue-report-'.now()->format('YmdHis').'.pdf', [
                         'Content-Type' => 'application/pdf',
                     ]);
                 }),
@@ -158,6 +162,7 @@ class TeachersRevenueReportPage extends Page implements HasForms
                     ->label(__('Course'))
                     ->options(Course::query()->get()->mapWithKeys(function ($course) {
                         $name = is_array($course->name) ? ($course->name['en'] ?? $course->name['ar'] ?? '') : $course->name;
+
                         return [$course->id => $name];
                     }))
                     ->searchable()

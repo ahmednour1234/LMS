@@ -4,7 +4,6 @@ namespace App\Filament\Admin\Resources;
 
 use App\Domain\Training\Enums\DeliveryType;
 use App\Domain\Training\Models\Course;
-use App\Domain\Training\Models\Teacher;
 use App\Filament\Admin\Resources\CourseResource\Pages;
 use App\Support\Helpers\MultilingualHelper;
 use Filament\Forms;
@@ -12,21 +11,20 @@ use Filament\Forms\Form;
 use Filament\Resources\Resource;
 use Filament\Tables;
 use Filament\Tables\Table;
-use Illuminate\Database\Eloquent\Builder;
 
 class CourseResource extends Resource
 {
     protected static ?string $model = Course::class;
 
-    protected static ?string $navigationIcon = 'heroicon-o-book-open';
+    protected static ?string $navigationIcon = 'heroicon-o-squares-2x2';
 
     protected static ?string $navigationGroup = 'training';
 
-    protected static ?int $navigationSort = 2;
+    protected static ?int $navigationSort = 3;
 
     public static function getNavigationLabel(): string
     {
-        return __('navigation.courses');
+        return __('navigation.training_programs');
     }
 
     public static function getModelLabel(): string
@@ -36,7 +34,7 @@ class CourseResource extends Resource
 
     public static function getPluralModelLabel(): string
     {
-        return __('navigation.courses');
+        return __('navigation.training_programs');
     }
 
     public static function getNavigationGroup(): ?string
@@ -107,9 +105,9 @@ class CourseResource extends Resource
                                 ->collapsible(),
                         ]),
                 ])
-                ->submitAction(Forms\Components\Actions\Action::make('create')
-                    ->label(__('filament-panels::resources/pages/create-record.form.actions.create.label'))
-                    ->submit('create')),
+                    ->submitAction(Forms\Components\Actions\Action::make('create')
+                        ->label(__('filament-panels::resources/pages/create-record.form.actions.create.label'))
+                        ->submit('create')),
             ]);
     }
 
@@ -135,13 +133,14 @@ class CourseResource extends Resource
                 Tables\Columns\TextColumn::make('delivery_type')
                     ->formatStateUsing(function ($state) {
                         $value = $state instanceof DeliveryType ? $state->value : (string) $state;
-                        return __('courses.delivery_type_options.' . $value);
+
+                        return __('courses.delivery_type_options.'.$value);
                     })
                     ->badge()
                     ->label(__('courses.delivery_type')),
                 Tables\Columns\TextColumn::make('duration_hours')
                     ->label(__('courses.duration_hours'))
-                    ->suffix(' ' . __('courses.hours')),
+                    ->suffix(' '.__('courses.hours')),
                 Tables\Columns\TextColumn::make('ownerTeacher.name')
                     ->sortable()
                     ->label(__('Owner Teacher')),

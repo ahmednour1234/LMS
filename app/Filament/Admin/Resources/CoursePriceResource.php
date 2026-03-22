@@ -21,7 +21,7 @@ class CoursePriceResource extends Resource
 
     protected static ?string $navigationGroup = 'training';
 
-    protected static ?int $navigationSort = 3;
+    protected static ?int $navigationSort = 21;
 
     public static function getNavigationLabel(): string
     {
@@ -55,7 +55,7 @@ class CoursePriceResource extends Resource
                 Forms\Components\Select::make('course_id')
                     ->relationship('course', 'code', function (Builder $query) {
                         $user = auth()->user();
-                        if (!$user->isSuperAdmin()) {
+                        if (! $user->isSuperAdmin()) {
                             $query->where('branch_id', $user->branch_id);
                         }
                         // Super admins see all courses (no filter)
@@ -122,7 +122,7 @@ class CoursePriceResource extends Resource
                     ->default(false)
                     ->live()
                     ->disabled(fn (Forms\Get $get) => $get('pricing_mode') === 'per_session')
-                    ->helperText(fn (Forms\Get $get) => $get('pricing_mode') === 'per_session' 
+                    ->helperText(fn (Forms\Get $get) => $get('pricing_mode') === 'per_session'
                         ? __('course_prices.installments_disabled_for_per_session')
                         : null),
                 Forms\Components\TextInput::make('min_down_payment')
@@ -151,6 +151,7 @@ class CoursePriceResource extends Resource
                         if (in_array($pricingMode, ['per_session', 'both'])) {
                             return (int) ($get('sessions_count') ?? 1);
                         }
+
                         return config('money.max_installments_limit', 36);
                     })
                     ->visible(fn (Forms\Get $get) => $get('allow_installments'))
@@ -159,9 +160,11 @@ class CoursePriceResource extends Resource
                         $pricingMode = $get('pricing_mode') ?? 'course_total';
                         if (in_array($pricingMode, ['per_session', 'both'])) {
                             $sessionsCount = (int) ($get('sessions_count') ?? 1);
+
                             return __('course_prices.max_installments_helper_session_based', ['count' => $sessionsCount]);
                         }
                         $limit = config('money.max_installments_limit', 36);
+
                         return __('course_prices.max_installments_helper_course_total', ['limit' => $limit]);
                     })
                     ->rules([
@@ -171,7 +174,7 @@ class CoursePriceResource extends Resource
                             }
                             $pricingMode = $get('pricing_mode') ?? 'course_total';
                             $maxInstallments = (int) $value;
-                            
+
                             if (in_array($pricingMode, ['per_session', 'both'])) {
                                 $sessionsCount = (int) ($get('sessions_count') ?? 1);
                                 if ($maxInstallments > $sessionsCount) {
@@ -196,7 +199,7 @@ class CoursePriceResource extends Resource
         return $table
             ->modifyQueryUsing(function (Builder $query) {
                 $user = auth()->user();
-                if (!$user->isSuperAdmin()) {
+                if (! $user->isSuperAdmin()) {
                     $query->whereHas('course.program', fn ($q) => $q->where('programs.branch_id', $user->branch_id));
                 }
             })
@@ -214,16 +217,17 @@ class CoursePriceResource extends Resource
                     ->visible(fn () => auth()->user()->isSuperAdmin()),
                 Tables\Columns\TextColumn::make('delivery_type')
                     ->formatStateUsing(function ($state) {
-                        if (!$state) {
+                        if (! $state) {
                             return __('course_prices.all_delivery_types');
                         }
                         $value = $state instanceof DeliveryType ? $state->value : (string) $state;
-                        return __('course_prices.delivery_type_options.' . $value);
+
+                        return __('course_prices.delivery_type_options.'.$value);
                     })
                     ->badge()
                     ->label(__('course_prices.delivery_type')),
                 Tables\Columns\TextColumn::make('pricing_mode')
-                    ->formatStateUsing(fn ($state) => $state ? __('course_prices.pricing_mode_options.' . $state) : '-')
+                    ->formatStateUsing(fn ($state) => $state ? __('course_prices.pricing_mode_options.'.$state) : '-')
                     ->badge()
                     ->label(__('course_prices.pricing_mode')),
                 Tables\Columns\TextColumn::make('price')

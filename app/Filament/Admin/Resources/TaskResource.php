@@ -20,8 +20,10 @@ class TaskResource extends Resource
     protected static ?string $model = Task::class;
 
     protected static ?string $navigationIcon = 'heroicon-o-clipboard-document-list';
+
     protected static ?string $navigationGroup = 'training';
-    protected static ?int $navigationSort = 7;
+
+    protected static ?int $navigationSort = 26;
 
     public static function getNavigationLabel(): string
     {
@@ -84,7 +86,7 @@ class TaskResource extends Resource
                 ->label(__('tasks.lesson'))
                 ->options(function (Forms\Get $get) {
                     $courseId = $get('course_id');
-                    if (!$courseId) {
+                    if (! $courseId) {
                         return [];
                     }
 
@@ -95,6 +97,7 @@ class TaskResource extends Resource
                         ->get()
                         ->mapWithKeys(function ($lesson) {
                             $label = MultilingualHelper::formatMultilingualField($lesson->title) ?: 'N/A';
+
                             return [$lesson->id => $label];
                         })
                         ->toArray();
@@ -156,8 +159,7 @@ class TaskResource extends Resource
 
                 Tables\Columns\TextColumn::make('lesson.title')
                     ->label(__('tasks.lesson'))
-                    ->formatStateUsing(fn ($state, $record) =>
-                        $record?->lesson?->title
+                    ->formatStateUsing(fn ($state, $record) => $record?->lesson?->title
                             ? MultilingualHelper::formatMultilingualField($record->lesson->title)
                             : '-'
                     )
@@ -165,8 +167,7 @@ class TaskResource extends Resource
 
                 Tables\Columns\TextColumn::make('title')
                     ->label(__('tasks.title'))
-                    ->formatStateUsing(fn ($state, $record) =>
-                        $record?->title ? MultilingualHelper::formatMultilingualField($record->title) : ''
+                    ->formatStateUsing(fn ($state, $record) => $record?->title ? MultilingualHelper::formatMultilingualField($record->title) : ''
                     )
                     ->searchable()
                     ->sortable(),
@@ -174,7 +175,7 @@ class TaskResource extends Resource
                 Tables\Columns\TextColumn::make('submission_type')
                     ->label(__('tasks.submission_type'))
                     ->badge()
-                    ->formatStateUsing(fn ($state) => __('tasks.submission_type_options.' . $state)),
+                    ->formatStateUsing(fn ($state) => __('tasks.submission_type_options.'.$state)),
 
                 Tables\Columns\TextColumn::make('max_score')
                     ->sortable()
@@ -218,10 +219,10 @@ class TaskResource extends Resource
     public static function getPages(): array
     {
         return [
-            'index'  => Pages\ListTasks::route('/'),
+            'index' => Pages\ListTasks::route('/'),
             'create' => Pages\CreateTask::route('/create'),
-            'view'   => Pages\ViewTask::route('/{record}'),
-            'edit'   => Pages\EditTask::route('/{record}/edit'),
+            'view' => Pages\ViewTask::route('/{record}'),
+            'edit' => Pages\EditTask::route('/{record}/edit'),
         ];
     }
 }
